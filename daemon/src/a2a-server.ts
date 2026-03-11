@@ -170,6 +170,10 @@ export function a2aRoutes(
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
+    if (!rateLimiter.check(req.ip)) {
+      return reply.code(429).send({ error: 'Rate limit exceeded' });
+    }
+
     const parsed = SendBodySchema.safeParse(req.body);
 
     if (!parsed.success) {
@@ -299,36 +303,45 @@ export function a2aRoutes(
 
         let fullResponse = '';
 
-        await requestQueue.enqueue(streamAgent, async () => {
-          for await (const chunk of executePromptStreaming(streamMessageText, config.workspace, config.max_turns)) {
-            if (clientDisconnected) break;
-            fullResponse += chunk;
-            const event = JSON.stringify({
+        try {
+          await requestQueue.enqueue(streamAgent, async () => {
+            for await (const chunk of executePromptStreaming(streamMessageText, config.workspace, config.max_turns)) {
+              if (clientDisconnected) break;
+              fullResponse += chunk;
+              const event = JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                result: {
+                  type: 'message/stream',
+                  message: { role: 'agent', parts: [{ text: chunk }] },
+                  contextId: conversation.id,
+                },
+              });
+              reply.raw.write(`data: ${event}\n\n`);
+            }
+          });
+
+          saveMessage('inbound', streamAgent, streamMessageText, fullResponse, conversation.id);
+
+          if (!clientDisconnected) {
+            const finalEvent = JSON.stringify({
               jsonrpc: '2.0',
               id,
               result: {
-                type: 'message/stream',
-                message: { role: 'agent', parts: [{ text: chunk }] },
+                type: 'message/stream/end',
+                message: { role: 'agent', parts: [{ text: fullResponse }] },
                 contextId: conversation.id,
               },
             });
-            reply.raw.write(`data: ${event}\n\n`);
+            reply.raw.write(`data: ${finalEvent}\n\n`);
           }
-        });
-
-        saveMessage('inbound', streamAgent, streamMessageText, fullResponse, conversation.id);
-
-        if (!clientDisconnected) {
-          const finalEvent = JSON.stringify({
+        } catch (err) {
+          const errorEvent = JSON.stringify({
             jsonrpc: '2.0',
             id,
-            result: {
-              type: 'message/stream/end',
-              message: { role: 'agent', parts: [{ text: fullResponse }] },
-              contextId: conversation.id,
-            },
+            error: { code: -32000, message: err instanceof Error ? err.message : 'Internal error' },
           });
-          reply.raw.write(`data: ${finalEvent}\n\n`);
+          reply.raw.write(`data: ${errorEvent}\n\n`);
         }
         reply.raw.end();
         return;

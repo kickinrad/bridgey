@@ -194,7 +194,7 @@ function incrementTurnCount(contextId: string): void {
 export function getOrCreateConversation(contextId: string | null, agentName: string): Conversation {
   const d = getDB();
   if (contextId) {
-    const existing = d.prepare('SELECT * FROM conversations WHERE id = ?').get(contextId) as Conversation | undefined;
+    const existing = d.prepare('SELECT * FROM conversations WHERE id = ? AND agent_name = ?').get(contextId, agentName) as Conversation | undefined;
     if (existing) return existing;
   }
   const id = contextId || randomUUID();

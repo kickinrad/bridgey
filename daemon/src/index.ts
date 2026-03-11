@@ -248,7 +248,20 @@ function stopDaemon(pidfile: string): void {
 
   try {
     process.kill(pid, 'SIGTERM');
+    // Wait for process to actually exit before removing pidfile
+    // to avoid EADDRINUSE if startDaemon is called immediately after
+    const maxWait = 5000;
+    const pollInterval = 100;
+    let waited = 0;
+    while (isProcessAlive(pid) && waited < maxWait) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, pollInterval);
+      waited += pollInterval;
+    }
     removePid(pidfile);
+    if (waited >= maxWait) {
+      console.error(`Daemon (pid ${pid}) did not exit within ${maxWait}ms after SIGTERM`);
+      process.exit(1);
+    }
     console.log(JSON.stringify({ status: 'stopped', pid }));
   } catch (err) {
     console.error(`Failed to stop daemon (pid ${pid}): ${err}`);

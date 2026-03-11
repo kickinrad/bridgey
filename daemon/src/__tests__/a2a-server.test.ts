@@ -44,7 +44,7 @@ describe('a2a-server endpoints', () => {
     expect(res.ok).toBe(true);
     const card = await res.json() as { name: string; version: string };
     expect(card.name).toBe('test-agent');
-    expect(card.version).toBe('0.1.0');
+    expect(card.version).toBe('0.2.0');
   });
 
   it('GET /agents without auth returns 401 or 200 (localhost trusted)', async () => {

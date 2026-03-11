@@ -1,0 +1,23 @@
+import Database from 'better-sqlite3';
+import type { Message, AuditEntry, Conversation } from './types.js';
+export declare function initDB(): Database.Database;
+export declare function getDB(): Database.Database;
+export declare function closeDB(): void;
+export declare function saveMessage(direction: 'inbound' | 'outbound', agentName: string, message: string, response: string | null, contextId: string | null): Message;
+export declare function getMessages(limit?: number): Message[];
+export declare function saveAgent(name: string, url: string, token?: string | null, agentCardJson?: string | null, status?: string): void;
+export declare function getAgents(): Array<{
+    name: string;
+    url: string;
+    token: string | null;
+    agent_card_json: string | null;
+    last_seen: string | null;
+    status: string;
+}>;
+export declare function getConfig(key: string): string | undefined;
+export declare function setConfig(key: string, value: string): void;
+export declare function saveAuditEntry(entry: Omit<AuditEntry, 'id' | 'created_at'>): void;
+export declare function getAuditLog(limit?: number): AuditEntry[];
+export declare function getOrCreateConversation(contextId: string | null, agentName: string): Conversation;
+export declare function getConversation(contextId: string): Conversation | null;
+export declare function getConversationMessages(contextId: string): Message[];

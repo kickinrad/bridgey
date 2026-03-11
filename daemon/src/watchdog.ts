@@ -27,9 +27,11 @@ export function buildWatchdogArgs(argv: string[]): WatchdogArgs {
     } else if (arg === '--pidfile' && args[i + 1]) {
       pidfile = args[++i];
     } else if (arg === '--max-restarts' && args[i + 1]) {
-      maxRestarts = parseInt(args[++i], 10);
+      const parsed = parseInt(args[++i], 10);
+      if (!isNaN(parsed) && parsed >= 0) maxRestarts = parsed;
     } else if (arg === '--cooldown' && args[i + 1]) {
-      cooldownMs = parseInt(args[++i], 10);
+      const parsed = parseInt(args[++i], 10);
+      if (!isNaN(parsed) && parsed >= 0) cooldownMs = parsed;
     }
   }
 
@@ -80,12 +82,16 @@ export function startWatchdog(args: WatchdogArgs): void {
         process.stderr.write(
           `[watchdog] daemon exited with code ${code}, max restarts (${args.maxRestarts}) reached — giving up\n`,
         );
+        process.exit(1);
+      } else {
+        // Clean exit — watchdog's job is done
+        process.exit(0);
       }
-      // code === 0 means clean shutdown or already-running, just exit silently
     });
 
     child.on('error', (err) => {
       process.stderr.write(`[watchdog] failed to spawn daemon: ${err.message}\n`);
+      process.exit(1);
     });
   }
 

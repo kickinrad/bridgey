@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { randomUUID } from 'crypto';
-import type { Message, AuditEntry } from './types.js';
+import type { Message, AuditEntry, Conversation } from './types.js';
 
 const BRIDGEY_DIR = join(homedir(), '.bridgey');
 const DB_PATH = join(BRIDGEY_DIR, 'bridgey.db');
@@ -56,6 +56,14 @@ export function initDB(): Database.Database {
       created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at);
+
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      agent_name TEXT NOT NULL,
+      turn_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   return db;
@@ -88,6 +96,10 @@ export function saveMessage(
     `INSERT INTO messages (id, direction, agent_name, message, response, context_id, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
   ).run(id, direction, agentName, message, response, contextId, now);
+
+  if (contextId) {
+    incrementTurnCount(contextId);
+  }
 
   return { id, direction, agent_name: agentName, message, response, context_id: contextId, created_at: now };
 }
@@ -169,4 +181,33 @@ export function getAuditLog(limit = 50): AuditEntry[] {
   return d
     .prepare('SELECT * FROM audit_log ORDER BY created_at DESC LIMIT ?')
     .all(limit) as AuditEntry[];
+}
+
+// --- Conversation tracking ---
+
+function incrementTurnCount(contextId: string): void {
+  const d = getDB();
+  d.prepare("UPDATE conversations SET turn_count = turn_count + 1, updated_at = datetime('now') WHERE id = ?").run(contextId);
+}
+
+export function getOrCreateConversation(contextId: string | null, agentName: string): Conversation {
+  const d = getDB();
+  if (contextId) {
+    const existing = d.prepare('SELECT * FROM conversations WHERE id = ?').get(contextId) as Conversation | undefined;
+    if (existing) return existing;
+  }
+  const id = contextId || randomUUID();
+  const now = new Date().toISOString();
+  d.prepare('INSERT INTO conversations (id, agent_name, turn_count, created_at, updated_at) VALUES (?, ?, 0, ?, ?)').run(id, agentName, now, now);
+  return { id, agent_name: agentName, turn_count: 0, created_at: now, updated_at: now };
+}
+
+export function getConversation(contextId: string): Conversation | null {
+  const d = getDB();
+  return (d.prepare('SELECT * FROM conversations WHERE id = ?').get(contextId) as Conversation) ?? null;
+}
+
+export function getConversationMessages(contextId: string): Message[] {
+  const d = getDB();
+  return d.prepare('SELECT * FROM messages WHERE context_id = ? ORDER BY created_at ASC').all(contextId) as Message[];
 }

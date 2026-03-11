@@ -77,3 +77,11 @@ export interface A2AResponse {
   result?: unknown;
   error?: { code: number; message: string; data?: unknown };
 }
+
+export interface Conversation {
+  id: string;
+  agent_name: string;
+  turn_count: number;
+  created_at: string;
+  updated_at: string;
+}

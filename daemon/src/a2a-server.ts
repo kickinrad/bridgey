@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import type { BridgeyConfig, A2AResponse } from './types.js';
 import { validateToken, isLocalAgent } from './auth.js';
 import { generateAgentCard } from './agent-card.js';
-import { executePrompt } from './executor.js';
+import { executePrompt, executePromptStreaming } from './executor.js';
 import { AgentQueue } from './queue.js';
 import { sendA2AMessage } from './a2a-client.js';
 import { saveMessage, getMessages, getAgents, saveAgent, saveAuditEntry, getAuditLog, getOrCreateConversation } from './db.js';
@@ -46,8 +46,10 @@ export function a2aRoutes(
 
   // Audit log: log every request except noisy endpoints
   fastify.addHook('onResponse', async (req, reply) => {
-    const skipPaths = ['/health', '/.well-known/agent-card.json'];
-    if (skipPaths.includes(req.url)) return;
+    const skipPaths = ['/health', '/.well-known/agent-card.json', '/audit'];
+    // Strip query params for matching (req.url includes ?limit=N etc)
+    const pathOnly = req.url.split('?')[0];
+    if (skipPaths.includes(pathOnly)) return;
 
     // Determine auth_type
     let auth_type = 'none';
@@ -273,7 +275,54 @@ export function a2aRoutes(
       }
 
       case 'message/sendStream': {
-        return reply.send(jsonRpcError(id, -32601, 'Streaming not yet supported'));
+        const paramsParsed = MessageSendParamsSchema.safeParse(params);
+        if (!paramsParsed.success) {
+          return reply.send(jsonRpcError(id, -32602, `Invalid params: ${paramsParsed.error.issues[0].message}`));
+        }
+
+        const { message: { parts: streamParts }, agentName: streamAgent, contextId: streamCtxId } = paramsParsed.data;
+        const streamMessageText = streamParts[0].text;
+        const conversation = getOrCreateConversation(streamCtxId ?? null, streamAgent);
+
+        // SSE headers
+        reply.raw.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        });
+
+        let fullResponse = '';
+
+        await requestQueue.enqueue(streamAgent, async () => {
+          for await (const chunk of executePromptStreaming(streamMessageText, config.workspace, config.max_turns)) {
+            fullResponse += chunk;
+            const event = JSON.stringify({
+              jsonrpc: '2.0',
+              id,
+              result: {
+                type: 'message/stream',
+                message: { role: 'agent', parts: [{ text: chunk }] },
+                contextId: conversation.id,
+              },
+            });
+            reply.raw.write(`data: ${event}\n\n`);
+          }
+        });
+
+        saveMessage('inbound', streamAgent, streamMessageText, fullResponse, conversation.id);
+
+        const finalEvent = JSON.stringify({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            type: 'message/stream/end',
+            message: { role: 'agent', parts: [{ text: fullResponse }] },
+            contextId: conversation.id,
+          },
+        });
+        reply.raw.write(`data: ${finalEvent}\n\n`);
+        reply.raw.end();
+        return reply;
       }
 
       default: {

@@ -170,10 +170,11 @@ export function setConfig(key: string, value: string): void {
 export function saveAuditEntry(entry: Omit<AuditEntry, 'id' | 'created_at'>): void {
   const d = getDB();
   const id = randomUUID();
+  const now = new Date().toISOString();
   d.prepare(
-    `INSERT INTO audit_log (id, source_ip, method, path, a2a_method, agent_name, status_code, auth_type)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, entry.source_ip, entry.method, entry.path, entry.a2a_method, entry.agent_name, entry.status_code, entry.auth_type);
+    `INSERT INTO audit_log (id, source_ip, method, path, a2a_method, agent_name, status_code, auth_type, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(id, entry.source_ip, entry.method, entry.path, entry.a2a_method, entry.agent_name, entry.status_code, entry.auth_type, now);
 }
 
 export function getAuditLog(limit = 50): AuditEntry[] {

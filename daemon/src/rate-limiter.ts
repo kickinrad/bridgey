@@ -50,5 +50,6 @@ export class RateLimiter {
   /** Stop the cleanup timer. Call this when shutting down. */
   destroy(): void {
     clearInterval(this.cleanupTimer);
+    this.map.clear();
   }
 }

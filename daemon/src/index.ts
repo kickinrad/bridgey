@@ -178,7 +178,9 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   const fastify = Fastify(fastifyOpts);
 
   // Register routes
-  a2aRoutes(fastify, config);
+  // Cast needed: HTTPS Fastify has a different generic than plain HTTP,
+  // but our routes only use standard request/reply APIs that both share.
+  a2aRoutes(fastify as unknown as import('fastify').FastifyInstance, config);
 
   // Start listening
   try {

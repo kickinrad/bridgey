@@ -6,6 +6,7 @@ import Fastify from 'fastify';
 import { initDB, closeDB, saveAgent } from './db.js';
 import { a2aRoutes } from './a2a-server.js';
 import { getLocalIP } from './agent-card.js';
+import { isTrustedNetwork } from './auth.js';
 import { register, unregister } from './registry.js';
 import type { BridgeyConfig } from './types.js';
 
@@ -149,6 +150,9 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
     case 'lan':
       bindAddr = getLocalIP();
       break;
+    case 'tailscale':
+      bindAddr = '0.0.0.0';
+      break;
     default:
       bindAddr = config.bind || '0.0.0.0';
   }
@@ -176,6 +180,21 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   }
 
   const fastify = Fastify(fastifyOpts);
+
+  // IP allowlist: when bound to all interfaces, reject untrusted sources
+  if (bindAddr === '0.0.0.0') {
+    fastify.addHook('onRequest', (req, reply, done) => {
+      const ip = req.ip;
+      const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
+      const isTrusted = isTrustedNetwork(ip, config.trusted_networks);
+
+      if (!isLoopback && !isTrusted) {
+        reply.code(403).send({ error: 'Forbidden: untrusted source IP' });
+        return;
+      }
+      done();
+    });
+  }
 
   // Register routes
   // Cast needed: HTTPS Fastify has a different generic than plain HTTP,

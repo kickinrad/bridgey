@@ -1,39 +1,15 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'crypto';
-import type { BridgeyConfig, A2ARequest, A2AResponse } from './types.js';
+import type { BridgeyConfig, A2AResponse } from './types.js';
 import { validateToken, isLocalAgent } from './auth.js';
 import { generateAgentCard } from './agent-card.js';
 import { executePrompt } from './executor.js';
 import { AgentQueue } from './queue.js';
 import { sendA2AMessage } from './a2a-client.js';
-import { saveMessage, getMessages, getAgents, saveAgent } from './db.js';
+import { saveMessage, getMessages, getAgents, saveAgent, saveAuditEntry, getAuditLog } from './db.js';
 import { listLocal } from './registry.js';
-
-// Simple in-memory rate limiter: IP → { count, resetAt }
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  let entry = rateLimitMap.get(ip);
-
-  if (!entry || now >= entry.resetAt) {
-    entry = { count: 0, resetAt: now + 60_000 };
-    rateLimitMap.set(ip, entry);
-  }
-
-  entry.count++;
-  return entry.count <= 10;
-}
-
-// Periodic cleanup of stale rate limit entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
-    if (now >= entry.resetAt) {
-      rateLimitMap.delete(ip);
-    }
-  }
-}, 60_000).unref();
+import { SendBodySchema, A2ARequestSchema, MessageSendParamsSchema } from './schemas.js';
+import { RateLimiter } from './rate-limiter.js';
 
 function jsonRpcError(id: string | number, code: number, message: string): A2AResponse {
   return { jsonrpc: '2.0', id, error: { code, message } };
@@ -61,6 +37,55 @@ export function a2aRoutes(
       reply.raw.setTimeout(30_000, () => {
         reply.code(504).send({ error: 'Gateway timeout' });
       });
+    }
+  });
+
+  // Audit log: log every request except noisy endpoints
+  fastify.addHook('onResponse', async (req, reply) => {
+    const skipPaths = ['/health', '/.well-known/agent-card.json'];
+    if (skipPaths.includes(req.url)) return;
+
+    // Determine auth_type
+    let auth_type = 'none';
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      auth_type = 'bearer';
+    } else if (isLocalAgent(req)) {
+      auth_type = 'local';
+    }
+
+    // Extract a2a_method and agent_name from POST body
+    let a2a_method: string | null = null;
+    let agent_name: string | null = null;
+    if (req.method === 'POST' && req.body) {
+      const body = req.body as Record<string, unknown>;
+      if (typeof body.method === 'string') {
+        a2a_method = body.method;
+      }
+      if (typeof (body as any).agent === 'string') {
+        agent_name = (body as any).agent;
+      }
+      // For A2A JSON-RPC, extract agentName from params
+      if (!agent_name && body.params && typeof body.params === 'object') {
+        const params = body.params as Record<string, unknown>;
+        if (typeof params.agentName === 'string') {
+          agent_name = params.agentName;
+        }
+      }
+    }
+
+    try {
+      saveAuditEntry({
+        source_ip: req.ip,
+        method: req.method,
+        path: req.url,
+        a2a_method,
+        agent_name,
+        status_code: reply.statusCode,
+        auth_type,
+      });
+    } catch {
+      // Don't let audit logging failures break requests
     }
   });
 
@@ -123,19 +148,29 @@ export function a2aRoutes(
     return reply.send(getMessages(limit));
   });
 
+  // Audit log endpoint
+  fastify.get('/audit', async (req, reply) => {
+    if (!validateToken(req, config) && !isLocalAgent(req)) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+    const query = req.query as { limit?: string };
+    const limit = Math.min(Math.max(parseInt(query.limit || '50', 10) || 50, 1), 500);
+    return reply.send(getAuditLog(limit));
+  });
+
   // Internal send endpoint (used by MCP server)
   fastify.post('/send', async (req, reply) => {
     if (!validateToken(req, config) && !isLocalAgent(req)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
-    const body = req.body as { agent?: string; message?: string; context_id?: string } | null;
+    const parsed = SendBodySchema.safeParse(req.body);
 
-    if (!body || !body.agent || !body.message) {
+    if (!parsed.success) {
       return reply.code(400).send({ error: 'Missing required fields: agent, message' });
     }
 
-    const { agent: agentName, message, context_id } = body;
+    const { agent: agentName, message, context_id } = parsed.data;
 
     // Look up agent: check DB first, then config, then local registry
     let agentUrl: string | undefined;
@@ -190,25 +225,25 @@ export function a2aRoutes(
       return reply.code(429).send(jsonRpcError('0', -32000, 'Rate limit exceeded (10 req/min)'));
     }
 
-    const body = req.body as A2ARequest | null;
+    const rpcParsed = A2ARequestSchema.safeParse(req.body);
 
-    if (!body || body.jsonrpc !== '2.0' || !body.method || !body.id) {
+    if (!rpcParsed.success) {
       return reply.code(400).send(jsonRpcError('0', -32600, 'Invalid JSON-RPC request'));
     }
 
-    const { id, method, params } = body;
+    const { id, method, params } = rpcParsed.data;
 
     switch (method) {
       case 'message/send': {
-        // Extract message text
-        const parts = (params as any)?.message?.parts;
-        if (!Array.isArray(parts) || !parts[0]?.text) {
+        // Validate message/send params with Zod
+        const paramsParsed = MessageSendParamsSchema.safeParse(params);
+        if (!paramsParsed.success) {
           return reply.send(jsonRpcError(id, -32602, 'Invalid params: missing message.parts[0].text'));
         }
 
-        const messageText: string = parts[0].text;
-        const contextId: string | undefined = (params as any)?.contextId;
-        const agentName: string = (params as any)?.agentName || 'anonymous';
+        const messageText = paramsParsed.data.message.parts[0].text;
+        const contextId = paramsParsed.data.contextId;
+        const agentName = paramsParsed.data.agentName;
 
         // Execute via claude -p (queued per-agent to prevent concurrent sessions)
         const response = await requestQueue.enqueue(agentName, () =>

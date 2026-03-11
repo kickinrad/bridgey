@@ -14,7 +14,7 @@ export const A2ARequestSchema = z.object({
   jsonrpc: z.literal('2.0'),
   id: z.union([z.string(), z.number()]),
   method: z.string().min(1),
-  params: z.record(z.unknown()).optional(),
+  params: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type A2ARequestParsed = z.infer<typeof A2ARequestSchema>;

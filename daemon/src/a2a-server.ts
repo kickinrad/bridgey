@@ -6,7 +6,7 @@ import { generateAgentCard } from './agent-card.js';
 import { executePrompt } from './executor.js';
 import { AgentQueue } from './queue.js';
 import { sendA2AMessage } from './a2a-client.js';
-import { saveMessage, getMessages, getAgents, saveAgent, saveAuditEntry, getAuditLog } from './db.js';
+import { saveMessage, getMessages, getAgents, saveAgent, saveAuditEntry, getAuditLog, getOrCreateConversation } from './db.js';
 import { listLocal } from './registry.js';
 import { SendBodySchema, A2ARequestSchema, MessageSendParamsSchema } from './schemas.js';
 import { RateLimiter } from './rate-limiter.js';
@@ -171,7 +171,7 @@ export function a2aRoutes(
     const parsed = SendBodySchema.safeParse(req.body);
 
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Missing required fields: agent, message' });
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
     }
 
     const { agent: agentName, message, context_id } = parsed.data;
@@ -211,8 +211,9 @@ export function a2aRoutes(
       return reply.code(404).send({ error: `Agent "${agentName}" not found` });
     }
 
-    const response = await sendA2AMessage(agentUrl, agentToken, message, context_id || undefined);
-    saveMessage('outbound', agentName, message, response, context_id || null);
+    const conversation = getOrCreateConversation(context_id ?? null, agentName);
+    const response = await sendA2AMessage(agentUrl, agentToken, message, conversation.id);
+    saveMessage('outbound', agentName, message, response, conversation.id);
 
     return reply.send({ response });
   });
@@ -242,12 +243,15 @@ export function a2aRoutes(
         // Validate message/send params with Zod
         const paramsParsed = MessageSendParamsSchema.safeParse(params);
         if (!paramsParsed.success) {
-          return reply.send(jsonRpcError(id, -32602, 'Invalid params: missing message.parts[0].text'));
+          return reply.send(jsonRpcError(id, -32602, `Invalid params: ${paramsParsed.error.issues[0].message}`));
         }
 
         const messageText = paramsParsed.data.message.parts[0].text;
         const contextId = paramsParsed.data.contextId;
         const agentName = paramsParsed.data.agentName;
+
+        // Track conversation
+        const conversation = getOrCreateConversation(contextId ?? null, agentName);
 
         // Execute via claude -p (queued per-agent to prevent concurrent sessions)
         const response = await requestQueue.enqueue(agentName, () =>
@@ -255,7 +259,7 @@ export function a2aRoutes(
         );
 
         // Save to DB
-        saveMessage('inbound', agentName, messageText, response, contextId || null);
+        saveMessage('inbound', agentName, messageText, response, conversation.id);
 
         return reply.send(
           jsonRpcResult(id, {
@@ -263,7 +267,7 @@ export function a2aRoutes(
               role: 'agent',
               parts: [{ text: response }],
             },
-            contextId: contextId || randomUUID(),
+            contextId: conversation.id,
           }),
         );
       }

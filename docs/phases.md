@@ -23,15 +23,15 @@
 - [x] Test concurrent `claude -p` sessions on Max account (spike test #3)
 - [x] Verify plugin can write to `${CLAUDE_PLUGIN_ROOT}` (spike test #4)
 
-## Phase 3: Hardening + Streaming (2-3 days)
+## Phase 3: Hardening + Streaming — COMPLETE ✅
 
-- [ ] A2A `message/sendStream` (SSE) for long responses
-- [ ] `contextId` for multi-turn conversations (track in SQLite)
-- [ ] Audit log table (who sent what, when, from where)
-- [ ] Daemon auto-restart on crash (wrapper script or systemd unit)
-- [ ] Rate limiting per source with configurable limits
-- [ ] Input validation hardening (message schema validation)
-- [ ] mTLS preparation (cert paths in config)
+- [x] Input validation hardening (Zod v4 schema validation for all inbound payloads)
+- [x] Audit log table (source IP, method, path, A2A method, agent name, status, auth type)
+- [x] Rate limiting per source with configurable limits (extracted RateLimiter class)
+- [x] `contextId` for multi-turn conversations (track in SQLite with turn counting)
+- [x] A2A `message/sendStream` (SSE) with reply.hijack(), client disconnect detection, per-agent queueing
+- [x] Daemon auto-restart on crash (watchdog wrapper with configurable max restarts + backoff)
+- [x] mTLS preparation (cert/key/ca paths in config, conditional HTTPS Fastify setup)
 
 ## Phase 4: Companion Plugins (3-4 days each)
 

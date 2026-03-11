@@ -76,7 +76,7 @@ export function generateAgentCard(config: BridgeyConfig): AgentCard {
     url,
     version: '0.1.0',
     capabilities: {
-      streaming: false,
+      streaming: true,
       pushNotifications: false,
     },
     defaultInputModes: ['text/plain'],

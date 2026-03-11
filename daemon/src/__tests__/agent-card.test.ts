@@ -20,7 +20,7 @@ describe('generateAgentCard', () => {
     const card = generateAgentCard(testConfig);
     expect(card.name).toBe('test-bot');
     expect(card.url).toBe('http://localhost:8092');
-    expect(card.capabilities.streaming).toBe(false);
+    expect(card.capabilities.streaming).toBe(true);
     expect(card.skills).toHaveLength(1);
   });
 });

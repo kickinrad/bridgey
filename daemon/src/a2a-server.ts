@@ -4,6 +4,7 @@ import type { BridgeyConfig, A2ARequest, A2AResponse } from './types.js';
 import { validateToken, isLocalAgent } from './auth.js';
 import { generateAgentCard } from './agent-card.js';
 import { executePrompt } from './executor.js';
+import { AgentQueue } from './queue.js';
 import { sendA2AMessage } from './a2a-client.js';
 import { saveMessage, getMessages, getAgents, saveAgent } from './db.js';
 import { listLocal } from './registry.js';
@@ -49,6 +50,7 @@ export function a2aRoutes(
   fastify: FastifyInstance,
   config: BridgeyConfig,
 ): void {
+  const requestQueue = new AgentQueue();
   const agentCard = generateAgentCard(config);
 
   // Set request timeout for non-long-running routes (30s)
@@ -208,8 +210,10 @@ export function a2aRoutes(
         const contextId: string | undefined = (params as any)?.contextId;
         const agentName: string = (params as any)?.agentName || 'anonymous';
 
-        // Execute via claude -p
-        const response = await executePrompt(messageText, config.workspace, config.max_turns);
+        // Execute via claude -p (queued per-agent to prevent concurrent sessions)
+        const response = await requestQueue.enqueue(agentName, () =>
+          executePrompt(messageText, config.workspace, config.max_turns),
+        );
 
         // Save to DB
         saveMessage('inbound', agentName, messageText, response, contextId || null);

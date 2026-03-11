@@ -35,6 +35,15 @@ describe('conversations', () => {
     expect(updated!.turn_count).toBe(2);
   });
 
+  it('creates new conversation when contextId belongs to different agent', () => {
+    const aliceConv = getOrCreateConversation(null, 'alice-owner');
+    // Mallory tries to use Alice's contextId
+    const malloryConv = getOrCreateConversation(aliceConv.id, 'mallory');
+    // Should get a different conversation, not crash with UNIQUE constraint
+    expect(malloryConv.id).not.toBe(aliceConv.id);
+    expect(malloryConv.agent_name).toBe('mallory');
+  });
+
   it('retrieves messages for a conversation', () => {
     const conv = getOrCreateConversation(null, 'dave');
     saveMessage('inbound', 'dave', 'msg1', 'resp1', conv.id);

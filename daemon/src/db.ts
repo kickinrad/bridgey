@@ -196,6 +196,9 @@ export function getOrCreateConversation(contextId: string | null, agentName: str
   if (contextId) {
     const existing = d.prepare('SELECT * FROM conversations WHERE id = ? AND agent_name = ?').get(contextId, agentName) as Conversation | undefined;
     if (existing) return existing;
+    // If contextId exists but belongs to a different agent, ignore it and generate a fresh one
+    const foreign = d.prepare('SELECT 1 FROM conversations WHERE id = ?').get(contextId);
+    if (foreign) contextId = null;
   }
   const id = contextId || randomUUID();
   const now = new Date().toISOString();

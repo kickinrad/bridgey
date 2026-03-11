@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import http from 'http';
 import Fastify from 'fastify';
-import { initDB, closeDB } from '../db.js';
+import { initDB, closeDB, getAuditLog } from '../db.js';
 import type { BridgeyConfig } from '../types.js';
 
 // Mock executor to yield streaming chunks
@@ -126,5 +126,17 @@ describe('message/sendStream SSE', () => {
     const res = await fetch(`http://localhost:${TEST_PORT}/.well-known/agent-card.json`);
     const card = await res.json() as { capabilities: { streaming: boolean } };
     expect(card.capabilities.streaming).toBe(true);
+  });
+
+  it('audit logs SSE streaming requests', async () => {
+    // The successful streaming test above should have created an audit entry
+    // onResponse hook fires even for hijacked replies per Fastify docs
+    const entries = getAuditLog(50);
+    const sseEntry = entries.find(
+      (e) => e.method === 'POST' && e.path === '/' && e.a2a_method === 'message/sendStream',
+    );
+    expect(sseEntry).toBeDefined();
+    expect(sseEntry!.status_code).toBe(200);
+    expect(sseEntry!.auth_type).toBe('bearer');
   });
 });

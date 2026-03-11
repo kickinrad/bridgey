@@ -60,6 +60,8 @@ export async function* sendA2AMessageStream(
         if (!line.startsWith('data: ')) continue;
         try {
           const event = JSON.parse(line.slice(6));
+          // Skip end events to avoid double-counting the full response
+          if (event.result?.type === 'message/stream/end') continue;
           const text = event.result?.message?.parts?.[0]?.text;
           if (text) {
             fullResponse += text;

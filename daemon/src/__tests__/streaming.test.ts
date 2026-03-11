@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import http from 'http';
 import Fastify from 'fastify';
 import { initDB, closeDB } from '../db.js';
 import type { BridgeyConfig } from '../types.js';
@@ -44,13 +45,8 @@ describe('message/sendStream SSE', () => {
   });
 
   it('returns SSE stream with chunks', async () => {
-    const res = await fetch(`http://localhost:${TEST_PORT}/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer brg_streamtest',
-      },
-      body: JSON.stringify({
+    const text = await new Promise<string>((resolve, reject) => {
+      const payload = JSON.stringify({
         jsonrpc: '2.0',
         id: 'stream-1',
         method: 'message/sendStream',
@@ -58,13 +54,36 @@ describe('message/sendStream SSE', () => {
           message: { role: 'user', parts: [{ text: 'Hello streaming!' }] },
           agentName: 'test-sender',
         },
-      }),
+      });
+
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: TEST_PORT,
+          path: '/',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer brg_streamtest',
+            Accept: 'text/event-stream',
+          },
+        },
+        (res) => {
+          expect(res.statusCode).toBe(200);
+          expect(res.headers['content-type']).toBe('text/event-stream');
+
+          let body = '';
+          res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+          res.on('end', () => resolve(body));
+          res.on('error', reject);
+        },
+      );
+
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
     });
 
-    expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toBe('text/event-stream');
-
-    const text = await res.text();
     const events = text.split('\n\n').filter(e => e.startsWith('data: '));
 
     // Should have chunk events + final end event

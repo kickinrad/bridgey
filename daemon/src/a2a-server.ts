@@ -284,17 +284,24 @@ export function a2aRoutes(
         const streamMessageText = streamParts[0].text;
         const conversation = getOrCreateConversation(streamCtxId ?? null, streamAgent);
 
-        // SSE headers
+        // Take over the raw socket — Fastify won't try to send its own response
+        reply.hijack();
+
         reply.raw.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
         });
 
+        // Track client disconnect so we can stop streaming
+        let clientDisconnected = false;
+        reply.raw.on('close', () => { clientDisconnected = true; });
+
         let fullResponse = '';
 
         await requestQueue.enqueue(streamAgent, async () => {
           for await (const chunk of executePromptStreaming(streamMessageText, config.workspace, config.max_turns)) {
+            if (clientDisconnected) break;
             fullResponse += chunk;
             const event = JSON.stringify({
               jsonrpc: '2.0',
@@ -311,18 +318,20 @@ export function a2aRoutes(
 
         saveMessage('inbound', streamAgent, streamMessageText, fullResponse, conversation.id);
 
-        const finalEvent = JSON.stringify({
-          jsonrpc: '2.0',
-          id,
-          result: {
-            type: 'message/stream/end',
-            message: { role: 'agent', parts: [{ text: fullResponse }] },
-            contextId: conversation.id,
-          },
-        });
-        reply.raw.write(`data: ${finalEvent}\n\n`);
+        if (!clientDisconnected) {
+          const finalEvent = JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            result: {
+              type: 'message/stream/end',
+              message: { role: 'agent', parts: [{ text: fullResponse }] },
+              contextId: conversation.id,
+            },
+          });
+          reply.raw.write(`data: ${finalEvent}\n\n`);
+        }
         reply.raw.end();
-        return reply;
+        return;
       }
 
       default: {

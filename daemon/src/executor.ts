@@ -167,10 +167,9 @@ export async function* executePromptStreaming(
     }
   } finally {
     clearTimeout(timer);
+    // Kill child process if still running (e.g. consumer broke out of loop early)
+    if (proc.exitCode === null) {
+      proc.kill('SIGTERM');
+    }
   }
-
-  await new Promise<void>((resolve) => {
-    proc.on('close', () => resolve());
-    if (proc.exitCode !== null) resolve();
-  });
 }

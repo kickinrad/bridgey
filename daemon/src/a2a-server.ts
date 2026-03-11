@@ -28,6 +28,10 @@ export function a2aRoutes(
 ): void {
   const requestQueue = new AgentQueue();
   const agentCard = generateAgentCard(config);
+  const rateLimiter = new RateLimiter({
+    maxRequests: config.rate_limit?.max_requests ?? 10,
+    windowMs: config.rate_limit?.window_ms ?? 60_000,
+  });
 
   // Set request timeout for non-long-running routes (30s)
   // /send and POST / can be long-running (claude -p takes up to 5 min)
@@ -221,8 +225,8 @@ export function a2aRoutes(
     }
 
     // Rate limit
-    if (!checkRateLimit(req.ip)) {
-      return reply.code(429).send(jsonRpcError('0', -32000, 'Rate limit exceeded (10 req/min)'));
+    if (!rateLimiter.check(req.ip)) {
+      return reply.code(429).send(jsonRpcError('0', -32000, 'Rate limit exceeded'));
     }
 
     const rpcParsed = A2ARequestSchema.safeParse(req.body);

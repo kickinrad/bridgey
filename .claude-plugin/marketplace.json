@@ -1,0 +1,25 @@
+{
+  "name": "bridgey",
+  "owner": { "name": "wils", "url": "https://github.com/kickinrad" },
+  "metadata": {
+    "description": "Inter-agent communication for Claude Code via A2A protocol",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "bridgey",
+      "source": "./plugins/bridgey",
+      "description": "Inter-agent communication via Google A2A protocol — send messages, discover agents, manage inbox",
+      "version": "0.2.0",
+      "category": "productivity"
+    },
+    {
+      "name": "bridgey-tailscale",
+      "source": "./plugins/bridgey-tailscale",
+      "description": "Tailscale mesh network discovery for bridgey — auto-discovers agents on your tailnet",
+      "version": "0.1.0",
+      "category": "productivity"
+    }
+  ]
+}

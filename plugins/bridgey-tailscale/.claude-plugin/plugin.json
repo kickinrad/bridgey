@@ -1,0 +1,12 @@
+{
+  "name": "bridgey-tailscale",
+  "version": "0.1.0",
+  "description": "Tailscale mesh network discovery for bridgey. Auto-discovers bridgey agents on your tailnet and registers them — zero manual config.",
+  "author": {
+    "name": "Wils",
+    "email": "wils@bestfootforward.business"
+  },
+  "repository": "https://github.com/kickinrad/bridgey",
+  "license": "MIT",
+  "keywords": ["bridgey", "tailscale", "discovery", "mesh", "a2a"]
+}

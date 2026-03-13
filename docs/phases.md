@@ -35,13 +35,13 @@
 
 ## Phase 4: Companion Plugins (3-4 days each)
 
-### bridgey-tailscale 🔒
-- [ ] Query `tailscale status --json` for device discovery
-- [ ] Probe each tailnet device at bridgey port
-- [ ] Auto-register discovered remote agents
-- [ ] Bind daemon to Tailscale interface
-- [ ] Trust Tailscale identity (skip bearer tokens for tailnet peers)
-- [ ] Periodic re-scan for new devices
+### bridgey-tailscale 🔒 — COMPLETE ✅
+- [x] Query `tailscale status --json` for device discovery
+- [x] Probe each tailnet device at bridgey port
+- [x] Auto-register discovered remote agents
+- [x] Bind daemon to Tailscale interface (`bind: "tailscale"` → `0.0.0.0` + IP allowlist)
+- [x] Trust Tailscale identity (CIDR-based `trusted_networks` in auth, skip bearer tokens for `100.64.0.0/10`)
+- [x] Re-scan on SessionStart hook + manual `/bridgey-tailscale:scan` skill
 
 ### bridgey-telegram 💬
 - [ ] Telegram bot via Bot API

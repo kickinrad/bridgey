@@ -16,6 +16,7 @@ export interface BridgeyConfig {
     key: string;       // path to server key PEM
     ca?: string;       // path to CA cert PEM (for mTLS client verification)
   };
+  trusted_networks?: string[];  // CIDR ranges to trust (e.g. ["100.64.0.0/10"])
 }
 
 export interface RemoteAgent {
@@ -59,7 +60,7 @@ export interface AuditEntry {
   a2a_method: string | null;  // JSON-RPC method if applicable
   agent_name: string | null;
   status_code: number;
-  auth_type: string;      // 'bearer' | 'local' | 'none'
+  auth_type: string;      // 'bearer' | 'local' | 'tailnet' | 'none'
   created_at?: string;
 }
 

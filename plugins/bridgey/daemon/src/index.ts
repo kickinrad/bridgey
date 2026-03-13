@@ -6,6 +6,7 @@ import Fastify from 'fastify';
 import { initDB, closeDB, saveAgent } from './db.js';
 import { a2aRoutes } from './a2a-server.js';
 import { getLocalIP } from './agent-card.js';
+import { isTrustedNetwork } from './auth.js';
 import { register, unregister } from './registry.js';
 import type { BridgeyConfig } from './types.js';
 
@@ -149,6 +150,9 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
     case 'lan':
       bindAddr = getLocalIP();
       break;
+    case 'tailscale':
+      bindAddr = '0.0.0.0';
+      break;
     default:
       bindAddr = config.bind || '0.0.0.0';
   }
@@ -176,6 +180,21 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   }
 
   const fastify = Fastify(fastifyOpts);
+
+  // IP allowlist: when bound to all interfaces, reject untrusted sources
+  if (bindAddr === '0.0.0.0') {
+    fastify.addHook('onRequest', (req, reply, done) => {
+      const ip = req.ip;
+      const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip);
+      const isTrusted = isTrustedNetwork(ip, config.trusted_networks);
+
+      if (!isLoopback && !isTrusted) {
+        reply.code(403).send({ error: 'Forbidden: untrusted source IP' });
+        return;
+      }
+      done();
+    });
+  }
 
   // Register routes
   // Cast needed: HTTPS Fastify has a different generic than plain HTTP,
@@ -248,6 +267,19 @@ function stopDaemon(pidfile: string): void {
 
   try {
     process.kill(pid, 'SIGTERM');
+    // Wait for process to actually exit before removing pidfile
+    // to avoid EADDRINUSE if startDaemon is called immediately after
+    const maxWait = 5000;
+    const pollInterval = 100;
+    let waited = 0;
+    while (isProcessAlive(pid) && waited < maxWait) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, pollInterval);
+      waited += pollInterval;
+    }
+    if (waited >= maxWait) {
+      console.error(`Daemon (pid ${pid}) did not exit within ${maxWait}ms after SIGTERM`);
+      process.exit(1);
+    }
     removePid(pidfile);
     console.log(JSON.stringify({ status: 'stopped', pid }));
   } catch (err) {

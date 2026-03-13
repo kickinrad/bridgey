@@ -50,3 +50,31 @@ export function isLocalAgent(req: FastifyRequest, registryDir: string = REGISTRY
 export function generateToken(): string {
   return 'brg_' + randomBytes(16).toString('hex');
 }
+
+/**
+ * Convert an IPv4 address (or IPv4-mapped IPv6) to a 32-bit unsigned integer.
+ */
+function ipToLong(ip: string): number {
+  const v4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  const parts = v4.split('.');
+  if (parts.length !== 4) return 0;
+  return parts.reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+}
+
+/**
+ * Check if an IPv4 address falls within a CIDR range.
+ */
+export function isInCIDR(ip: string, cidr: string): boolean {
+  const [network, prefixStr] = cidr.split('/');
+  const prefix = parseInt(prefixStr, 10);
+  const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+  return (ipToLong(ip) & mask) === (ipToLong(network) & mask);
+}
+
+/**
+ * Check if an IP belongs to any of the configured trusted networks.
+ */
+export function isTrustedNetwork(ip: string, trustedNetworks?: string[]): boolean {
+  if (!trustedNetworks?.length) return false;
+  return trustedNetworks.some((cidr) => isInCIDR(ip, cidr));
+}

@@ -1,0 +1,14 @@
+{
+  "name": "bridgey",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:daemon && npm run build:server",
+    "build:daemon": "cd daemon && npx tsc",
+    "build:server": "cd server && npx tsc",
+    "install:all": "cd daemon && npm install && cd ../server && npm install",
+    "test": "cd daemon && npm test",
+    "test:daemon": "cd daemon && npm test"
+  }
+}

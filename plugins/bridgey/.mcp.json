@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "bridgey": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/index.js"],
+      "env": {
+        "BRIDGEY_DAEMON_PORT": "8092"
+      }
+    }
+  }
+}

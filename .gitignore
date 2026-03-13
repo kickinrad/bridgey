@@ -1,5 +1,6 @@
-node_modules/
-dist/
+**/node_modules/
+**/dist/
 *.local.md
 .env
 bridgey.config.json
+bridgey-tailscale.config.json

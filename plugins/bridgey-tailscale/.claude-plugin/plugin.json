@@ -6,7 +6,7 @@
     "name": "Wils",
     "email": "wils@bestfootforward.business"
   },
-  "repository": "https://github.com/kickinrad/bridgey-tailscale",
+  "repository": "https://github.com/kickinrad/bridgey",
   "license": "MIT",
   "keywords": ["bridgey", "tailscale", "discovery", "mesh", "a2a"]
 }

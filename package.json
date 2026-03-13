@@ -1,14 +1,15 @@
 {
-  "name": "bridgey",
-  "version": "0.1.0",
+  "name": "bridgey-marketplace",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:daemon && npm run build:server",
-    "build:daemon": "cd daemon && npx tsc",
-    "build:server": "cd server && npx tsc",
-    "install:all": "cd daemon && npm install && cd ../server && npm install",
-    "test": "cd daemon && npm test",
-    "test:daemon": "cd daemon && npm test"
+    "build": "npm run build:bridgey && npm run build:tailscale",
+    "build:bridgey": "cd plugins/bridgey && npm run build",
+    "build:tailscale": "cd plugins/bridgey-tailscale && npm run build",
+    "install:all": "cd plugins/bridgey && npm run install:all && cd ../bridgey-tailscale && npm install",
+    "test": "npm run test:bridgey && npm run test:tailscale",
+    "test:bridgey": "cd plugins/bridgey && npm test",
+    "test:tailscale": "cd plugins/bridgey-tailscale && npm test"
   }
 }

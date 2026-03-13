@@ -276,11 +276,11 @@ function stopDaemon(pidfile: string): void {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, pollInterval);
       waited += pollInterval;
     }
-    removePid(pidfile);
     if (waited >= maxWait) {
       console.error(`Daemon (pid ${pid}) did not exit within ${maxWait}ms after SIGTERM`);
       process.exit(1);
     }
+    removePid(pidfile);
     console.log(JSON.stringify({ status: 'stopped', pid }));
   } catch (err) {
     console.error(`Failed to stop daemon (pid ${pid}): ${err}`);

@@ -9,9 +9,12 @@
     "build:tailscale": "cd plugins/bridgey-tailscale && npm run build",
     "build:discord": "cd plugins/bridgey-discord && npm run build",
     "install:all": "cd plugins/bridgey && npm run install:all && cd ../bridgey-tailscale && npm install && cd ../bridgey-discord && npm install",
-    "test": "npm run test:bridgey && npm run test:tailscale && npm run test:discord",
-    "test:bridgey": "cd plugins/bridgey && npm test",
-    "test:tailscale": "cd plugins/bridgey-tailscale && npm test",
-    "test:discord": "cd plugins/bridgey-discord && npm test"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.0",
+    "vitest": "4.1.0"
   }
 }

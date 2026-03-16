@@ -2,9 +2,9 @@ import { defineProject } from 'vitest/config';
 
 export default defineProject({
   test: {
-    name: 'daemon',
+    name: 'tailscale',
     globals: true,
-    include: ['src/__tests__/**/*.test.ts'],
+    include: ['src/**/*.test.ts'],
     exclude: ['dist/**', 'node_modules/**'],
   },
 });

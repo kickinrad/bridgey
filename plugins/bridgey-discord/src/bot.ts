@@ -23,7 +23,7 @@ export class DiscordBotManager {
 
       const discordToken = this.tokenResolver(config.token_env);
       // A2ABridge doesn't need a bearer token — daemons trust Docker network via trusted_networks
-      const bridge = new A2ABridge(config.daemon_url);
+      const bridge = new A2ABridge(config.daemon_url, config.name);
       const bot: PersonaBot = { config, client, bridge, contextMap: new Map() };
 
       client.on(Events.MessageCreate, (msg) => this.handleMessage(bot, msg));

@@ -15,7 +15,7 @@ describe('A2ABridge', () => {
         json: () => Promise.resolve({ response: 'Hello from Julia!' }),
       });
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       const result = await bridge.send('Test message', 'ctx-123');
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -28,6 +28,10 @@ describe('A2ABridge', () => {
           }),
         }),
       );
+      const callBody = JSON.parse(
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+      );
+      expect(callBody.agent).toBe('julia');
       expect(result).toBe('Hello from Julia!');
     });
 
@@ -37,12 +41,13 @@ describe('A2ABridge', () => {
         json: () => Promise.resolve({ response: 'ok' }),
       });
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       await bridge.send('Hello', 'ctx-456');
 
       const callBody = JSON.parse(
         (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
       );
+      expect(callBody.agent).toBe('julia');
       expect(callBody.context_id).toBe('ctx-456');
     });
 
@@ -52,12 +57,13 @@ describe('A2ABridge', () => {
         json: () => Promise.resolve({ response: 'ok' }),
       });
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       await bridge.send('Hello');
 
       const callBody = JSON.parse(
         (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
       );
+      expect(callBody.agent).toBe('julia');
       expect(callBody.context_id).toBeUndefined();
     });
 
@@ -68,14 +74,14 @@ describe('A2ABridge', () => {
         statusText: 'Internal Server Error',
       });
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       await expect(bridge.send('Test')).rejects.toThrow('A2A send failed: 500');
     });
 
     it('throws on network error', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       await expect(bridge.send('Test')).rejects.toThrow('ECONNREFUSED');
     });
   });
@@ -84,7 +90,7 @@ describe('A2ABridge', () => {
     it('returns true when daemon is healthy', async () => {
       global.fetch = vi.fn().mockResolvedValue({ ok: true });
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       expect(await bridge.health()).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:8092/health');
     });
@@ -92,14 +98,14 @@ describe('A2ABridge', () => {
     it('returns false when daemon is unhealthy', async () => {
       global.fetch = vi.fn().mockResolvedValue({ ok: false });
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       expect(await bridge.health()).toBe(false);
     });
 
     it('returns false on network error', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
 
-      const bridge = new A2ABridge('http://localhost:8092', 'brg_test');
+      const bridge = new A2ABridge('http://localhost:8092', 'julia', 'brg_test');
       expect(await bridge.health()).toBe(false);
     });
   });

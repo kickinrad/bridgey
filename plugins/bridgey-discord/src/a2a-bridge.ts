@@ -1,11 +1,12 @@
 export class A2ABridge {
   constructor(
     private daemonUrl: string,
+    private agentName: string,
     private token?: string,
   ) {}
 
   async send(message: string, contextId?: string): Promise<string> {
-    const body: Record<string, string> = { message };
+    const body: Record<string, string> = { agent: this.agentName, message };
     if (contextId) body.context_id = contextId;
 
     const headers: Record<string, string> = {

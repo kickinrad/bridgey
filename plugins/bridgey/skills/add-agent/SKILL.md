@@ -31,7 +31,9 @@ Ask the user for:
 Tips for the user:
 - The URL is the remote daemon's address (hostname/IP + port)
 - The token is the remote agent's bearer token (generated during their `/bridgey:setup`)
-- For Tailscale users: use the MagicDNS hostname (e.g., `http://remote:8092`)
+- For Tailscale users: use the MagicDNS hostname (e.g., `http://my-server:8092`)
+- For Docker containers: use the service name (e.g., `http://bridgey-mila:8093`)
+- If the remote agent trusts your network via `trusted_networks`, you may not need a token
 
 ### 2. Verify Connectivity
 
@@ -95,5 +97,9 @@ Remind the user that for two-way communication, the remote agent also needs to a
 
 For secure token exchange between agents:
 1. Never send tokens over unencrypted channels
-2. Use `pass insert bridgey/agent-name-token` to store remote tokens
+2. Store tokens securely:
+   - **With `pass` (preferred):** `pass insert bridgey/agent-name-token`
+   - **Without `pass`:** store in environment variables or container platform env vars — never hardcode in config files committed to git
+   - **Generate a token inline:** `node -e "console.log('brg_' + require('crypto').randomBytes(32).toString('hex'))"`
 3. Share tokens via encrypted messaging, in person, or through Tailscale's secure channel
+4. For Docker deployments, use `trusted_networks` CIDR ranges to skip tokens for container-to-container traffic

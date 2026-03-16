@@ -56,10 +56,30 @@ If any agents are offline, suggest:
 - Verify network connectivity (`curl http://agent-url/health`)
 - Check bearer token is correct
 - For local agents: check if the CC instance is still running
+- For container agents: verify bind is `0.0.0.0` and source IP is in `trusted_networks`
+
+If agents return 400 on send:
+- The `/send` endpoint requires `{agent, message}` — the `agent` field names the target and is required
+- Verify agent name matches a registered agent (`bridgey_list_agents`)
+
+If agents return 401/403:
+- Bearer token mismatch — verify token matches the remote agent's config
+- Source IP not in `trusted_networks` — add the appropriate CIDR range
+- Docker containers: add `172.16.0.0/12` and `10.0.0.0/8` to trusted_networks
+- Tailscale: add `100.64.0.0/10` to trusted_networks
+
+If agents return 429:
+- Rate limited (10 req/min per source IP by default)
+- Wait and retry, or adjust rate limit config if needed
 
 ## Quick Status
 
 For a quick one-liner check, run:
 ```bash
 curl -s http://localhost:8092/health | jq .
+```
+
+For container deployments, use the Tailscale IP or Docker host:
+```bash
+curl -s http://<tailscale-ip>:8092/health | jq .
 ```

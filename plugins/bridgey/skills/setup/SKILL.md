@@ -31,12 +31,30 @@ Ask the user for each setting (provide sensible defaults):
 | **name** | hostname or directory name | Unique agent name for this instance |
 | **description** | "Claude Code assistant" | Human-readable description (used in Agent Card) |
 | **port** | 8092 | HTTP port for the daemon |
-| **bind** | "localhost" | Network binding: `localhost`, `lan`, or `0.0.0.0` |
+| **bind** | "localhost" | Network binding: `localhost`, `lan`, `0.0.0.0`, or custom IP |
 | **workspace** | current working directory | Working directory for inbound requests |
 | **max_turns** | 10 | Max turns for `claude -p` on inbound requests |
 
+**Bind mode guide:**
+- `"localhost"` — only reachable from same machine (most secure, default)
+- `"lan"` — binds to first non-localhost IPv4 (reachable on LAN)
+- `"0.0.0.0"` — all interfaces (required for Docker containers, Tailscale)
+- Custom IP — bind to a specific network interface
+
 If the user picks `"0.0.0.0"` for bind, warn them:
 > "Binding to all interfaces exposes the daemon to the network. A bearer token protects it, but consider using `localhost` with bridgey-tailscale for secure remote access."
+
+### 2b. Configure Trusted Networks (if non-localhost bind)
+
+If the user chose a non-localhost bind, ask if they want to add trusted networks. Trusted CIDRs allow token-free access from known ranges:
+
+| Network | CIDR | When to add |
+|---------|------|-------------|
+| Tailscale | `100.64.0.0/10` | Using bridgey-tailscale or Tailscale SSH |
+| Docker bridge | `172.16.0.0/12` | Running in Docker containers |
+| Docker overlay | `10.0.0.0/8` | Docker Swarm or alternative bridge configs |
+
+Add to config as `"trusted_networks": ["100.64.0.0/10"]` (or multiple CIDRs as needed).
 
 ### 3. Generate Security Token
 
@@ -57,9 +75,12 @@ Write `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`:
   "token": "brg_a1b2c3d4...",
   "workspace": ".",
   "max_turns": 10,
-  "agents": []
+  "agents": [],
+  "trusted_networks": []
 }
 ```
+
+Note: `trusted_networks` is an empty array by default. Only populated if user chose non-localhost bind.
 
 ### 5. Start the Daemon
 
@@ -82,6 +103,15 @@ Show the user:
 - Token (masked, e.g., `brg_a1b2...`)
 - How to add remote agents: `/bridgey:add-agent`
 - How to check status: `/bridgey:status`
+
+## Container / Headless Deployment Notes
+
+If running in Docker or on a headless server:
+- **Bind must be `0.0.0.0`** — localhost is unreachable from other containers
+- **Add Docker CIDRs to trusted_networks** — `172.16.0.0/12` and `10.0.0.0/8`
+- **Claude Code Max auth** — OAuth tokens must be transferred from a logged-in machine. Copy `~/.claude/.credentials.json` and mount it into the container.
+- **better-sqlite3** — requires native compilation (python3, make, g++). Always `npm install` inside the container; never copy node_modules from a different host/architecture.
+- **Inter-container references** — use Docker DNS names (`http://bridgey-mila:8093`), not localhost
 
 ## Notes
 

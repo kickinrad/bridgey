@@ -58,13 +58,58 @@ Config lives at `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`. Created by `/bridge
 - **Local agents** (same machine): Auto-discovered via `~/.bridgey/agents/` file registry
 - **Remote agents**: Configured manually via `/bridgey:add-agent` or config file
 
+## HTTP API (Direct Access)
+
+The daemon's `/send` endpoint expects:
+```json
+{
+  "agent": "target-agent-name",
+  "message": "your message here",
+  "context_id": "optional-conversation-id"
+}
+```
+
+All three fields: `agent` (required), `message` (required), `context_id` (optional). Missing `agent` returns 400.
+
+## Networking & Bind Modes
+
+The `bind` config field controls where the daemon listens:
+- `"localhost"` (default) — only reachable from same machine
+- `"lan"` — bind to first non-localhost IPv4
+- `"0.0.0.0"` — all interfaces (required for Docker containers)
+- Custom IP — bind to specific address
+
+When binding to non-localhost, configure `trusted_networks` to allow token-free access from trusted CIDRs:
+```json
+{
+  "bind": "0.0.0.0",
+  "trusted_networks": [
+    "100.64.0.0/10",
+    "172.16.0.0/12",
+    "10.0.0.0/8"
+  ]
+}
+```
+- `100.64.0.0/10` — Tailscale IPs
+- `172.16.0.0/12` — Docker bridge networks
+- `10.0.0.0/8` — Docker overlay / alternative bridge ranges
+
 ## Security
 
-- All inbound A2A requests require bearer token authentication
+- All inbound A2A requests require bearer token authentication (prefix: `brg_`)
 - Local agents (same host, file registry) are trusted without tokens
+- Trusted networks (configured CIDRs) skip bearer token checks
 - The daemon binds to localhost by default — network exposure requires explicit opt-in
 - Inbound messages are executed via `claude -p` with `shell: false` (no injection)
 - Rate limited: 10 requests/minute per source IP
+
+## Container / Headless Deployment
+
+When running in Docker or on a headless server:
+- **Bind:** Must use `"0.0.0.0"` (localhost is unreachable from other containers)
+- **Auth:** Claude Code Max uses OAuth; copy `~/.claude/.credentials.json` from a logged-in machine and mount read-only
+- **Native deps:** better-sqlite3 requires compilation (python3, make, g++); always `npm install` inside the container, never copy node_modules from host
+- **Inter-container DNS:** Use Docker service names (e.g., `http://bridgey-mila:8093`), not localhost or IPs
 
 ## Troubleshooting
 
@@ -73,3 +118,11 @@ If tools return "daemon unreachable":
 2. If no config: run `/bridgey:setup`
 3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js start --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
 4. Check daemon logs: `cat ~/.bridgey/daemon.log`
+
+If A2A sends return 400:
+- Verify request body includes `agent` field (required)
+- Check agent name matches a configured or discovered agent
+
+If A2A sends return 401/403:
+- Check bearer token is correct
+- For container deployments: verify `trusted_networks` includes the source CIDR

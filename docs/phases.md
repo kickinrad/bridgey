@@ -49,10 +49,15 @@
 - [ ] Config: bot token (via `pass`), allowed user IDs, daemon URL
 - [ ] Reuse patterns from Claude Code Telegram Bot project
 
-### bridgey-discord 🎮
-- [ ] Discord bot bridge to local daemon
-- [ ] Config: bot token, channel allowlist, daemon URL
-- [ ] Reuse patterns from home-base `dispatch/bot-manager.js`
+### bridgey-discord 🎮 — COMPLETE ✅
+- [x] Discord bot bridge to persona daemons via A2A protocol
+- [x] Config: bot token env var, channel mapping, daemon URL per persona
+- [x] A2ABridge HTTP client with agent name routing
+- [x] Channel-based message routing, thread→context ID mapping
+- [x] Response chunking for Discord's 2000 char limit
+- [x] Docker deployment (Dockerfile.discord, compose service)
+- [x] 14 tests passing (config + a2a-bridge)
+- [x] Deployed to Coolify homelab (Mila as Luna#4815)
 
 ## Open Spike Tests
 

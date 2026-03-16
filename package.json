@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:bridgey && npm run build:tailscale",
+    "build": "npm run build:bridgey && npm run build:tailscale && npm run build:discord",
     "build:bridgey": "cd plugins/bridgey && npm run build",
     "build:tailscale": "cd plugins/bridgey-tailscale && npm run build",
-    "install:all": "cd plugins/bridgey && npm run install:all && cd ../bridgey-tailscale && npm install",
-    "test": "npm run test:bridgey && npm run test:tailscale",
+    "build:discord": "cd plugins/bridgey-discord && npm run build",
+    "install:all": "cd plugins/bridgey && npm run install:all && cd ../bridgey-tailscale && npm install && cd ../bridgey-discord && npm install",
+    "test": "npm run test:bridgey && npm run test:tailscale && npm run test:discord",
     "test:bridgey": "cd plugins/bridgey && npm test",
-    "test:tailscale": "cd plugins/bridgey-tailscale && npm test"
+    "test:tailscale": "cd plugins/bridgey-tailscale && npm test",
+    "test:discord": "cd plugins/bridgey-discord && npm test"
   }
 }

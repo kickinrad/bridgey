@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { parseTailscaleStatus } from './scanner.js';
+import { describe, it, expect, afterAll, afterEach, beforeAll } from 'vitest';
+import { setupServer } from 'msw/node';
+import { http, HttpResponse } from 'msw';
+import { parseTailscaleStatus, probePeer } from './scanner.js';
 
 describe('parseTailscaleStatus', () => {
   it('extracts online peers with tailscale IPs', () => {
@@ -66,5 +68,83 @@ describe('parseTailscaleStatus', () => {
     const peers = parseTailscaleStatus(status, ['printer']);
     expect(peers).toHaveLength(1);
     expect(peers[0].hostname).toBe('mesa');
+  });
+});
+
+// --- HTTP probing tests via MSW ---
+
+const PROBE_IP = '100.50.60.70';
+const PROBE_PORT = 8092;
+const BASE_URL = `http://${PROBE_IP}:${PROBE_PORT}`;
+
+const server = setupServer();
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+describe('probePeer', () => {
+  it('returns healthy with agent card when both endpoints respond', async () => {
+    const agentCard = { name: 'mesa-agent', version: '1.0.0', capabilities: ['chat'] };
+
+    server.use(
+      http.get(`${BASE_URL}/health`, () => HttpResponse.json({ status: 'ok' })),
+      http.get(`${BASE_URL}/.well-known/agent-card.json`, () => HttpResponse.json(agentCard)),
+    );
+
+    const result = await probePeer(PROBE_IP, PROBE_PORT);
+    expect(result.healthy).toBe(true);
+    expect(result.agentCard).toEqual(agentCard);
+  });
+
+  it('returns healthy without agent card when only health responds', async () => {
+    server.use(
+      http.get(`${BASE_URL}/health`, () => HttpResponse.json({ status: 'ok' })),
+      http.get(`${BASE_URL}/.well-known/agent-card.json`, () =>
+        new HttpResponse(null, { status: 404 }),
+      ),
+    );
+
+    const result = await probePeer(PROBE_IP, PROBE_PORT);
+    expect(result.healthy).toBe(true);
+    expect(result.agentCard).toBeUndefined();
+  });
+
+  it('returns unhealthy when health endpoint returns non-ok status', async () => {
+    server.use(
+      http.get(`${BASE_URL}/health`, () => new HttpResponse(null, { status: 503 })),
+    );
+
+    const result = await probePeer(PROBE_IP, PROBE_PORT);
+    expect(result.healthy).toBe(false);
+    expect(result.agentCard).toBeUndefined();
+  });
+
+  it('returns unhealthy on connection error (network failure)', async () => {
+    server.use(
+      http.get(`${BASE_URL}/health`, () => HttpResponse.error()),
+    );
+
+    const result = await probePeer(PROBE_IP, PROBE_PORT);
+    expect(result.healthy).toBe(false);
+  });
+
+  it('returns unhealthy on timeout', async () => {
+    server.use(
+      http.get(`${BASE_URL}/health`, async () => {
+        // Delay longer than the timeout we'll pass
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        return HttpResponse.json({ status: 'ok' });
+      }),
+    );
+
+    const result = await probePeer(PROBE_IP, PROBE_PORT, 100);
+    expect(result.healthy).toBe(false);
+  }, 10000);
+
+  it('returns unhealthy when probing wrong port (no handler)', async () => {
+    // No MSW handlers for this port — fetch will get a network error
+    const result = await probePeer(PROBE_IP, 9999);
+    expect(result.healthy).toBe(false);
   });
 });

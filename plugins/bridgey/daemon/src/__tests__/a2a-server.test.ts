@@ -89,6 +89,45 @@ describe('a2a-server endpoints', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('POST /send with missing agent field returns 400', async () => {
+    const res = await fastify.inject({
+      method: 'POST',
+      url: '/send',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer brg_testtoken123',
+      },
+      payload: { message: 'hello there' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /send with empty message returns 400', async () => {
+    const res = await fastify.inject({
+      method: 'POST',
+      url: '/send',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer brg_testtoken123',
+      },
+      payload: { agent: 'some-agent', message: '' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /send with message exceeding 10000 chars returns 400', async () => {
+    const res = await fastify.inject({
+      method: 'POST',
+      url: '/send',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer brg_testtoken123',
+      },
+      payload: { agent: 'some-agent', message: 'A'.repeat(10_001) },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('returns 404 for unknown agent on /send', async () => {
     const res = await fastify.inject({
       method: 'POST',

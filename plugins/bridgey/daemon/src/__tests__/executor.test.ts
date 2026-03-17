@@ -10,7 +10,7 @@ vi.mock('child_process', () => ({
   spawn: mockSpawn,
 }));
 
-import { executePrompt, MAX_MESSAGE_LENGTH } from '../executor.js';
+import { executePrompt, MAX_MESSAGE_LENGTH, TIMEOUT_MS } from '../executor.js';
 
 function createMockProcess(
   opts: {
@@ -211,5 +211,35 @@ describe('executor — executePrompt', () => {
     await executePrompt('Hi', '/tmp', 3);
 
     expect(mock.stdin.end).toHaveBeenCalled();
+  });
+
+  it('returns timeout error when process exceeds TIMEOUT_MS', async () => {
+    vi.useFakeTimers();
+
+    // Create a process that never closes on its own
+    const proc = new EventEmitter() as any;
+    proc.stdout = new PassThrough();
+    proc.stderr = new PassThrough();
+    proc.stdin = { end: vi.fn() };
+    proc.kill = vi.fn().mockImplementation(() => {
+      // When killed, emit close after a tick
+      proc.stdout.end();
+      proc.stderr.end();
+      setTimeout(() => proc.emit('close', null), 1);
+    });
+
+    mockSpawn.mockReturnValue(proc);
+
+    const resultPromise = executePrompt('Hi', '/tmp', 3);
+
+    // Advance past TIMEOUT_MS to trigger the kill timer
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS + 100);
+
+    const result = await resultPromise;
+    expect(result).toContain('[error]');
+    expect(result).toContain('timed out');
+    expect(proc.kill).toHaveBeenCalledWith('SIGKILL');
+
+    vi.useRealTimers();
   });
 });

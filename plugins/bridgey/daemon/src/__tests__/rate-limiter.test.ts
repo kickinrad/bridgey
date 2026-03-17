@@ -56,6 +56,19 @@ describe('RateLimiter', () => {
     expect(limiter.remaining('1.2.3.4')).toBe(0);
   });
 
+  it('allows exactly maxRequests then blocks on next (boundary at 10)', () => {
+    limiter = new RateLimiter({ maxRequests: 10, windowMs: 60_000 });
+
+    // Requests 1-10 should all pass
+    for (let i = 0; i < 10; i++) {
+      expect(limiter.check('10.0.0.1')).toBe(true);
+    }
+
+    // 11th request should be blocked
+    expect(limiter.check('10.0.0.1')).toBe(false);
+    expect(limiter.remaining('10.0.0.1')).toBe(0);
+  });
+
   it('cleanup removes expired entries', async () => {
     limiter = new RateLimiter({ maxRequests: 5, windowMs: 50 });
 

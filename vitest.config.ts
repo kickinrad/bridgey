@@ -5,6 +5,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
+      thresholds: {
+        lines: 60,
+        branches: 50,
+        functions: 60,
+      },
     },
     projects: [
       'plugins/bridgey/daemon',

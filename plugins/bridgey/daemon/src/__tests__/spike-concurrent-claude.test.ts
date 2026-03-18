@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
  * Spike test: can we run multiple `claude -p` processes concurrently?
  * NOTE: Requires Claude CLI installed and authenticated. Run manually, not in CI.
  */
-describe('spike: concurrent claude -p', () => {
+describe.skipIf(!process.env.CLAUDE_TEST_MANUAL)('spike: concurrent claude -p', () => {
   it('runs 3 concurrent claude -p and all complete', async () => {
     const runClaude = (id: number): Promise<{ id: number; ok: boolean; output: string; elapsed: number }> => {
       return new Promise((resolve) => {

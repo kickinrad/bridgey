@@ -7,8 +7,13 @@ export class DaemonClient {
   private baseUrl: string;
 
   constructor(port?: number) {
-    const resolvedPort = port ?? parseInt(process.env.BRIDGEY_DAEMON_PORT || '8092', 10);
-    this.baseUrl = `http://localhost:${resolvedPort}`;
+    const urlOverride = process.env.BRIDGEY_DAEMON_URL;
+    if (urlOverride) {
+      this.baseUrl = urlOverride.replace(/\/$/, '');
+    } else {
+      const resolvedPort = port ?? parseInt(process.env.BRIDGEY_DAEMON_PORT || '8092', 10);
+      this.baseUrl = `http://localhost:${resolvedPort}`;
+    }
   }
 
   async send(agent: string, message: string, contextId?: string): Promise<DaemonResponse> {

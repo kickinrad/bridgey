@@ -16,6 +16,10 @@ interface AgentRecord {
 const MAX_MESSAGES = 500;
 const MAX_AUDIT_LINES = 2000;
 
+// Note: All file I/O is intentionally synchronous (readFileSync/writeFileSync).
+// This makes read-modify-write sequences atomic w.r.t. the Node event loop —
+// no async yield point means no interleaving from concurrent requests.
+// If we ever move to async I/O or cluster mode, add file locking.
 export class Store {
   private dir: string;
 

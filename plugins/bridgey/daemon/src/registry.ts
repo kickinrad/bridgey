@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, unlinkSync, readdirSync, readFileSync, watch } from 'fs';
+import { mkdirSync, writeFileSync, unlinkSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import type { LocalAgent } from './types.js';
@@ -33,7 +33,7 @@ export function unregister(name: string): void {
 /**
  * Check if a process with the given PID is alive.
  */
-function isProcessAlive(pid: number): boolean {
+export function isProcessAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
@@ -82,19 +82,3 @@ export function listLocal(): LocalAgent[] {
   return agents;
 }
 
-/**
- * Watch the registry directory for changes and invoke callback when agents are added/removed.
- */
-export function watchRegistry(callback: () => void): void {
-  ensureDir();
-
-  try {
-    watch(REGISTRY_DIR, { persistent: false }, (_eventType, filename) => {
-      if (filename && filename.endsWith('.json')) {
-        callback();
-      }
-    });
-  } catch {
-    // If watch fails (e.g., platform limitations), silently degrade
-  }
-}

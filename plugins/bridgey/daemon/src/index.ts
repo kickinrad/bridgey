@@ -7,7 +7,7 @@ import { Store } from './store.js';
 import { a2aRoutes } from './a2a-server.js';
 import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
-import { register, unregister } from './registry.js';
+import { register, unregister, isProcessAlive } from './registry.js';
 import type { BridgeyConfig } from './types.js';
 
 const HOME = homedir();
@@ -50,15 +50,6 @@ function readPid(pidfile: string): number | null {
     return isNaN(pid) ? null : pid;
   } catch {
     return null;
-  }
-}
-
-function isProcessAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
   }
 }
 

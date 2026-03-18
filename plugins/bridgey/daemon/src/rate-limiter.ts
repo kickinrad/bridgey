@@ -25,18 +25,6 @@ export class RateLimiter {
     return entry.count <= this.config.maxRequests;
   }
 
-  /** Returns the number of requests remaining in the current window. */
-  remaining(ip: string): number {
-    const now = Date.now();
-    const entry = this.map.get(ip);
-
-    if (!entry || now >= entry.resetAt) {
-      return this.config.maxRequests;
-    }
-
-    return Math.max(0, this.config.maxRequests - entry.count);
-  }
-
   /** Remove expired entries from the map. */
   cleanup(): void {
     const now = Date.now();

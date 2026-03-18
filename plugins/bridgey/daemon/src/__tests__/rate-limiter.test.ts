@@ -44,18 +44,6 @@ describe('RateLimiter', () => {
     expect(limiter.check('1.2.3.4')).toBe(true);
   });
 
-  it('returns remaining count', () => {
-    limiter = new RateLimiter({ maxRequests: 3, windowMs: 60_000 });
-
-    expect(limiter.remaining('1.2.3.4')).toBe(3);
-    limiter.check('1.2.3.4');
-    expect(limiter.remaining('1.2.3.4')).toBe(2);
-    limiter.check('1.2.3.4');
-    expect(limiter.remaining('1.2.3.4')).toBe(1);
-    limiter.check('1.2.3.4');
-    expect(limiter.remaining('1.2.3.4')).toBe(0);
-  });
-
   it('allows exactly maxRequests then blocks on next (boundary at 10)', () => {
     limiter = new RateLimiter({ maxRequests: 10, windowMs: 60_000 });
 
@@ -66,7 +54,6 @@ describe('RateLimiter', () => {
 
     // 11th request should be blocked
     expect(limiter.check('10.0.0.1')).toBe(false);
-    expect(limiter.remaining('10.0.0.1')).toBe(0);
   });
 
   it('cleanup removes expired entries', async () => {
@@ -79,8 +66,8 @@ describe('RateLimiter', () => {
 
     limiter.cleanup();
 
-    // After cleanup, remaining should be back to max (entry was removed)
-    expect(limiter.remaining('1.1.1.1')).toBe(5);
-    expect(limiter.remaining('2.2.2.2')).toBe(5);
+    // After cleanup, entries removed — next check starts fresh window
+    expect(limiter.check('1.1.1.1')).toBe(true);
+    expect(limiter.check('2.2.2.2')).toBe(true);
   });
 });

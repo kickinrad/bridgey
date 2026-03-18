@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/watchdog.js --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json --pidfile /tmp/bridgey-${USER}.pid",
-            "timeout": 5000
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
+            "timeout": 10000
           }
         ]
       }

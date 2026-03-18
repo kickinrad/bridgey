@@ -5,7 +5,7 @@ description: >-
   "configure bridgey", "initialize bridgey", "bridgey setup",
   runs "/bridgey:setup", or is installing bridgey for the first time.
   Guides interactive first-time configuration of the bridgey daemon.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # bridgey Setup
@@ -14,13 +14,13 @@ Interactive first-time configuration for the bridgey A2A communication daemon.
 
 ## When to Use
 
-Activate on first install or when no `bridgey.config.json` exists in the plugin root. Also activate when the user explicitly asks to reconfigure bridgey.
+Activate on first install or when no `~/.bridgey/bridgey.config.json` exists. Also activate when the user explicitly asks to reconfigure bridgey.
 
 ## Setup Procedure
 
 ### 1. Check Existing Config
 
-Read `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`. If it exists, confirm with the user before overwriting.
+Read `~/.bridgey/bridgey.config.json`. If it exists, confirm with the user before overwriting.
 
 ### 2. Gather Configuration
 
@@ -64,7 +64,7 @@ Generate a bearer token automatically using `crypto.randomBytes(16).toString('he
 
 ### 4. Write Config File
 
-Write `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`:
+Write `~/.bridgey/bridgey.config.json`:
 
 ```json
 {
@@ -86,8 +86,8 @@ Note: `trusted_networks` is an empty array by default. Only populated if user ch
 
 Run the daemon start command:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js start \
-  --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json
+node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
+  --config ~/.bridgey/bridgey.config.json
 ```
 
 Verify it started by checking the health endpoint:
@@ -110,12 +110,11 @@ If running in Docker or on a headless server:
 - **Bind must be `0.0.0.0`** — localhost is unreachable from other containers
 - **Add Docker CIDRs to trusted_networks** — `172.16.0.0/12` and `10.0.0.0/8`
 - **Claude Code Max auth** — OAuth tokens must be transferred from a logged-in machine. Copy `~/.claude/.credentials.json` and mount it into the container.
-- **better-sqlite3** — requires native compilation (python3, make, g++). Always `npm install` inside the container; never copy node_modules from a different host/architecture.
 - **Inter-container references** — use Docker DNS names (`http://bridgey-mila:8093`), not localhost
 
 ## Notes
 
-- Config file lives in the plugin root (`${CLAUDE_PLUGIN_ROOT}`), not the user's project
+- Config file lives at `~/.bridgey/bridgey.config.json` (survives plugin updates)
 - The daemon is started automatically by the SessionStart hook on future sessions
 - Local agents on the same machine discover each other automatically via `~/.bridgey/agents/`
 - Remote agents must be added manually with `/bridgey:add-agent`

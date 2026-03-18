@@ -3,7 +3,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import https from 'https';
 import Fastify from 'fastify';
-import { initDB, closeDB, saveAgent } from './db.js';
+import { Store } from './store.js';
 import { a2aRoutes } from './a2a-server.js';
 import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
@@ -133,12 +133,12 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
     process.exit(0);
   }
 
-  // Initialize database
-  initDB();
+  // Initialize store
+  const store = new Store();
 
-  // Sync configured remote agents to DB
+  // Sync configured remote agents to store
   for (const agent of config.agents) {
-    saveAgent(agent.name, agent.url, agent.token, null, 'configured');
+    store.saveAgent(agent.name, agent.url, agent.token, null, 'configured');
   }
 
   // Determine bind address
@@ -199,7 +199,7 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   // Register routes
   // Cast needed: HTTPS Fastify has a different generic than plain HTTP,
   // but our routes only use standard request/reply APIs that both share.
-  a2aRoutes(fastify as unknown as import('fastify').FastifyInstance, config);
+  a2aRoutes(fastify as unknown as import('fastify').FastifyInstance, config, store);
 
   // Start listening
   try {
@@ -240,7 +240,6 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
     console.log(`[${new Date().toISOString()}] Shutting down...`);
     unregister(config.name);
     removePid(pidfile);
-    closeDB();
     await fastify.close();
     process.exit(0);
   };

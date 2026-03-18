@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { mkdtempSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import http from 'http';
 import Fastify from 'fastify';
-import { initDB, closeDB, getAuditLog } from '../db.js';
+import { Store } from '../store.js';
 import type { BridgeyConfig } from '../types.js';
 
 // Mock executor to yield streaming chunks
@@ -31,17 +34,20 @@ const testConfig: BridgeyConfig = {
 
 describe('message/sendStream SSE', () => {
   let fastify: ReturnType<typeof Fastify>;
+  let dir: string;
+  let store: Store;
 
   beforeAll(async () => {
-    initDB();
+    dir = mkdtempSync(join(tmpdir(), 'bridgey-test-'));
+    store = new Store(dir);
     fastify = Fastify({ logger: false });
-    a2aRoutes(fastify, testConfig);
+    a2aRoutes(fastify, testConfig, store);
     await fastify.listen({ port: TEST_PORT, host: '127.0.0.1' });
   });
 
   afterAll(async () => {
     await fastify.close();
-    closeDB();
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it('returns SSE stream with chunks', async () => {
@@ -129,9 +135,7 @@ describe('message/sendStream SSE', () => {
   });
 
   it('audit logs SSE streaming requests', async () => {
-    // The successful streaming test above should have created an audit entry
-    // onResponse hook fires even for hijacked replies per Fastify docs
-    const entries = getAuditLog(50);
+    const entries = store.getAuditLog(50);
     const sseEntry = entries.find(
       (e) => e.method === 'POST' && e.path === '/' && e.a2a_method === 'message/sendStream',
     );

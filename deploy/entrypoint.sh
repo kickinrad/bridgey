@@ -19,4 +19,4 @@ cat > "$CONFIG_PATH" <<EOF
 EOF
 
 echo "Starting bridgey daemon: ${BRIDGEY_NAME} on port ${BRIDGEY_PORT}"
-exec node /app/daemon/dist/index.js start --config "$CONFIG_PATH"
+exec node /app/dist/daemon.js start --config "$CONFIG_PATH"

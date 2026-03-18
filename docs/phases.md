@@ -76,10 +76,10 @@
 | MCP Server | TypeScript + `@modelcontextprotocol/sdk` (stdio) |
 | Daemon HTTP | Fastify 5.x |
 | A2A Protocol | Manual JSON-RPC 2.0 |
-| Persistence | better-sqlite3 at `~/.bridgey/bridgey.db` |
-| Config | JSON file in plugin root |
+| Persistence | JSON files in `~/.bridgey/` (agents.json, messages.json, conversations.json, audit.jsonl) |
+| Config | JSON file (`~/.bridgey/bridgey.config.json`) |
 | Auth | Bearer tokens (`brg_` prefix) |
-| Build | TypeScript → JS in `{daemon,server}/dist/` |
+| Build | esbuild → single-file bundles in `dist/` (daemon.js, server.js, watchdog.js) |
 
 ## Reference Files
 

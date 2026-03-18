@@ -32,8 +32,9 @@ We deployed Julia (personal chef) and Mila (brand strategist) personas to a Hetz
 ## What Each Container Does
 
 ### bridgey-persona (one per persona)
-- **Base:** node:22-slim + Claude CLI + bridgey daemon
-- **Entrypoint:** generates `bridgey.config.json` from env vars, starts daemon
+- **Base:** node:22-slim + curl + Claude CLI
+- **Bundles:** Self-contained esbuild bundles in `/app/dist/` (daemon.js, server.js, watchdog.js) — no npm install needed
+- **Entrypoint:** generates `bridgey.config.json` from env vars, runs `node /app/dist/daemon.js start`
 - **Volumes:** persona workspace (ro), Claude auth (ro), data dir (rw)
 - **Ports:** one per persona (8092, 8093, etc.)
 - **Key env vars:** BRIDGEY_NAME, BRIDGEY_PORT, BRIDGEY_TOKEN, BRIDGEY_DESCRIPTION, BRIDGEY_MAX_TURNS, BRIDGEY_AGENTS
@@ -45,16 +46,15 @@ We deployed Julia (personal chef) and Mila (brand strategist) personas to a Hetz
 
 ## Gotchas & Lessons Learned (The Hard Way)
 
-### 1. better-sqlite3 Requires Native Compilation
-**Problem:** Copying `node_modules/` from the host machine to a Docker container fails because better-sqlite3 includes native C++ bindings compiled for the host architecture.
+### 1. Bundles Are Self-Contained (No npm install Needed)
+**Context:** As of v0.3.0, esbuild bundles all dependencies into single files (`dist/daemon.js`, `dist/server.js`, `dist/watchdog.js`). The Dockerfile just needs to `COPY` the dist directory — no `npm install`, no native compilation, no build tools.
 
-**Fix:** Install build dependencies in the Dockerfile and run `npm install` inside the container:
+**Previously:** The daemon used better-sqlite3 (native C++ bindings) which required `python3 make g++` in the container and `npm install` inside it. The v3 elegance refactor switched to JSON file storage, eliminating all native deps.
+
+**Current Dockerfile is just:**
 ```dockerfile
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
-RUN npm install  # This compiles better-sqlite3 for the container's architecture
+COPY plugins/bridgey/dist/ /app/dist/
 ```
-
-**Don't:** Copy node_modules from host. Always `npm install` inside the container.
 
 ### 2. The /send Endpoint Requires an `agent` Field
 **Problem:** The daemon's `/send` endpoint validates with Zod and REQUIRES `{agent, message, context_id?}`. If you only send `{message}`, you get a 400 Bad Request.

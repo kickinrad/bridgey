@@ -1,7 +1,8 @@
 FROM node:22-slim
 
-# Install curl for healthchecks
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Install curl for healthchecks + bubblewrap/socat for Claude CLI sandbox
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl bubblewrap socat \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Claude CLI

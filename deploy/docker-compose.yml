@@ -10,7 +10,7 @@ services:
       - BRIDGEY_TOKEN=${BRIDGEY_TOKEN_JULIA}
       - BRIDGEY_MAX_TURNS=5
       - >-
-        BRIDGEY_AGENTS=[{"name":"mila","url":"http://bridgey-mila:8093","token":"${BRIDGEY_TOKEN_MILA}"}]
+        BRIDGEY_AGENTS=[{"name":"mila","url":"http://bridgey-mila:8093","token":"${BRIDGEY_TOKEN_MILA}"},{"name":"bob","url":"http://bridgey-bob:8094","token":"${BRIDGEY_TOKEN_BOB}"},{"name":"nara","url":"http://bridgey-nara:8095","token":"${BRIDGEY_TOKEN_NARA}"},{"name":"warren","url":"http://bridgey-warren:8096","token":"${BRIDGEY_TOKEN_WARREN}"}]
     volumes:
       - /opt/bridgey/personas/julia:/workspace:ro
       - /opt/bridgey/auth:/home/node/.claude:ro
@@ -35,7 +35,7 @@ services:
       - BRIDGEY_TOKEN=${BRIDGEY_TOKEN_MILA}
       - BRIDGEY_MAX_TURNS=5
       - >-
-        BRIDGEY_AGENTS=[{"name":"julia","url":"http://bridgey-julia:8092","token":"${BRIDGEY_TOKEN_JULIA}"}]
+        BRIDGEY_AGENTS=[{"name":"julia","url":"http://bridgey-julia:8092","token":"${BRIDGEY_TOKEN_JULIA}"},{"name":"bob","url":"http://bridgey-bob:8094","token":"${BRIDGEY_TOKEN_BOB}"},{"name":"nara","url":"http://bridgey-nara:8095","token":"${BRIDGEY_TOKEN_NARA}"},{"name":"warren","url":"http://bridgey-warren:8096","token":"${BRIDGEY_TOKEN_WARREN}"}]
     volumes:
       - /opt/bridgey/personas/mila:/workspace:ro
       - /opt/bridgey/auth:/home/node/.claude:ro
@@ -45,6 +45,81 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8093/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bridgey-bob:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      - BRIDGEY_NAME=bob
+      - BRIDGEY_PORT=8094
+      - BRIDGEY_DESCRIPTION=Home repair and maintenance expert — Norm Abram meets project manager
+      - BRIDGEY_TOKEN=${BRIDGEY_TOKEN_BOB}
+      - BRIDGEY_MAX_TURNS=5
+      - >-
+        BRIDGEY_AGENTS=[{"name":"julia","url":"http://bridgey-julia:8092","token":"${BRIDGEY_TOKEN_JULIA}"},{"name":"mila","url":"http://bridgey-mila:8093","token":"${BRIDGEY_TOKEN_MILA}"},{"name":"nara","url":"http://bridgey-nara:8095","token":"${BRIDGEY_TOKEN_NARA}"},{"name":"warren","url":"http://bridgey-warren:8096","token":"${BRIDGEY_TOKEN_WARREN}"}]
+    volumes:
+      - /opt/bridgey/personas/bob:/workspace:ro
+      - /opt/bridgey/auth:/home/node/.claude:ro
+      - bob-data:/data/bridgey
+    ports:
+      - "8094:8094"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8094/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bridgey-nara:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      - BRIDGEY_NAME=nara
+      - BRIDGEY_PORT=8095
+      - BRIDGEY_DESCRIPTION=Health and wellness coach — holistic wellbeing with warmth and evidence-based guidance
+      - BRIDGEY_TOKEN=${BRIDGEY_TOKEN_NARA}
+      - BRIDGEY_MAX_TURNS=5
+      - >-
+        BRIDGEY_AGENTS=[{"name":"julia","url":"http://bridgey-julia:8092","token":"${BRIDGEY_TOKEN_JULIA}"},{"name":"mila","url":"http://bridgey-mila:8093","token":"${BRIDGEY_TOKEN_MILA}"},{"name":"bob","url":"http://bridgey-bob:8094","token":"${BRIDGEY_TOKEN_BOB}"},{"name":"warren","url":"http://bridgey-warren:8096","token":"${BRIDGEY_TOKEN_WARREN}"}]
+    volumes:
+      - /opt/bridgey/personas/nara:/workspace:ro
+      - /opt/bridgey/auth:/home/node/.claude:ro
+      - nara-data:/data/bridgey
+    ports:
+      - "8095:8095"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8095/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bridgey-warren:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      - BRIDGEY_NAME=warren
+      - BRIDGEY_PORT=8096
+      - BRIDGEY_DESCRIPTION=Personal CFO — sharp, analytical, data-driven financial advisor
+      - BRIDGEY_TOKEN=${BRIDGEY_TOKEN_WARREN}
+      - BRIDGEY_MAX_TURNS=5
+      - >-
+        BRIDGEY_AGENTS=[{"name":"julia","url":"http://bridgey-julia:8092","token":"${BRIDGEY_TOKEN_JULIA}"},{"name":"mila","url":"http://bridgey-mila:8093","token":"${BRIDGEY_TOKEN_MILA}"},{"name":"bob","url":"http://bridgey-bob:8094","token":"${BRIDGEY_TOKEN_BOB}"},{"name":"nara","url":"http://bridgey-nara:8095","token":"${BRIDGEY_TOKEN_NARA}"}]
+    volumes:
+      - /opt/bridgey/personas/warren:/workspace:ro
+      - /opt/bridgey/auth:/home/node/.claude:ro
+      - warren-data:/data/bridgey
+    ports:
+      - "8096:8096"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8096/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -67,3 +142,6 @@ services:
 volumes:
   julia-data:
   mila-data:
+  bob-data:
+  nara-data:
+  warren-data:

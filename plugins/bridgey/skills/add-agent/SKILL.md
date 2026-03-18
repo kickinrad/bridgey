@@ -60,7 +60,7 @@ Display the agent's name and description from the card to confirm identity.
 
 ### 4. Update Config
 
-Read `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`, add the new agent to the `agents` array:
+Read `~/.bridgey/bridgey.config.json`, add the new agent to the `agents` array:
 
 ```json
 {
@@ -76,9 +76,9 @@ Write the updated config back.
 
 The daemon picks up config changes on the next request, or restart it:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js stop
-node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js start \
-  --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json
+node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js stop
+node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
+  --config ~/.bridgey/bridgey.config.json
 ```
 
 ### 6. Confirm

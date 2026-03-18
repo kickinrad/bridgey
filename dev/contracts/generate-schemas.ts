@@ -14,7 +14,7 @@ import {
   SendBodySchema,
   A2ARequestSchema,
   MessageSendParamsSchema,
-} from '../plugins/bridgey/daemon/src/schemas.js';
+} from '../../plugins/bridgey/daemon/src/schemas.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

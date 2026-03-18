@@ -11,7 +11,7 @@
       "name": "bridgey",
       "source": "./plugins/bridgey",
       "description": "Inter-agent communication via Google A2A protocol — send messages, discover agents, manage inbox",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "productivity"
     },
     {

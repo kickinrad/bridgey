@@ -78,3 +78,11 @@ export function isTrustedNetwork(ip: string, trustedNetworks?: string[]): boolea
   if (!trustedNetworks?.length) return false;
   return trustedNetworks.some((cidr) => isInCIDR(ip, cidr));
 }
+
+/**
+ * Check if a request is authorized via any mechanism:
+ * bearer token, local agent registry, or trusted network.
+ */
+export function isAuthorized(req: FastifyRequest, config: BridgeyConfig): boolean {
+  return validateToken(req, config) || isLocalAgent(req) || isTrustedNetwork(req.ip, config.trusted_networks);
+}

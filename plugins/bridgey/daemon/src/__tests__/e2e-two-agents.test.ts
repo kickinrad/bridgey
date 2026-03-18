@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import Fastify from 'fastify';
-import { initDB, closeDB } from '../db.js';
+import { Store } from '../store.js';
 import { register, unregister } from '../registry.js';
 import type { BridgeyConfig } from '../types.js';
 
@@ -40,15 +43,20 @@ const configB: BridgeyConfig = {
 describe('e2e: two agents communicate', () => {
   let serverA: ReturnType<typeof Fastify>;
   let serverB: ReturnType<typeof Fastify>;
+  let dirA: string;
+  let dirB: string;
 
   beforeAll(async () => {
-    initDB();
+    dirA = mkdtempSync(join(tmpdir(), 'bridgey-test-a-'));
+    dirB = mkdtempSync(join(tmpdir(), 'bridgey-test-b-'));
+    const storeA = new Store(dirA);
+    const storeB = new Store(dirB);
 
     serverA = Fastify({ logger: false });
     serverB = Fastify({ logger: false });
 
-    a2aRoutes(serverA, configA);
-    a2aRoutes(serverB, configB);
+    a2aRoutes(serverA, configA, storeA);
+    a2aRoutes(serverB, configB, storeB);
 
     await serverA.listen({ port: PORT_A, host: '127.0.0.1' });
     await serverB.listen({ port: PORT_B, host: '127.0.0.1' });
@@ -62,7 +70,8 @@ describe('e2e: two agents communicate', () => {
     unregister('agent-b');
     await serverA.close();
     await serverB.close();
-    closeDB();
+    rmSync(dirA, { recursive: true, force: true });
+    rmSync(dirB, { recursive: true, force: true });
   });
 
   it('agent-a can discover agent-b via agent card', async () => {

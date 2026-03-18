@@ -16,12 +16,12 @@ npm test              # Run all tests
 
 | Plugin | Version | Purpose |
 |--------|---------|---------|
-| `bridgey` | 0.2.0 | Core A2A daemon + MCP server |
+| `bridgey` | 0.3.0 | Core A2A daemon + MCP server |
 | `bridgey-tailscale` | 0.1.0 | Tailscale mesh discovery addon |
 | `bridgey-discord` | 0.1.0 | Discord bot bridge via A2A |
 
 **Two-process design per instance:**
-- **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, SQLite storage
+- **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage
 - **MCP Server** (stdio) — thin client providing tools to CC, lives with the session
 
 ```
@@ -35,7 +35,7 @@ plugins/
 ├── bridgey/
 │   ├── .claude-plugin/    # plugin.json, .mcp.json
 │   ├── daemon/            # Fastify A2A server (TypeScript)
-│   │   └── src/           # index, a2a-server, a2a-client, db, auth, executor, queue, watchdog
+│   │   └── src/           # index, a2a-server, a2a-client, store, auth, executor, queue, watchdog
 │   ├── server/            # MCP server (TypeScript)
 │   │   └── src/           # index, tools, daemon-client
 │   ├── hooks/             # SessionStart hook (auto-start watchdog)
@@ -65,18 +65,18 @@ docs/
 |-----------|-----------|
 | Daemon HTTP | Fastify 5.x |
 | A2A Protocol | JSON-RPC 2.0 |
-| Persistence | better-sqlite3 (`~/.bridgey/bridgey.db`, WAL mode) — requires native compilation (python3, make, g++) |
+| Persistence | JSON files (`~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl) |
 | MCP Server | `@modelcontextprotocol/sdk` (stdio) |
 | Validation | Zod |
-| Build | TypeScript → JS in `{daemon,server}/dist/` |
+| Build | esbuild → single-file bundles in `dist/` (daemon.js, server.js, watchdog.js) |
 | Auth | Bearer tokens (`brg_` prefix), CIDR trust, local registry |
 
 ## Key Runtime Paths
 
 | What | Where |
 |------|-------|
-| Config | `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json` |
-| Database | `~/.bridgey/bridgey.db` |
+| Config | `~/.bridgey/bridgey.config.json` |
+| Data | `~/.bridgey/` (agents.json, messages.json, conversations.json, audit.jsonl) |
 | Daemon log | `~/.bridgey/daemon.log` |
 | Pidfile | `/tmp/bridgey-${USER}.pid` |
 | Agent registry | `~/.bridgey/agents/` (JSON file) |
@@ -95,7 +95,6 @@ docs/
 See `docs/remote-deployment-guide.md` for the full story. Key gotchas:
 - **Bind:** Daemons must use `"bind": "0.0.0.0"` in containers (localhost is unreachable cross-container)
 - **trusted_networks:** Add Docker bridge CIDRs (`172.16.0.0/12`, `10.0.0.0/8`) alongside Tailscale (`100.64.0.0/10`)
-- **Native deps:** better-sqlite3 must be `npm install`'d inside the container; never copy node_modules from host
 - **Auth:** Claude Code Max uses OAuth; mount `~/.claude/.credentials.json` from a logged-in machine
 - **Inter-container DNS:** Use Docker service names (`http://bridgey-mila:8093`), not localhost
 

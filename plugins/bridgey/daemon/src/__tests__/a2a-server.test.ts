@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdtempSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import Fastify from 'fastify';
 import { a2aRoutes } from '../a2a-server.js';
-import { initDB, closeDB } from '../db.js';
+import { Store } from '../store.js';
 import type { BridgeyConfig } from '../types.js';
 
 const testConfig: BridgeyConfig = {
@@ -17,17 +20,19 @@ const testConfig: BridgeyConfig = {
 
 describe('a2a-server endpoints', () => {
   let fastify: ReturnType<typeof Fastify>;
+  let dir: string;
 
   beforeAll(async () => {
-    initDB();
+    dir = mkdtempSync(join(tmpdir(), 'bridgey-test-'));
+    const store = new Store(dir);
     fastify = Fastify({ logger: false });
-    a2aRoutes(fastify, testConfig);
+    a2aRoutes(fastify, testConfig, store);
     await fastify.ready();
   });
 
   afterAll(async () => {
     await fastify.close();
-    closeDB();
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it('GET /health returns ok', async () => {

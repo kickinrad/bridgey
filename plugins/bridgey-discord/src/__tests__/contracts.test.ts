@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Ajv from 'ajv';
-import sendSchema from '../../../../contracts/send-request.schema.json';
+import sendSchema from '../../../../dev/contracts/send-request.schema.json';
 
 const ajv = new Ajv();
 const validateSend = ajv.compile(sendSchema);

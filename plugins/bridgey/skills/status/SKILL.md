@@ -17,9 +17,9 @@ Display the health and status of the bridgey daemon and all connected agents.
 ### 1. Check Daemon Health
 
 Use the `bridgey_agent_status` MCP tool to get daemon health and agent list. If the daemon is unreachable, inform the user and suggest:
-- Check if config exists: `cat ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
+- Check if config exists: `cat ~/.bridgey/bridgey.config.json`
 - Run `/bridgey:setup` if no config
-- Manually start: `node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js start --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
+- Manually start: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json`
 
 ### 2. Display Status Dashboard
 

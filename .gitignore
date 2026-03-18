@@ -4,3 +4,10 @@
 .env
 bridgey.config.json
 bridgey-tailscale.config.json
+coverage/
+.claude/worktrees/
+**/package-lock.json
+
+# Allow plugin dist bundles (needed for marketplace distribution)
+!plugins/bridgey/dist/
+!plugins/bridgey-tailscale/dist/

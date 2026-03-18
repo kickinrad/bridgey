@@ -4,7 +4,7 @@ import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 
-const DAEMON_SCRIPT = join(__dirname, '../../dist/index.js');
+const DAEMON_SCRIPT = join(__dirname, '../../../dist/daemon.js');
 const TEST_PIDFILE = `/tmp/bridgey-test-spike1.pid`;
 const BRIDGEY_DIR = join(homedir(), '.bridgey');
 const TEST_CONFIG_PATH = join(BRIDGEY_DIR, 'test-spike1.config.json');

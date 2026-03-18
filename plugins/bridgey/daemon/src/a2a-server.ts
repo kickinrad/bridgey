@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'crypto';
 import type { BridgeyConfig, A2AResponse } from './types.js';
-import { validateToken, isLocalAgent, isTrustedNetwork } from './auth.js';
+import { isAuthorized, isLocalAgent, isTrustedNetwork } from './auth.js';
 import { generateAgentCard } from './agent-card.js';
 import { executePrompt, executePromptStreaming } from './executor.js';
 import { AgentQueue } from './queue.js';
 import { sendA2AMessage } from './a2a-client.js';
-import { saveMessage, getMessages, getAgents, saveAgent, saveAuditEntry, getAuditLog, getOrCreateConversation } from './db.js';
+import type { Store } from './store.js';
 import { listLocal } from './registry.js';
 import { SendBodySchema, A2ARequestSchema, MessageSendParamsSchema } from './schemas.js';
 import { RateLimiter } from './rate-limiter.js';
@@ -25,6 +25,7 @@ function jsonRpcResult(id: string | number, result: unknown): A2AResponse {
 export function a2aRoutes(
   fastify: FastifyInstance,
   config: BridgeyConfig,
+  store: Store,
 ): void {
   const requestQueue = new AgentQueue();
   const agentCard = generateAgentCard(config);
@@ -83,7 +84,7 @@ export function a2aRoutes(
     }
 
     try {
-      saveAuditEntry({
+      store.saveAuditEntry({
         source_ip: req.ip,
         method: req.method,
         path: req.url,
@@ -113,11 +114,11 @@ export function a2aRoutes(
 
   // List all known agents (DB + local registry)
   fastify.get('/agents', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
-    const dbAgents = getAgents();
+    const dbAgents = store.getAgents();
     const localAgents = listLocal();
 
     // Merge: local agents that aren't already in DB
@@ -146,29 +147,29 @@ export function a2aRoutes(
 
   // Recent messages
   fastify.get('/messages', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
     const query = req.query as { limit?: string };
     const limit = Math.min(Math.max(parseInt(query.limit || '20', 10) || 20, 1), 100);
 
-    return reply.send(getMessages(limit));
+    return reply.send(store.getMessages(limit));
   });
 
   // Audit log endpoint
   fastify.get('/audit', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const query = req.query as { limit?: string };
     const limit = Math.min(Math.max(parseInt(query.limit || '50', 10) || 50, 1), 500);
-    return reply.send(getAuditLog(limit));
+    return reply.send(store.getAuditLog(limit));
   });
 
   // Internal send endpoint (used by MCP server)
   fastify.post('/send', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -189,7 +190,7 @@ export function a2aRoutes(
     let agentToken = '';
 
     // Check DB
-    const dbAgents = getAgents();
+    const dbAgents = store.getAgents();
     const dbAgent = dbAgents.find((a) => a.name === agentName);
     if (dbAgent) {
       agentUrl = dbAgent.url;
@@ -219,9 +220,9 @@ export function a2aRoutes(
       return reply.code(404).send({ error: `Agent "${agentName}" not found` });
     }
 
-    const conversation = getOrCreateConversation(context_id ?? null, agentName);
+    const conversation = store.getOrCreateConversation(context_id ?? null, agentName);
     const response = await sendA2AMessage(agentUrl, agentToken, message, conversation.id);
-    saveMessage('outbound', agentName, message, response, conversation.id);
+    store.saveMessage('outbound', agentName, message, response, conversation.id);
 
     return reply.send({ response });
   });
@@ -229,7 +230,7 @@ export function a2aRoutes(
   // A2A JSON-RPC endpoint
   fastify.post('/', async (req, reply) => {
     // Auth check: skip for local agents and trusted networks
-    if (!isLocalAgent(req) && !validateToken(req, config) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send(jsonRpcError('0', -32000, 'Unauthorized'));
     }
 
@@ -259,15 +260,15 @@ export function a2aRoutes(
         const agentName = paramsParsed.data.agentName;
 
         // Track conversation
-        const conversation = getOrCreateConversation(contextId ?? null, agentName);
+        const conversation = store.getOrCreateConversation(contextId ?? null, agentName);
 
         // Execute via claude -p (queued per-agent to prevent concurrent sessions)
         const response = await requestQueue.enqueue(agentName, () =>
           executePrompt(messageText, config.workspace, config.max_turns),
         );
 
-        // Save to DB
-        saveMessage('inbound', agentName, messageText, response, conversation.id);
+        // Save to store
+        store.saveMessage('inbound', agentName, messageText, response, conversation.id);
 
         return reply.send(
           jsonRpcResult(id, {
@@ -288,7 +289,7 @@ export function a2aRoutes(
 
         const { message: { parts: streamParts }, agentName: streamAgent, contextId: streamCtxId } = paramsParsed.data;
         const streamMessageText = streamParts[0].text;
-        const conversation = getOrCreateConversation(streamCtxId ?? null, streamAgent);
+        const conversation = store.getOrCreateConversation(streamCtxId ?? null, streamAgent);
 
         // Take over the raw socket — Fastify won't try to send its own response
         reply.hijack();
@@ -323,7 +324,7 @@ export function a2aRoutes(
             }
           });
 
-          saveMessage('inbound', streamAgent, streamMessageText, fullResponse, conversation.id);
+          store.saveMessage('inbound', streamAgent, streamMessageText, fullResponse, conversation.id);
 
           if (!clientDisconnected) {
             const finalEvent = JSON.stringify({

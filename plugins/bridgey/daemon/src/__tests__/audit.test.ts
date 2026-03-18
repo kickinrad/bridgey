@@ -1,17 +1,24 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { initDB, closeDB, saveAuditEntry, getAuditLog } from '../db.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { Store } from '../store.js';
 
 describe('audit log', () => {
-  beforeAll(() => {
-    initDB();
+  let dir: string;
+  let store: Store;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'bridgey-test-'));
+    store = new Store(dir);
   });
 
-  afterAll(() => {
-    closeDB();
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it('saves and retrieves audit entries', () => {
-    saveAuditEntry({
+    store.saveAuditEntry({
       source_ip: '127.0.0.1',
       method: 'POST',
       path: '/',
@@ -21,7 +28,7 @@ describe('audit log', () => {
       auth_type: 'bearer',
     });
 
-    const entries = getAuditLog(10);
+    const entries = store.getAuditLog(10);
     expect(entries.length).toBeGreaterThanOrEqual(1);
 
     const entry = entries.find((e) => e.agent_name === 'test-sender');
@@ -37,9 +44,8 @@ describe('audit log', () => {
   });
 
   it('respects limit parameter', () => {
-    // Insert 5 entries
     for (let i = 0; i < 5; i++) {
-      saveAuditEntry({
+      store.saveAuditEntry({
         source_ip: '10.0.0.1',
         method: 'GET',
         path: '/agents',
@@ -50,13 +56,12 @@ describe('audit log', () => {
       });
     }
 
-    const limited = getAuditLog(2);
+    const limited = store.getAuditLog(2);
     expect(limited.length).toBe(2);
   });
 
   it('returns entries in reverse chronological order', () => {
-    // Insert two entries with a slight gap so created_at differs
-    saveAuditEntry({
+    store.saveAuditEntry({
       source_ip: '192.168.1.1',
       method: 'GET',
       path: '/agents',
@@ -66,7 +71,7 @@ describe('audit log', () => {
       auth_type: 'none',
     });
 
-    saveAuditEntry({
+    store.saveAuditEntry({
       source_ip: '192.168.1.2',
       method: 'POST',
       path: '/send',
@@ -76,7 +81,7 @@ describe('audit log', () => {
       auth_type: 'bearer',
     });
 
-    const entries = getAuditLog(2);
+    const entries = store.getAuditLog(2);
     // Most recent should come first
     expect(entries[0].agent_name).toBe('newer-agent');
     expect(entries[0].source_ip).toBe('192.168.1.2');

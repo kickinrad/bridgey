@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { DaemonClient } from './daemon-client.js';
+import type { BridgeyClient } from './types.js';
 
-export function registerTools(server: McpServer, client: DaemonClient): void {
+export function registerTools(server: McpServer, client: BridgeyClient): void {
   // -------------------------------------------------------------------
   // bridgey_send — send a message to another agent
   // -------------------------------------------------------------------

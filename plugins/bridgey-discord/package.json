@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "discord.js": "^14.17.0",
-    "zod": "^3.25.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "typescript": "^5.8.0",

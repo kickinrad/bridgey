@@ -1,9 +1,9 @@
-import type { DaemonResponse, AgentInfo, MessageInfo, HealthInfo } from './types.js';
+import type { DaemonResponse, AgentInfo, MessageInfo, HealthInfo, BridgeyClient } from './types.js';
 
 const SEND_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — send runs claude -p
 const DEFAULT_TIMEOUT_MS = 10 * 1000;   // 10 seconds for everything else
 
-export class DaemonClient {
+export class DaemonClient implements BridgeyClient {
   private baseUrl: string;
 
   constructor(port?: number) {

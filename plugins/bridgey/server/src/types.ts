@@ -26,3 +26,22 @@ export interface HealthInfo {
   name: string;
   uptime: number;
 }
+
+/**
+ * Common client interface for both daemon-backed and orchestrator modes.
+ */
+export interface BridgeyClient {
+  send(agent: string, message: string, contextId?: string): Promise<DaemonResponse>;
+  listAgents(): Promise<AgentInfo[]>;
+  getMessages(limit?: number): Promise<MessageInfo[]>;
+  health(): Promise<HealthInfo>;
+}
+
+/**
+ * Agent entry from bridgey.config.json — minimal shape for orchestrator use.
+ */
+export interface AgentConfig {
+  name: string;
+  url: string;
+  token: string;
+}

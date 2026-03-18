@@ -13,6 +13,7 @@ export default defineConfig({
     },
     projects: [
       'plugins/bridgey/daemon',
+      'plugins/bridgey/server',
       'plugins/bridgey-tailscale',
       'plugins/bridgey-discord',
     ],

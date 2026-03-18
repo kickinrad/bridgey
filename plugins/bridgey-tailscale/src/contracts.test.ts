@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import Ajv from 'ajv';
-import a2aRequestSchema from '../../../contracts/a2a-request.schema.json';
-import messageSendParamsSchema from '../../../contracts/message-send-params.schema.json';
-import sendRequestSchema from '../../../contracts/send-request.schema.json';
+import a2aRequestSchema from '../../../dev/contracts/a2a-request.schema.json';
+import messageSendParamsSchema from '../../../dev/contracts/message-send-params.schema.json';
+import sendRequestSchema from '../../../dev/contracts/send-request.schema.json';
 
 const ajv = new Ajv();
 const validateA2ARequest = ajv.compile(a2aRequestSchema);

@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "generate:contracts": "tsx contracts/generate-schemas.ts"
+    "generate:contracts": "tsx dev/contracts/generate-schemas.ts"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "4.1.0",

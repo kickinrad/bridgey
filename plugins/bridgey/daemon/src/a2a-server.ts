@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'crypto';
 import type { BridgeyConfig, A2AResponse } from './types.js';
-import { validateToken, isLocalAgent, isTrustedNetwork } from './auth.js';
+import { isAuthorized, isLocalAgent, isTrustedNetwork } from './auth.js';
 import { generateAgentCard } from './agent-card.js';
 import { executePrompt, executePromptStreaming } from './executor.js';
 import { AgentQueue } from './queue.js';
@@ -114,7 +114,7 @@ export function a2aRoutes(
 
   // List all known agents (DB + local registry)
   fastify.get('/agents', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -147,7 +147,7 @@ export function a2aRoutes(
 
   // Recent messages
   fastify.get('/messages', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -159,7 +159,7 @@ export function a2aRoutes(
 
   // Audit log endpoint
   fastify.get('/audit', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const query = req.query as { limit?: string };
@@ -169,7 +169,7 @@ export function a2aRoutes(
 
   // Internal send endpoint (used by MCP server)
   fastify.post('/send', async (req, reply) => {
-    if (!validateToken(req, config) && !isLocalAgent(req) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -230,7 +230,7 @@ export function a2aRoutes(
   // A2A JSON-RPC endpoint
   fastify.post('/', async (req, reply) => {
     // Auth check: skip for local agents and trusted networks
-    if (!isLocalAgent(req) && !validateToken(req, config) && !isTrustedNetwork(req.ip, config.trusted_networks)) {
+    if (!isAuthorized(req, config)) {
       return reply.code(401).send(jsonRpcError('0', -32000, 'Unauthorized'));
     }
 

@@ -8,7 +8,10 @@ Two processes:
 - **MCP Server** (stdio) — thin client providing tools to CC, lives with the session
 - **Daemon** (HTTP) — long-running Fastify server handling A2A protocol, persists across sessions
 
+Both are bundled as single JS files in `dist/` — zero runtime deps, works out of the box.
 The daemon starts automatically via SessionStart hook and manages itself via pidfile.
+
+**Storage:** JSON files in `~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl
 
 ## MCP Tools
 
@@ -51,7 +54,7 @@ User: "any new messages?"
 
 ## Config
 
-Config lives at `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`. Created by `/bridgey:setup`. Do not edit manually unless the user asks.
+Config lives at `~/.bridgey/bridgey.config.json`. Created by `/bridgey:setup`. Do not edit manually unless the user asks.
 
 ## Discovery
 
@@ -108,15 +111,14 @@ When binding to non-localhost, configure `trusted_networks` to allow token-free 
 When running in Docker or on a headless server:
 - **Bind:** Must use `"0.0.0.0"` (localhost is unreachable from other containers)
 - **Auth:** Claude Code Max uses OAuth; copy `~/.claude/.credentials.json` from a logged-in machine and mount read-only
-- **Native deps:** better-sqlite3 requires compilation (python3, make, g++); always `npm install` inside the container, never copy node_modules from host
 - **Inter-container DNS:** Use Docker service names (e.g., `http://bridgey-mila:8093`), not localhost or IPs
 
 ## Troubleshooting
 
 If tools return "daemon unreachable":
-1. Check config exists: `cat ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
+1. Check config exists: `cat ~/.bridgey/bridgey.config.json`
 2. If no config: run `/bridgey:setup`
-3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js start --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
+3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json`
 4. Check daemon logs: `cat ~/.bridgey/daemon.log`
 
 If A2A sends return 400:

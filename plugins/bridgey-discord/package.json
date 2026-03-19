@@ -14,5 +14,8 @@
   "devDependencies": {
     "typescript": "^5.8.0",
     "@types/node": "^22.0.0"
+  },
+  "overrides": {
+    "undici": ">=6.24.0"
   }
 }

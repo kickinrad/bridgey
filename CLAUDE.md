@@ -6,19 +6,18 @@ Inter-agent communication marketplace for Claude Code via A2A protocol.
 
 ```bash
 npm run install:all   # Install all dependencies
-npm run build         # Build daemon + MCP server + tailscale plugin
+npm run build         # Build daemon + MCP server
 npm test              # Run all tests
 ```
 
 ## Architecture
 
-**Marketplace** with three plugins:
+**Single plugin** with integrated Tailscale discovery:
 
-| Plugin | Version | Purpose |
-|--------|---------|---------|
-| `bridgey` | 0.3.0 | Core A2A daemon + MCP server |
-| `bridgey-tailscale` | 0.1.0 | Tailscale mesh discovery addon |
-| `bridgey-discord` | 0.1.0 | Discord bot bridge via A2A |
+| Component | Purpose |
+|-----------|---------|
+| `bridgey` | Core A2A daemon + MCP server + Tailscale mesh discovery |
+| `bridgey-discord` | Discord bot bridge (standalone service, not a CC plugin) |
 
 **Two-process design per instance:**
 - **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage
@@ -36,16 +35,13 @@ plugins/
 │   ├── .claude-plugin/    # plugin.json, .mcp.json
 │   ├── daemon/            # Fastify A2A server (TypeScript)
 │   │   └── src/           # index, a2a-server, a2a-client, store, auth, executor, queue, watchdog
+│   │       └── tailscale/ # scanner, registrar, config, scan-cli
 │   ├── server/            # MCP server (TypeScript)
 │   │   └── src/           # index, tools, daemon-client
-│   ├── hooks/             # SessionStart hook (auto-start watchdog)
-│   ├── skills/            # setup, status, add-agent
+│   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan)
+│   ├── skills/            # setup, status, add-agent, tailscale-setup, tailscale-scan
 │   └── CLAUDE.md          # Plugin-level instructions for CC
-├── bridgey-tailscale/
-│   ├── src/               # scanner, registrar, config, MCP server
-│   ├── skills/            # setup, scan
-│   └── CLAUDE.md
-├── bridgey-discord/
+├── bridgey-discord/       # Standalone service (not a CC plugin)
 │   ├── src/               # bot, a2a-bridge, config, index
 │   └── CLAUDE.md
 dev/
@@ -62,7 +58,7 @@ dev/
 | Persistence | JSON files (`~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl) |
 | MCP Server | `@modelcontextprotocol/sdk` (stdio) |
 | Validation | Zod |
-| Build | esbuild → single-file bundles in `dist/` (daemon.js, server.js, watchdog.js) |
+| Build | esbuild → single-file bundles in `dist/` (daemon.js, server.js, watchdog.js, scan-cli.js) |
 | Auth | Bearer tokens (`brg_` prefix), CIDR trust, local registry |
 
 ## Key Runtime Paths
@@ -86,7 +82,7 @@ dev/
 
 ## Status
 
-Core + bridgey-tailscale + bridgey-discord complete. bridgey-telegram planned.
+Core plugin with integrated Tailscale discovery complete. bridgey-discord is a standalone service (not a CC plugin). bridgey-telegram planned.
 
 ## Related Projects
 

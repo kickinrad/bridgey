@@ -5,11 +5,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "npm run build:bridgey && npm run build:tailscale && npm run build:discord",
+    "build": "npm run build:bridgey && npm run build:discord",
     "build:bridgey": "cd plugins/bridgey && npm run build",
-    "build:tailscale": "cd plugins/bridgey-tailscale && npm run build",
     "build:discord": "cd plugins/bridgey-discord && npm run build",
-    "install:all": "cd plugins/bridgey && npm install && npm run install:all && cd ../bridgey-tailscale && npm install && cd ../bridgey-discord && npm install",
+    "install:all": "cd plugins/bridgey && npm install && npm run install:all && cd ../../plugins/bridgey-discord && npm install",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

@@ -19,4 +19,9 @@ if [ ! -f "$PLUGIN_ROOT/dist/watchdog.js" ]; then
 fi
 
 # Start watchdog (idempotent — exits if daemon already running)
-exec node "$PLUGIN_ROOT/dist/watchdog.js" --config "$CONFIG" --pidfile "$PIDFILE"
+node "$PLUGIN_ROOT/dist/watchdog.js" --config "$CONFIG" --pidfile "$PIDFILE"
+
+# Optional: scan tailnet for agents (silent if tailscale not installed)
+if command -v tailscale &>/dev/null && [ -f "$PLUGIN_ROOT/dist/scan-cli.js" ]; then
+  node "$PLUGIN_ROOT/dist/scan-cli.js" 2>/dev/null || true
+fi

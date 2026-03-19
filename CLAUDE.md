@@ -17,7 +17,7 @@ npm test              # Run all tests
 | Component | Purpose |
 |-----------|---------|
 | `bridgey` | Core A2A daemon + MCP server + Tailscale mesh discovery |
-| `bridgey-discord` | Discord bot bridge (standalone service, not a CC plugin) |
+| `bridgey-discord` | Discord bot bridge (on `feat/bridgey-discord` branch) |
 
 **Two-process design per instance:**
 - **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage
@@ -41,9 +41,6 @@ plugins/
 │   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan)
 │   ├── skills/            # setup, status, add-agent, tailscale-setup, tailscale-scan
 │   └── CLAUDE.md          # Plugin-level instructions for CC
-├── bridgey-discord/       # Standalone service (not a CC plugin)
-│   ├── src/               # bot, a2a-bridge, config, index
-│   └── CLAUDE.md
 dev/
 ├── contracts/             # JSON schemas for cross-plugin contracts
 └── test-utils/            # Shared test helpers (Fastify, MSW)

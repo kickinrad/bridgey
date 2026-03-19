@@ -32,4 +32,11 @@ await build({
   outfile: 'dist/server.js',
 });
 
-console.log('Build complete: dist/daemon.js, dist/watchdog.js, dist/server.js');
+// Bundle tailscale scan CLI (used by SessionStart hook)
+await build({
+  ...shared,
+  entryPoints: ['daemon/src/tailscale/scan-cli.ts'],
+  outfile: 'dist/scan-cli.js',
+});
+
+console.log('Build complete: dist/daemon.js, dist/watchdog.js, dist/server.js, dist/scan-cli.js');

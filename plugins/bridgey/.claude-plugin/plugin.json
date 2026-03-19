@@ -1,12 +1,12 @@
 {
   "name": "bridgey",
-  "version": "0.3.0",
-  "description": "Inter-agent communication via Google A2A protocol. Each Claude Code instance becomes both an A2A client and server.",
+  "version": "0.4.0",
+  "description": "Inter-agent communication via A2A protocol with Tailscale mesh discovery. Each Claude Code instance becomes both an A2A client and server.",
   "author": {
     "name": "Wils",
     "email": "wils@bestfootforward.business"
   },
   "repository": "https://github.com/kickinrad/bridgey",
   "license": "MIT",
-  "keywords": ["a2a", "agent-to-agent", "communication", "multi-agent", "bridge"]
+  "keywords": ["a2a", "agent-to-agent", "communication", "multi-agent", "bridge", "tailscale"]
 }

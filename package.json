@@ -2,6 +2,7 @@
   "name": "bridgey-marketplace",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "npm run build:bridgey && npm run build:tailscale && npm run build:discord",

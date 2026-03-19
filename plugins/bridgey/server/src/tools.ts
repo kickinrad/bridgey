@@ -1,6 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { BridgeyClient } from './types.js';
+import { scanTailnet } from '../../daemon/src/tailscale/scanner.js';
+import {
+  readLocalDaemon,
+  registerTailnetAgent,
+  removeStaleTailnetAgents,
+  listTailnetAgents,
+} from '../../daemon/src/tailscale/registrar.js';
+import { loadConfig as loadTailscaleConfig } from '../../daemon/src/tailscale/config.js';
 
 export function registerTools(server: McpServer, client: BridgeyClient): void {
   // -------------------------------------------------------------------
@@ -166,6 +174,78 @@ export function registerTools(server: McpServer, client: BridgeyClient): void {
       }
 
       return { content: [{ type: 'text' as const, text: sections.join('\n') }] };
+    },
+  );
+
+  // -------------------------------------------------------------------
+  // bridgey_tailscale_scan — scan tailnet for bridgey agents
+  // -------------------------------------------------------------------
+  server.tool(
+    'bridgey_tailscale_scan',
+    'Scan your Tailscale network for devices running bridgey and register them as agents. Returns list of discovered, existing, and removed agents.',
+    { force: z.boolean().optional().describe('Re-probe all peers even if already registered') },
+    async ({ force }) => {
+      const config = loadTailscaleConfig(process.env.BRIDGEY_TAILSCALE_CONFIG);
+
+      const local = readLocalDaemon();
+      if (!local) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: 'No local bridgey daemon found. Run /bridgey:setup first.',
+          }],
+        };
+      }
+
+      const port = new URL(local.url).port;
+      if (port) config.bridgey_port = parseInt(port, 10);
+
+      try {
+        const discovered = await scanTailnet(config);
+        const existing = listTailnetAgents();
+        const discoveredNames = discovered.map((a) => a.name);
+
+        for (const agent of discovered) {
+          registerTailnetAgent({
+            name: agent.name,
+            url: agent.url,
+            hostname: agent.hostname,
+            tailscale_ip: agent.tailscale_ip,
+          });
+        }
+
+        const removed = removeStaleTailnetAgents(discoveredNames);
+        const newAgents = discovered.filter(
+          (d) => !existing.some((e) => e.name === d.name)
+        );
+
+        const lines: string[] = [];
+        if (discovered.length === 0) {
+          lines.push('No bridgey agents found on your tailnet.');
+        } else {
+          lines.push(`Found ${discovered.length} bridgey agent(s) on tailnet:`);
+          for (const a of discovered) {
+            const tag = newAgents.some((n) => n.name === a.name) ? ' (new!)' : '';
+            lines.push(`  - ${a.name} @ ${a.hostname} (${a.tailscale_ip})${tag}`);
+          }
+        }
+        if (removed.length > 0) {
+          lines.push(`\nRemoved ${removed.length} stale agent(s): ${removed.join(', ')}`);
+        }
+
+        return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('ENOENT')) {
+          return {
+            content: [{
+              type: 'text' as const,
+              text: 'Tailscale CLI not found. Install Tailscale: https://tailscale.com/download',
+            }],
+          };
+        }
+        return { content: [{ type: 'text' as const, text: `Scan failed: ${msg}` }] };
+      }
     },
   );
 }

@@ -10,14 +10,14 @@
     {
       "name": "bridgey",
       "source": "./plugins/bridgey",
-      "description": "Inter-agent communication via Google A2A protocol — send messages, discover agents, manage inbox",
-      "version": "0.3.0",
+      "description": "Inter-agent communication via A2A protocol with Tailscale mesh discovery — send messages, discover agents, manage inbox",
+      "version": "0.4.0",
       "category": "productivity"
     },
     {
-      "name": "bridgey-tailscale",
-      "source": "./plugins/bridgey-tailscale",
-      "description": "Tailscale mesh network discovery for bridgey — auto-discovers agents on your tailnet",
+      "name": "bridgey-discord",
+      "source": "./plugins/bridgey-discord",
+      "description": "Discord bot bridge for bridgey — route Discord channel messages to Claude Code agents via A2A",
       "version": "0.1.0",
       "category": "productivity"
     }

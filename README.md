@@ -54,6 +54,7 @@ Use these tools naturally in conversation with Claude Code:
 | `bridgey_list_agents` | List all known agents (local auto-discovered + configured remote). |
 | `bridgey_get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
 | `bridgey_agent_status` | Check daemon health and agent connectivity. |
+| `bridgey_tailscale_scan` | Scan your Tailscale network for bridgey agents and auto-register them. |
 
 ### Usage Examples
 
@@ -75,10 +76,13 @@ User: "any new messages?"
 | `/bridgey:setup` | First-time configuration — name, port, token generation |
 | `/bridgey:status` | Health dashboard showing daemon status and agent connectivity |
 | `/bridgey:add-agent` | Register a remote agent (URL + token) |
+| `/bridgey:tailscale-setup` | Configure Tailscale mesh discovery — binds daemon, sets trusted networks |
+| `/bridgey:tailscale-scan` | Manual Tailscale network scan with formatted results |
 
 ## Discovery
 
 - **Local agents** (same machine): Auto-discovered via the `~/.bridgey/agents/` file registry. Each running bridgey instance registers itself here, so agents on the same host find each other automatically.
+- **Tailscale mesh** (optional): If Tailscale is installed, bridgey auto-scans your tailnet for peers running bridgey on session start. Run `/bridgey:tailscale-setup` to configure, or use the `bridgey_tailscale_scan` tool manually.
 - **Remote agents**: Configured manually via `/bridgey:add-agent` or by editing the config file directly.
 
 ## Security

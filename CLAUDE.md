@@ -48,15 +48,9 @@ plugins/
 ├── bridgey-discord/
 │   ├── src/               # bot, a2a-bridge, config, index
 │   └── CLAUDE.md
-deploy/
-├── Dockerfile             # bridgey-persona container image
-├── Dockerfile.discord     # bridgey-discord container image
-├── docker-compose.yml     # Coolify deployment compose
-├── entrypoint.sh          # Config generation from env vars
-└── .env.example
-docs/
-├── phases.md              # Implementation phases (1-3 complete, 4 in progress)
-└── plans/                 # Design docs per phase
+dev/
+├── contracts/             # JSON schemas for cross-plugin contracts
+└── test-utils/            # Shared test helpers (Fastify, MSW)
 ```
 
 ## Tech Stack
@@ -90,20 +84,9 @@ docs/
 - Audit log: every request tracked (source IP, auth type, status)
 - Localhost bind by default — network exposure requires explicit opt-in
 
-## Container Deployment
+## Status
 
-See `docs/remote-deployment-guide.md` for the full story. Key gotchas:
-- **Bind:** Daemons must use `"bind": "0.0.0.0"` in containers (localhost is unreachable cross-container)
-- **trusted_networks:** Add Docker bridge CIDRs (`172.16.0.0/12`, `10.0.0.0/8`) alongside Tailscale (`100.64.0.0/10`)
-- **Auth:** Claude Code Max uses OAuth; mount `~/.claude/.credentials.json` from a logged-in machine
-- **Inter-container DNS:** Use Docker service names (`http://bridgey-mila:8093`), not localhost
-
-## Development Phase Status
-
-- **Phase 1** (Core MVP): Complete
-- **Phase 2** (Skills + Polish): Complete
-- **Phase 3** (Hardening + Streaming): Complete
-- **Phase 4** (Companion Plugins): bridgey-tailscale complete, bridgey-discord complete; bridgey-telegram planned
+Core + bridgey-tailscale + bridgey-discord complete. bridgey-telegram planned.
 
 ## Related Projects
 

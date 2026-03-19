@@ -1,9 +1,0 @@
-.git
-docs
-*.md
-!plugins/bridgey/CLAUDE.md
-plugins/bridgey/daemon/src
-plugins/bridgey/server/src
-plugins/bridgey/daemon/src/__tests__
-plugins/bridgey-tailscale
-node_modules

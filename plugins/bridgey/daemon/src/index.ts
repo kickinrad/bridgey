@@ -5,6 +5,9 @@ import https from 'https';
 import Fastify from 'fastify';
 import { Store } from './store.js';
 import { a2aRoutes } from './a2a-server.js';
+import { TransportRegistry } from './transport-registry.js';
+import { ChannelPush } from './channel-push.js';
+import { registerTransportRoutes } from './transport-routes.js';
 import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
 import { register, unregister, isProcessAlive } from './registry.js';
@@ -190,7 +193,13 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   // Register routes
   // Cast needed: HTTPS Fastify has a different generic than plain HTTP,
   // but our routes only use standard request/reply APIs that both share.
-  a2aRoutes(fastify as unknown as import('fastify').FastifyInstance, config, store);
+  const appInstance = fastify as unknown as import('fastify').FastifyInstance;
+  a2aRoutes(appInstance, config, store);
+
+  // Transport + channel routes
+  const transportRegistry = new TransportRegistry();
+  const channelPush = new ChannelPush();
+  registerTransportRoutes(appInstance, transportRegistry, channelPush);
 
   // Start listening
   try {

@@ -12,19 +12,23 @@ npm test              # Run all tests
 
 ## Architecture
 
-**Single plugin** with integrated Tailscale discovery:
+**Core plugin** with Channels API integration and Tailscale discovery:
 
 | Component | Purpose |
 |-----------|---------|
-| `bridgey` | Core A2A daemon + MCP server + Tailscale mesh discovery |
-| `bridgey-discord` | Discord bot bridge (on `feat/bridgey-discord` branch) |
+| `bridgey` | Core A2A daemon + Channel Server (Channels API) + Tailscale mesh discovery |
+| `bridgey-discord` | Discord transport adapter — bridges Discord into the A2A mesh |
+
+The daemon maintains a **transport registry** where adapters (Discord, Telegram, etc.) register on startup. Inbound messages from transports are pushed to Claude Code via the Channel Server.
 
 **Two-process design per instance:**
-- **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage
-- **MCP Server** (stdio) — thin client providing tools to CC, lives with the session
+- **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage, transport registry
+- **Channel Server** (stdio, Channels API) — pushes messages to CC, lives with the session
 
 ```
-Claude Code ←stdio→ MCP Server ←HTTP→ Daemon ←A2A/HTTP→ Remote Daemons
+Claude Code <-stdio-> Channel Server <-HTTP-> Daemon <-A2A/HTTP-> Remote Daemons
+                                        |
+                              Transport Adapters (Discord, etc.)
 ```
 
 ## Project Layout
@@ -36,11 +40,18 @@ plugins/
 │   ├── daemon/            # Fastify A2A server (TypeScript)
 │   │   └── src/           # index, a2a-server, a2a-client, store, auth, executor, queue, watchdog
 │   │       └── tailscale/ # scanner, registrar, config, scan-cli
-│   ├── server/            # MCP server (TypeScript)
+│   ├── server/            # Channel Server — Channels API (TypeScript)
 │   │   └── src/           # index, tools, daemon-client
 │   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan)
 │   ├── skills/            # setup, status, add-agent, tailscale-setup, tailscale-scan
 │   └── CLAUDE.md          # Plugin-level instructions for CC
+├── bridgey-discord/
+│   ├── bot.ts             # Discord.js gateway + message handling
+│   ├── transport.ts       # Daemon registration + message forwarding
+│   ├── gate.ts            # Sender allowlist and gating
+│   ├── pairing.ts         # Pairing flow for new senders
+│   ├── config.ts          # Zod config schema and loader
+│   └── CLAUDE.md          # Plugin-level instructions
 dev/
 ├── contracts/             # JSON schemas for cross-plugin contracts
 └── test-utils/            # Shared test helpers (Fastify, MSW)
@@ -53,7 +64,7 @@ dev/
 | Daemon HTTP | Fastify 5.x |
 | A2A Protocol | JSON-RPC 2.0 |
 | Persistence | JSON files (`~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl) |
-| MCP Server | `@modelcontextprotocol/sdk` (stdio) |
+| Channel Server | `@modelcontextprotocol/sdk` (stdio, Channels API) |
 | Validation | Zod |
 | Build | esbuild → single-file bundles in `dist/` (daemon.js, server.js, watchdog.js, scan-cli.js) |
 | Auth | Bearer tokens (`brg_` prefix), CIDR trust, local registry |
@@ -79,7 +90,7 @@ dev/
 
 ## Status
 
-Core plugin with integrated Tailscale discovery complete. bridgey-discord is a standalone service (not a CC plugin). bridgey-telegram planned.
+Core plugin with Channels API integration and Tailscale discovery complete. bridgey-discord transport adapter complete. bridgey-telegram planned.
 
 ## Related Projects
 

@@ -76,6 +76,62 @@ export class DaemonClient implements BridgeyClient {
     }
   }
 
+  // -----------------------------------------------------------------------
+  // Channel / transport methods (used by channel server)
+  // -----------------------------------------------------------------------
+
+  async registerChannel(pushUrl: string): Promise<void> {
+    await fetch(`${this.baseUrl}/channel/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ push_url: pushUrl }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+  }
+
+  async unregisterChannel(): Promise<void> {
+    await fetch(`${this.baseUrl}/channel/unregister`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    }).catch(() => {});
+  }
+
+  async reply(chatId: string, text: string, replyTo?: string, files?: string[]): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/messages/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, reply_to: replyTo, files }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    return res.json();
+  }
+
+  async react(chatId: string, messageId: string, emoji: string): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/messages/react`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, emoji }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    return res.json();
+  }
+
+  async getTransports(): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/transports`, {
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    return res.json();
+  }
+
+  async downloadAttachment(attachmentId: string): Promise<ArrayBuffer> {
+    const res = await fetch(
+      `${this.baseUrl}/attachments/${encodeURIComponent(attachmentId)}`,
+      { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) },
+    );
+    if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
+    return res.arrayBuffer();
+  }
+
   private friendlyError(err: unknown): string {
     if (err instanceof TypeError && String(err.message).includes('fetch')) {
       return `Bridgey daemon is not reachable at ${this.baseUrl}. Is it running? Start it with: bridgey daemon start`;

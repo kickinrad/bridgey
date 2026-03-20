@@ -1,0 +1,12 @@
+{
+  "name": "bridgey-discord",
+  "version": "0.1.0",
+  "description": "Discord bot bridge for bridgey — route Discord channel messages to Claude Code agents via A2A protocol.",
+  "author": {
+    "name": "Wils",
+    "email": "wils@bestfootforward.business"
+  },
+  "repository": "https://github.com/kickinrad/bridgey",
+  "license": "MIT",
+  "keywords": ["discord", "a2a", "bridge", "bot", "agent-communication"]
+}

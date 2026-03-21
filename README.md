@@ -92,7 +92,7 @@ On lookup, the daemon checks all three and deduplicates by name. On startup, con
 
 ## Configuration
 
-Config lives at `bridgey.config.json` inside the plugin directory, created by `/bridgey:setup`.
+Config lives at `~/.bridgey/bridgey.config.json`, created by `/bridgey:setup`.
 
 **This instance:**
 
@@ -165,12 +165,6 @@ In Desktop mode, the server runs in **orchestrator mode** — it talks directly 
 
 3. **Paste the snippet to Desktop Claude** — just tell it "Add this agent" and paste the JSON. Claude calls `configure_agent` automatically — no manual file editing needed.
 
-   You can also run the init wizard for interactive setup:
-
-   ```sh
-   node /path/to/bridgey/plugins/bridgey/dist/init.js
-   ```
-
 ### Environment Variables
 
 | Variable | Purpose |
@@ -191,7 +185,7 @@ In Desktop mode, you get the core A2A tools:
 | `configure_agent` | Add or update a remote agent (name, url, token) — zero manual config editing |
 | `remove_agent` | Remove a remote agent from the config |
 
-> **Note:** Channel tools (`reply`, `react`, `download_attachment`) and Tailscale scanning require a running daemon and are not available in orchestrator mode.
+> **Note:** Channel tools (`reply`, `react`) and Tailscale scanning require a running daemon and are not available in orchestrator mode.
 
 ## Troubleshooting
 

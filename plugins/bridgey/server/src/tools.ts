@@ -158,6 +158,18 @@ export function getToolDefinitions(): ToolDefinition[] {
         required: ['name'],
       },
     },
+    {
+      name: 'agent_info',
+      description:
+        'Fetch the A2A agent card for a remote agent. Shows name, description, capabilities, and skills.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string', description: 'Agent name' },
+        },
+        required: ['agent'],
+      },
+    },
   ];
 }
 
@@ -189,6 +201,8 @@ export async function handleToolCall(
       return handleConfigureAgent(args);
     case 'remove_agent':
       return handleRemoveAgent(args);
+    case 'agent_info':
+      return handleAgentInfo(args, client);
     default:
       return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
   }
@@ -570,6 +584,65 @@ async function handleRemoveAgent(
   return {
     content: [{ type: 'text', text: `Removed agent "${name}" from config.` }],
   };
+}
+
+async function handleAgentInfo(
+  args: Record<string, unknown>,
+  client: BridgeyClient,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  const agentName = args.agent as string;
+  if (!agentName) {
+    return { content: [{ type: 'text', text: 'Missing required field: agent.' }], isError: true };
+  }
+
+  try {
+    const agents = await client.listAgents();
+    const agent = agents.find((a) => a.name === agentName);
+    if (!agent) {
+      return {
+        content: [{ type: 'text', text: `Unknown agent "${agentName}". Use list_agents to see available agents.` }],
+        isError: true,
+      };
+    }
+
+    const res = await fetch(`${agent.url.replace(/\/$/, '')}/.well-known/agent-card.json`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      return {
+        content: [{ type: 'text', text: `Could not fetch agent card from ${agent.url} (HTTP ${res.status}) — agent may be offline.` }],
+      };
+    }
+
+    const card = (await res.json()) as Record<string, unknown>;
+    const lines = [
+      `Agent: ${card.name ?? agentName}`,
+      card.description ? `Description: ${card.description}` : null,
+      card.url ? `URL: ${card.url}` : null,
+      card.version ? `Version: ${card.version}` : null,
+    ].filter(Boolean) as string[];
+
+    const capabilities = card.capabilities as Record<string, unknown> | undefined;
+    if (capabilities) {
+      lines.push('', 'Capabilities:');
+      for (const [key, val] of Object.entries(capabilities)) {
+        lines.push(`  ${key}: ${JSON.stringify(val)}`);
+      }
+    }
+
+    const skills = card.skills as Array<{ name: string; description?: string }> | undefined;
+    if (skills?.length) {
+      lines.push('', 'Skills:');
+      for (const skill of skills) {
+        lines.push(`  - ${skill.name}${skill.description ? `: ${skill.description}` : ''}`);
+      }
+    }
+
+    return { content: [{ type: 'text', text: lines.join('\n') }] };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: 'text', text: `Failed to fetch agent info: ${msg}` }], isError: true };
+  }
 }
 
 // ---------------------------------------------------------------------------

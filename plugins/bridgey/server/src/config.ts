@@ -55,7 +55,13 @@ export function loadConfig(): BridgeyConfigFile | null {
   for (const path of candidates) {
     if (existsSync(path)) {
       try {
-        return JSON.parse(readFileSync(path, 'utf-8')) as BridgeyConfigFile;
+        const config = JSON.parse(readFileSync(path, 'utf-8')) as BridgeyConfigFile;
+        if (config.agents) {
+          for (const agent of config.agents) {
+            agent.token = resolveToken(agent.token) ?? agent.token;
+          }
+        }
+        return config;
       } catch {
         // skip malformed config
       }
@@ -72,6 +78,19 @@ export function saveConfig(config: BridgeyConfigFile): void {
   const dir = join(configPath, '..');
   mkdirSync(dir, { recursive: true });
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+}
+
+/**
+ * Resolve a token value. Tokens prefixed with $ are read from environment variables.
+ */
+export function resolveToken(token: string | undefined): string | undefined {
+  if (!token) return undefined;
+  if (token.startsWith('$')) {
+    const envVal = process.env[token.slice(1)];
+    if (!envVal) throw new Error(`Token env var ${token} is not set`);
+    return envVal;
+  }
+  return token;
 }
 
 /**

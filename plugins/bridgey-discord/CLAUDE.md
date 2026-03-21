@@ -40,6 +40,18 @@ DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
 | `~/.bridgey/discord/approved/` | Legacy pairing approval markers (unused — elicitation handles pairing now) |
 | `~/.bridgey/discord/inbox/` | Downloaded attachments |
 
+## Pairing Flow
+
+When `dm_policy: "pairing"` is set and an unknown Discord user DMs the bot:
+
+1. Bot sends a pairing request as an inbound message with `pairing_request: "true"` meta
+2. Daemon pushes it to the Channel Server
+3. MCP server detects the meta flag and calls `mcp.elicitInput()` (form mode)
+4. Claude operator sees an inline approve/decline dialog
+5. On approve → daemon `/pairing/approve` → bot `/callback/pairing-approved` → sender added to allowlist
+
+Falls back to a channel notification with manual instructions if elicitation is unavailable.
+
 ## Conventions
 
 - Token via `pass` or env var — never hardcoded

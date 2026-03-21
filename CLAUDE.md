@@ -106,7 +106,7 @@ The Channel Server uses the official Claude Code Channels API (`--channels` rese
 - **Skill `name:` frontmatter** must match the directory name (e.g. `name: setup` for `skills/setup/SKILL.md`). The plugin namespace (`bridgey:`) is prepended automatically by CC. Using full names like `name: bridgey setup` causes "Unknown skill" errors.
 - **`${CLAUDE_PLUGIN_DATA}`** (v2.1.78) — persistent state dir surviving updates. Not used here — `~/.bridgey/` is better because the daemon is long-running and shared across plugins (bridgey, bridgey-discord, future transports).
 - **HTTP hooks** (v2.1.63) — `"type": "http"` in hooks.json POSTs event JSON to a URL. Useful for simple health checks. Shell hooks still needed for filesystem/process logic (watchdog startup, tailscale scan).
-- **MCP elicitation** (v2.1.76) — servers can request structured user input mid-task via `elicitation/create` (form fields or URL redirect). Potential upgrade for Discord pairing flow — replace manual code approval with an inline approve/decline dialog.
+- **MCP elicitation** (v2.1.76) — servers can request structured user input mid-task via `elicitation/create` (form fields or URL redirect). Used by Discord pairing flow — inline approve/decline dialog replaces the old manual code approval. Falls back to channel notification if elicitation unavailable.
 
 ## Status
 

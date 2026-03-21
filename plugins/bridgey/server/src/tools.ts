@@ -353,8 +353,8 @@ async function handleStatus(
           sections.push('');
           sections.push(`Transports: ${transports.length} registered`);
           for (const t of transports) {
-            const icon = t.status === 'connected' ? '[ok]' : '[--]';
-            sections.push(`  ${icon} ${t.name} (${t.type}) — ${t.status}`);
+            const icon = t.healthy ? '[ok]' : '[--]';
+            sections.push(`  ${icon} ${t.name} (${t.capabilities.join(', ')}) — ${t.healthy ? 'connected' : 'disconnected'}`);
           }
         }
       } catch {

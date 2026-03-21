@@ -1,0 +1,34 @@
+{
+  "name": "bridgey-connect",
+  "version": "0.1.0",
+  "description": "Standalone MCP server for talking to remote bridgey agents from any MCP-compatible client",
+  "type": "module",
+  "bin": {
+    "bridgey-connect": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.1"
+  },
+  "keywords": [
+    "bridgey",
+    "mcp",
+    "a2a",
+    "claude",
+    "agent"
+  ],
+  "license": "MIT"
+}

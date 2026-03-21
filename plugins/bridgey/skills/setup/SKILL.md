@@ -42,7 +42,7 @@ Ask the user for each setting (provide sensible defaults):
 - Custom IP — bind to a specific network interface
 
 If the user picks `"0.0.0.0"` for bind, warn them:
-> "Binding to all interfaces exposes the daemon to the network. A bearer token protects it, but consider using `localhost` with bridgey-tailscale for secure remote access."
+> "Binding to all interfaces exposes the daemon to the network. A bearer token protects it, but consider using `localhost` with Tailscale for secure remote access."
 
 ### 2b. Configure Trusted Networks (if non-localhost bind)
 
@@ -50,7 +50,7 @@ If the user chose a non-localhost bind, ask if they want to add trusted networks
 
 | Network | CIDR | When to add |
 |---------|------|-------------|
-| Tailscale | `100.64.0.0/10` | Using bridgey-tailscale or Tailscale SSH |
+| Tailscale | `100.64.0.0/10` | Using Tailscale mesh or Tailscale SSH |
 | Docker bridge | `172.16.0.0/12` | Running in Docker containers |
 | Docker overlay | `10.0.0.0/8` | Docker Swarm or alternative bridge configs |
 

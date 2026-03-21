@@ -49,6 +49,6 @@ Configure bridgey for Tailscale mesh network discovery.
    ```
 
 6. **Run first scan:**
-   Use the `bridgey_tailscale_scan` MCP tool to discover peers. Display the results.
+   Use the `tailscale_scan` MCP tool to discover peers. Display the results.
 
 7. **Remind the user:** Other devices on the tailnet also need bridgey with Tailscale configured to be discoverable. Tell them to run `/bridgey:tailscale-setup` on each device.

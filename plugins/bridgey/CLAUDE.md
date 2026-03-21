@@ -19,31 +19,31 @@ Use these tools naturally in conversation:
 
 | Tool | Purpose |
 |------|---------|
-| `bridgey_send` | Send a message to another agent. Pass `agent` (name) and `message`. Returns their response. |
-| `bridgey_list_agents` | List all known agents (local auto-discovered + configured remote). |
-| `bridgey_get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
-| `bridgey_agent_status` | Check daemon health and agent connectivity. Shows connection info to share. |
-| `bridgey_configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
-| `bridgey_remove_agent` | Remove a remote agent from the local config. |
+| `send` | Send a message to another agent. Pass `agent` (name) and `message`. Returns their response. |
+| `list_agents` | List all known agents (local auto-discovered + configured remote). |
+| `get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
+| `status` | Check daemon health and agent connectivity. Shows connection info to share. |
+| `configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
+| `remove_agent` | Remove a remote agent from the local config. |
 
 ### Usage Patterns
 
 When the user asks to communicate with another agent:
 ```
 User: "ask cloud-coder to review my PR"
-→ bridgey_send(agent: "cloud-coder", message: "Please review the PR at ...")
+→ send(agent: "cloud-coder", message: "Please review the PR at ...")
 ```
 
 When the user asks about other agents:
 ```
 User: "who's online?"
-→ bridgey_list_agents()
+→ list_agents()
 ```
 
 When the user asks about recent messages:
 ```
 User: "any new messages?"
-→ bridgey_get_inbox(limit: 5)
+→ get_inbox(limit: 5)
 ```
 
 ## Skills

@@ -20,9 +20,9 @@ Inter-agent communication for Claude Code via Google's A2A protocol. Each Claude
 
 3. **Send your first message**
 
-   ```
-   bridgey_send(agent: "other-agent", message: "Hello from bridgey!")
-   ```
+   Just ask Claude naturally:
+
+   > "Send a message to other-agent saying hello from bridgey!"
 
 ## Architecture
 
@@ -44,30 +44,17 @@ Bridgey runs as two processes:
                                       └─────────────────┘
 ```
 
-## Tools
+## What You Can Do
 
-Use these tools naturally in conversation with Claude Code:
+Talk to Claude naturally — bridgey provides the tools behind the scenes:
 
-| Tool | Purpose |
-|------|---------|
-| `bridgey_send` | Send a message to another agent. Pass `agent` (name) and `message`. Returns their response. |
-| `bridgey_list_agents` | List all known agents (local auto-discovered + configured remote). |
-| `bridgey_get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
-| `bridgey_agent_status` | Check daemon health and agent connectivity. |
-| `bridgey_tailscale_scan` | Scan your Tailscale network for bridgey agents and auto-register them. |
-
-### Usage Examples
-
-```
-User: "ask cloud-coder to review my PR"
-→ bridgey_send(agent: "cloud-coder", message: "Please review the PR at ...")
-
-User: "who's online?"
-→ bridgey_list_agents()
-
-User: "any new messages?"
-→ bridgey_get_inbox(limit: 5)
-```
+| Ask Claude to... | What happens |
+|------------------|--------------|
+| "Ask cloud-coder to review my PR" | Sends a message to another agent and returns their response |
+| "Who's online?" | Lists all known agents (local + remote) |
+| "Any new messages?" | Shows recent inbound and outbound messages |
+| "Check bridgey status" | Reports daemon health and agent connectivity |
+| "Scan my tailnet for agents" | Discovers bridgey agents on your Tailscale network |
 
 ## Skills
 
@@ -81,9 +68,19 @@ User: "any new messages?"
 
 ## Discovery
 
-- **Local agents** (same machine): Auto-discovered via the `~/.bridgey/agents/` file registry. Each running bridgey instance registers itself here, so agents on the same host find each other automatically.
-- **Tailscale mesh** (optional): If Tailscale is installed, bridgey auto-scans your tailnet for peers running bridgey on session start. Run `/bridgey:tailscale-setup` to configure, or use the `bridgey_tailscale_scan` tool manually.
-- **Remote agents**: Configured manually via `/bridgey:add-agent` or by editing the config file directly.
+Bridgey finds agents through three layers, each with a different lifecycle:
+
+| Layer | Source | Lifecycle |
+|-------|--------|-----------|
+| **Config** (`agents[]` in config) | Manually added via `/bridgey:add-agent` | Permanent until you remove them |
+| **Local registry** (`~/.bridgey/agents/`) | Auto-registered by processes on the same machine | Cleaned up when the process dies |
+| **Tailscale** (`~/.bridgey/agents/`) | Discovered by scanning your tailnet | Cleaned up when the peer goes offline |
+
+On lookup, the daemon checks all three and deduplicates by name. On startup, config agents are synced into the runtime store so they're always available.
+
+- **Local agents** need no setup — each bridgey instance registers itself automatically.
+- **Tailscale mesh** auto-scans on session start if configured. Run `/bridgey:tailscale-setup` to enable, or ask Claude to "scan my tailnet for agents" for a manual scan.
+- **Remote agents** are added manually when they're not discoverable via the above.
 
 ## Security
 
@@ -95,7 +92,9 @@ User: "any new messages?"
 
 ## Configuration
 
-Config lives at `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`, created by `/bridgey:setup`. Key fields:
+Config lives at `bridgey.config.json` inside the plugin directory, created by `/bridgey:setup`.
+
+**This instance:**
 
 | Field | Description |
 |-------|-------------|
@@ -106,7 +105,12 @@ Config lives at `${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`, created by `/bridge
 | `token` | Bearer token for inbound authentication |
 | `workspace` | Working directory for inbound task execution |
 | `max_turns` | Max agentic turns for inbound message handling |
-| `agents` | Array of remote agent configurations (name, url, token) |
+
+**Known remote peers:**
+
+| Field | Description |
+|-------|-------------|
+| `agents` | Manually configured remote agents (see [Discovery](#discovery)) — each entry has a `name`, `url`, and `token` |
 
 Example:
 
@@ -129,14 +133,73 @@ Example:
 }
 ```
 
+## Claude Desktop
+
+Bridgey's MCP server can be installed in Claude Desktop (or any MCP-compatible client) to talk to your agents without running Claude Code.
+
+In Desktop mode, the server runs in **orchestrator mode** — it talks directly to remote daemons via A2A without needing a local daemon. You just need a config file listing your agents.
+
+### Setup
+
+1. **Add bridgey to Claude Desktop** — go to Settings → Developer → Edit Config and add:
+
+   ```json
+   {
+     "mcpServers": {
+       "bridgey": {
+         "command": "node",
+         "args": ["/path/to/bridgey/plugins/bridgey/dist/server.js"]
+       }
+     }
+   }
+   ```
+
+   A default config (`~/.bridgey/bridgey.config.json`) is created automatically on first start.
+
+2. **Get connection info from an existing agent** — on a Claude Code instance with a running daemon, ask for `bridgey status`. The output includes a connection snippet:
+
+   ```
+   Connection Info (share this to let other Claude instances reach you):
+     { "name": "julia", "url": "http://100.64.1.2:8092", "token": "brg_abc..." }
+   ```
+
+3. **Paste the snippet to Desktop Claude** — just tell it "Add this agent" and paste the JSON. Claude calls `configure_agent` automatically — no manual file editing needed.
+
+   You can also run the init wizard for interactive setup:
+
+   ```sh
+   node /path/to/bridgey/plugins/bridgey/dist/init.js
+   ```
+
+### Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `BRIDGEY_DAEMON_PORT` | Override the daemon port (default: 8092) |
+| `BRIDGEY_AGENT_NAME` | Override the agent name (default: `claude-desktop`) |
+
+### Available Tools
+
+In Desktop mode, you get the core A2A tools:
+
+| Tool | Purpose |
+|------|---------|
+| `send` | Send a message to a remote agent and get their response |
+| `list_agents` | List configured agents and check their online status |
+| `get_inbox` | View recent messages (session-scoped in orchestrator mode) |
+| `status` | Check health of configured agents |
+| `configure_agent` | Add or update a remote agent (name, url, token) — zero manual config editing |
+| `remove_agent` | Remove a remote agent from the config |
+
+> **Note:** Channel tools (`reply`, `react`, `download_attachment`) and Tailscale scanning require a running daemon and are not available in orchestrator mode.
+
 ## Troubleshooting
 
 If tools return "daemon unreachable":
 
-1. Check config exists: `cat ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
-2. If no config: run `/bridgey:setup`
-3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/daemon/dist/index.js start --config ${CLAUDE_PLUGIN_ROOT}/bridgey.config.json`
-4. Check daemon logs: `cat ~/.bridgey/daemon.log`
+1. Run `/bridgey:setup` if you haven't already — this creates the config and starts the daemon.
+2. Run `/bridgey:status` to check what's running and what's not.
+3. Check daemon logs: `cat ~/.bridgey/daemon.log`
 
 ## License
 

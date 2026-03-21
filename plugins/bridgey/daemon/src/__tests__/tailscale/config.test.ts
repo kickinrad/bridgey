@@ -85,13 +85,11 @@ describe('loadConfig', () => {
     expect(config1).not.toBe(config2);
   });
 
-  it('shares default array references via shallow spread (known limitation)', () => {
-    // loadConfig uses { ...DEFAULTS } which is a shallow copy.
-    // Mutating the exclude_peers array on one config will affect the DEFAULTS object.
-    // This documents current behavior — a deep clone would be safer.
+  it('does not share array references between calls', () => {
     const config1 = loadConfig();
     config1.exclude_peers.push('test');
     const config2 = loadConfig();
-    expect(config2.exclude_peers).toContain('test');
+    expect(config2.exclude_peers).not.toContain('test');
+    expect(config2.exclude_peers).toEqual([]);
   });
 });

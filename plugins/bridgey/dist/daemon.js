@@ -48901,6 +48901,283 @@ function a2aRoutes(fastify, config2, store) {
   });
 }
 
+// daemon/src/transport-types.ts
+var TransportRegisterSchema = external_exports.object({
+  name: external_exports.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
+  callback_url: external_exports.string().url(),
+  capabilities: external_exports.array(external_exports.enum(["reply", "react", "edit", "download_attachment"]))
+});
+var TransportUnregisterSchema = external_exports.object({
+  name: external_exports.string().min(1)
+});
+var AttachmentSchema = external_exports.object({
+  id: external_exports.string(),
+  name: external_exports.string(),
+  type: external_exports.string(),
+  size: external_exports.number(),
+  url: external_exports.string().url()
+});
+var InboundMessageSchema = external_exports.object({
+  transport: external_exports.string().min(1),
+  chat_id: external_exports.string().min(1),
+  sender: external_exports.string().min(1),
+  content: external_exports.string(),
+  meta: external_exports.record(external_exports.string(), external_exports.string()),
+  attachments: external_exports.array(AttachmentSchema).optional()
+});
+var OutboundReplySchema = external_exports.object({
+  chat_id: external_exports.string().min(1),
+  text: external_exports.string().min(1),
+  reply_to: external_exports.string().optional(),
+  files: external_exports.array(external_exports.string()).max(10).optional()
+});
+var ChannelRegisterSchema = external_exports.object({
+  push_url: external_exports.string().url()
+});
+function parseTransportFromChatId(chatId) {
+  const colonIndex = chatId.indexOf(":");
+  if (colonIndex === -1) return null;
+  return chatId.substring(0, colonIndex);
+}
+
+// daemon/src/transport-registry.ts
+var TransportRegistry = class {
+  transports = /* @__PURE__ */ new Map();
+  /** Register (or re-register) a transport. */
+  register(opts) {
+    this.transports.set(opts.name, {
+      name: opts.name,
+      callback_url: opts.callback_url,
+      capabilities: opts.capabilities,
+      registered_at: (/* @__PURE__ */ new Date()).toISOString(),
+      healthy: true
+    });
+  }
+  /** Remove a transport by name. */
+  unregister(name) {
+    this.transports.delete(name);
+  }
+  /** Get a transport by name, or undefined if not found. */
+  get(name) {
+    return this.transports.get(name);
+  }
+  /** List all registered transports. */
+  list() {
+    return [...this.transports.values()];
+  }
+  /** Resolve a transport from a chat_id string (uses the prefix before the first ':'). */
+  resolveFromChatId(chatId) {
+    const transportName = parseTransportFromChatId(chatId);
+    if (!transportName) return void 0;
+    return this.transports.get(transportName);
+  }
+  /** Check whether a transport supports a given capability. */
+  hasCapability(name, capability) {
+    const transport = this.transports.get(name);
+    if (!transport) return false;
+    return transport.capabilities.includes(capability);
+  }
+  /** Mark a transport as unhealthy. */
+  markUnhealthy(name) {
+    const transport = this.transports.get(name);
+    if (transport) {
+      transport.healthy = false;
+    }
+  }
+  /** Mark a transport as healthy, updating last_ping. */
+  markHealthy(name) {
+    const transport = this.transports.get(name);
+    if (transport) {
+      transport.healthy = true;
+      transport.last_ping = (/* @__PURE__ */ new Date()).toISOString();
+    }
+  }
+};
+
+// daemon/src/channel-push.ts
+var MAX_QUEUE_SIZE = 100;
+var ChannelPush = class {
+  pushUrl = null;
+  queue = [];
+  register(pushUrl) {
+    this.pushUrl = pushUrl;
+  }
+  unregister() {
+    this.pushUrl = null;
+  }
+  isConnected() {
+    return this.pushUrl !== null;
+  }
+  getPushUrl() {
+    return this.pushUrl;
+  }
+  enqueue(message) {
+    this.queue.push(message);
+    if (this.queue.length > MAX_QUEUE_SIZE) {
+      this.queue = this.queue.slice(-MAX_QUEUE_SIZE);
+    }
+  }
+  pendingCount() {
+    return this.queue.length;
+  }
+  drain() {
+    const messages = [...this.queue];
+    this.queue = [];
+    return messages;
+  }
+  async push(message) {
+    if (!this.pushUrl) {
+      this.enqueue(message);
+      return false;
+    }
+    try {
+      const res = await fetch(this.pushUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(message),
+        signal: AbortSignal.timeout(5e3)
+      });
+      if (!res.ok) {
+        this.enqueue(message);
+        return false;
+      }
+      return true;
+    } catch {
+      this.enqueue(message);
+      return false;
+    }
+  }
+  async pushPending() {
+    if (!this.pushUrl || this.queue.length === 0) return 0;
+    const messages = this.drain();
+    let pushed = 0;
+    for (const msg of messages) {
+      const ok = await this.push(msg);
+      if (ok) pushed++;
+    }
+    return pushed;
+  }
+};
+
+// daemon/src/transport-routes.ts
+var OutboundReactSchema = external_exports.object({
+  chat_id: external_exports.string().min(1),
+  message_id: external_exports.string().min(1),
+  emoji: external_exports.string().min(1)
+});
+function registerTransportRoutes(app, registry2, channelPush) {
+  app.post("/transports/register", async (req, reply) => {
+    const parsed = TransportRegisterSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    registry2.register(parsed.data);
+    return reply.send({ ok: true, transport_id: parsed.data.name });
+  });
+  app.post("/transports/unregister", async (req, reply) => {
+    const parsed = TransportUnregisterSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    registry2.unregister(parsed.data.name);
+    return reply.send({ ok: true });
+  });
+  app.get("/transports", async (_req, reply) => {
+    return reply.send({ transports: registry2.list() });
+  });
+  app.post("/channel/register", async (req, reply) => {
+    const parsed = ChannelRegisterSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    channelPush.register(parsed.data.push_url);
+    const pushed = await channelPush.pushPending();
+    return reply.send({ ok: true, pending_count: channelPush.pendingCount() });
+  });
+  app.post("/channel/unregister", async (_req, reply) => {
+    channelPush.unregister();
+    return reply.send({ ok: true });
+  });
+  app.post("/messages/inbound", async (req, reply) => {
+    const parsed = InboundMessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { transport, chat_id, sender, content, meta: meta3, attachments } = parsed.data;
+    const channelMeta = {
+      ...meta3,
+      transport,
+      chat_id,
+      sender
+    };
+    const pushed = await channelPush.push({ content, meta: channelMeta });
+    return reply.send({ ok: true, queued: !pushed });
+  });
+  app.post("/messages/reply", async (req, reply) => {
+    const parsed = OutboundReplySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { chat_id, text, reply_to, files } = parsed.data;
+    const transport = registry2.resolveFromChatId(chat_id);
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, text, reply_to, files }),
+        signal: AbortSignal.timeout(1e4)
+      });
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+      return reply.send({ ok: true, delivered: true });
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "Failed to deliver reply"
+      });
+    }
+  });
+  app.post("/messages/react", async (req, reply) => {
+    const parsed = OutboundReactSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { chat_id, message_id, emoji: emoji3 } = parsed.data;
+    const transport = registry2.resolveFromChatId(chat_id);
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+    if (!transport.capabilities.includes("react")) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support reactions` });
+    }
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, message_id, emoji: emoji3 }),
+        signal: AbortSignal.timeout(1e4)
+      });
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+      return reply.send({ ok: true, delivered: true });
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "Failed to deliver reaction"
+      });
+    }
+  });
+}
+
 // daemon/src/index.ts
 var HOME = homedir4();
 var BRIDGEY_DIR = join5(HOME, ".bridgey");
@@ -49032,7 +49309,11 @@ async function startDaemon(pidfile2, configPath2) {
       done();
     });
   }
-  a2aRoutes(fastify, config2, store);
+  const appInstance = fastify;
+  a2aRoutes(appInstance, config2, store);
+  const transportRegistry = new TransportRegistry();
+  const channelPush = new ChannelPush();
+  registerTransportRoutes(appInstance, transportRegistry, channelPush);
   try {
     await fastify.listen({ port: config2.port, host: bindAddr });
   } catch (err) {

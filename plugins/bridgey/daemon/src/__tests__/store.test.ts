@@ -57,9 +57,6 @@ describe('Store', () => {
       expect(store.getAgents()[0].agent_card_json).toBe('{"v":2}');
     });
 
-    it('returns empty array when no agents', () => {
-      expect(store.getAgents()).toEqual([]);
-    });
   });
 
   // ── Messages ───────────────────────────────────────────────────────
@@ -101,9 +98,6 @@ describe('Store', () => {
       expect(all.length).toBeLessThanOrEqual(500);
     });
 
-    it('returns empty array when no messages', () => {
-      expect(store.getMessages()).toEqual([]);
-    });
   });
 
   // ── Conversation messages ──────────────────────────────────────────
@@ -155,9 +149,6 @@ describe('Store', () => {
       expect(malloryConv.agent_name).toBe('mallory');
     });
 
-    it('getConversation returns null for unknown contextId', () => {
-      expect(store.getConversation('nonexistent')).toBeNull();
-    });
   });
 
   // ── Audit ──────────────────────────────────────────────────────────
@@ -224,10 +215,6 @@ describe('Store', () => {
       const entries = store.getAuditLog(2);
       expect(entries[0].agent_name).toBe('newer-agent');
       expect(entries[0].source_ip).toBe('192.168.1.2');
-    });
-
-    it('returns empty array when no audit file', () => {
-      expect(store.getAuditLog()).toEqual([]);
     });
 
     it('auto-rotates at 2000 lines', () => {

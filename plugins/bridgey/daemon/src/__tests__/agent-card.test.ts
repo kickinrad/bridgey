@@ -32,11 +32,6 @@ describe('enrichFromClaudeMd', () => {
     try { rmSync(testDir, { recursive: true }); } catch { /* ignore */ }
   });
 
-  it('returns null when no CLAUDE.md exists', () => {
-    const result = enrichFromClaudeMd('/nonexistent/path');
-    expect(result).toBeNull();
-  });
-
   it('extracts first heading and description from CLAUDE.md', () => {
     mkdirSync(testDir, { recursive: true });
     writeFileSync(

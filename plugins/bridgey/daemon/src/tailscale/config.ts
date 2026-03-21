@@ -14,13 +14,20 @@ const DEFAULTS: BridgeyTailscaleConfig = {
   scan_on_session_start: true,
 };
 
+function freshDefaults(): BridgeyTailscaleConfig {
+  return {
+    ...DEFAULTS,
+    exclude_peers: [...DEFAULTS.exclude_peers],
+  };
+}
+
 export function loadConfig(configPath?: string): BridgeyTailscaleConfig {
-  if (!configPath || !existsSync(configPath)) return { ...DEFAULTS };
+  if (!configPath || !existsSync(configPath)) return freshDefaults();
 
   try {
     const raw = JSON.parse(readFileSync(configPath, 'utf-8'));
-    return { ...DEFAULTS, ...raw };
+    return { ...freshDefaults(), ...raw };
   } catch {
-    return { ...DEFAULTS };
+    return freshDefaults();
   }
 }

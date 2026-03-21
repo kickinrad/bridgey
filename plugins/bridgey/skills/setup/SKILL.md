@@ -1,5 +1,5 @@
 ---
-name: bridgey setup
+name: setup
 description: >-
   This skill should be used when the user asks to "set up bridgey",
   "configure bridgey", "initialize bridgey", "bridgey setup",

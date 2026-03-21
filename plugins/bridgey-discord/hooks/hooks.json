@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -sf http://localhost:8094/health > /dev/null 2>&1 && echo 'bridgey-discord bot is running' || echo 'bridgey-discord bot is not running — start with: cd ${CLAUDE_PLUGIN_ROOT} && bun run bot.ts'"
+          }
+        ]
+      }
+    ]
+  }
+}

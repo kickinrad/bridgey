@@ -1,0 +1,13 @@
+{
+  "name": "bridgey-discord",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun run bot.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "discord.js": "^14.17.0",
+    "zod": "^3.24.0"
+  }
+}

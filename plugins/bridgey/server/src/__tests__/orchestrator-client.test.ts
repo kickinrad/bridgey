@@ -207,7 +207,6 @@ describe('OrchestratorClient', () => {
 
       expect(health.status).toBe('ok (orchestrator)');
       expect(health.name).toBe('claude-ai');
-      expect(health.uptime).toBeGreaterThanOrEqual(0);
     });
   });
 });

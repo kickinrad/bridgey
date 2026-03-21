@@ -1,5 +1,5 @@
 ---
-name: tailscale setup
+name: tailscale-setup
 description: "First-time Tailscale mesh network configuration for bridgey. Updates daemon binding for tailnet access and runs initial peer scan."
 user_invocable: true
 ---

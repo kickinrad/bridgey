@@ -103,7 +103,13 @@ let listener: ChannelListenerHandle | null = null;
 if (client instanceof DaemonClient) {
   try {
     listener = await startChannelListener({
-      onMessage: (msg) => {
+      onMessage: async (msg) => {
+        // Pairing requests trigger elicitation instead of a channel notification
+        if (msg.meta.pairing_request === 'true') {
+          handlePairingElicitation(msg.meta, client as DaemonClient);
+          return;
+        }
+
         mcp.notification({
           method: 'notifications/claude/channel',
           params: { content: msg.content, meta: msg.meta },
@@ -114,6 +120,51 @@ if (client instanceof DaemonClient) {
     await client.registerChannel(`http://127.0.0.1:${listener.port}`);
   } catch {
     // Channel push won't work, but tools still function
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pairing elicitation — ask Claude operator to approve Discord senders
+// ---------------------------------------------------------------------------
+
+async function handlePairingElicitation(
+  meta: Record<string, string>,
+  daemon: DaemonClient,
+): Promise<void> {
+  const sender = meta.sender ?? 'unknown';
+  const userId = meta.pairing_user_id ?? '';
+  const chatId = meta.chat_id ?? '';
+  const transport = meta.transport ?? 'unknown';
+
+  try {
+    const result = await mcp.elicitInput({
+      mode: 'form',
+      message: `${transport} pairing request from "${sender}" (${userId}). Approve access?`,
+      requestedSchema: {
+        type: 'object',
+        properties: {
+          approve: {
+            type: 'boolean',
+            title: 'Approve this sender?',
+            default: false,
+          },
+        },
+        required: ['approve'],
+      },
+    });
+
+    if (result.action === 'accept' && (result.content as any)?.approve) {
+      await daemon.approvePairing(chatId, userId);
+    }
+  } catch {
+    // Elicitation not supported by this client — fall back to channel notification
+    mcp.notification({
+      method: 'notifications/claude/channel',
+      params: {
+        content: `Pairing request from "${sender}" (${userId}). Use /bridgey-discord:access pair to approve manually.`,
+        meta,
+      },
+    } as any);
   }
 }
 

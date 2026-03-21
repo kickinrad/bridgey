@@ -93,6 +93,26 @@ dev/
 - Audit log: every request tracked (source IP, auth type, status)
 - Localhost bind by default — network exposure requires explicit opt-in
 
+## Channels API Integration
+
+The Channel Server uses the official Claude Code Channels API (`--channels` research preview, v2.1.80+):
+- Declares `experimental: { 'claude/channel': {} }` capability in MCP server
+- Emits `notifications/claude/channel` with `{ content, meta }` params
+- Injects `instructions` into Claude's system prompt automatically
+
+**Meta key constraint:** Claude Code silently drops meta keys containing hyphens. All meta keys MUST match `[a-zA-Z0-9_]+` only (e.g. `message_id`, `guild_id` — never `message-id`). Enforce via Zod in `transport-types.ts`.
+
+**Permission relay** (v2.1.81): Channel servers can declare a `permission` capability to forward tool approval prompts through the channel (e.g. to Discord/phone). Not yet implemented — potential v2 feature.
+
+**`--bare` flag** (v2.1.81): Skips hooks, LSP, plugins, skill walks. Consider for inbound `claude -p` execution in `daemon/src/executor.ts` — inbound messages don't need the full plugin stack.
+
+## Claude Code Plugin Conventions
+
+- **Skill `name:` frontmatter** must match the directory name (e.g. `name: setup` for `skills/setup/SKILL.md`). The plugin namespace (`bridgey:`) is prepended automatically by CC. Using full names like `name: bridgey setup` causes "Unknown skill" errors.
+- **`${CLAUDE_PLUGIN_DATA}`** (v2.1.78) — persistent state dir surviving updates. Not used here — `~/.bridgey/` is better because the daemon is long-running and shared across plugins (bridgey, bridgey-discord, future transports).
+- **HTTP hooks** (v2.1.63) — `"type": "http"` in hooks.json POSTs event JSON to a URL. Useful for simple health checks. Shell hooks still needed for filesystem/process logic (watchdog startup, tailscale scan).
+- **MCP elicitation** (v2.1.76) — servers can request structured user input mid-task via `elicitation/create` (form fields or URL redirect). Used by Discord pairing flow — inline approve/decline dialog replaces the old manual code approval. Falls back to channel notification if elicitation unavailable.
+
 ## Status
 
 Core plugin with Channels API integration and Tailscale discovery complete. bridgey-discord transport adapter complete. bridgey-connect complete. bridgey-telegram planned.
@@ -101,9 +121,7 @@ Core plugin with Channels API integration and Tailscale discovery complete. brid
 
 | Project | Relationship |
 |---------|-------------|
-| `home-base` | Discord bot bridge for personas — dispatch + runner containers |
 | `personas` | Framework for self-evolving AI personas (Julia, Mila, etc.) |
-| `homelab` | Hetzner/Coolify infrastructure where everything deploys |
 
 ## Conventions
 

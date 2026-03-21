@@ -20911,6 +20911,15 @@ var DaemonClient = class {
     });
     return res.json();
   }
+  async approvePairing(chatId, userId) {
+    const res = await fetch(`${this.baseUrl}/pairing/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, user_id: userId }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+    });
+    return res.json();
+  }
   async downloadAttachment(attachmentId) {
     const res = await fetch(
       `${this.baseUrl}/attachments/${encodeURIComponent(attachmentId)}`,
@@ -21858,7 +21867,11 @@ var listener = null;
 if (client instanceof DaemonClient) {
   try {
     listener = await startChannelListener({
-      onMessage: (msg) => {
+      onMessage: async (msg) => {
+        if (msg.meta.pairing_request === "true") {
+          handlePairingElicitation(msg.meta, client);
+          return;
+        }
         mcp.notification({
           method: "notifications/claude/channel",
           params: { content: msg.content, meta: msg.meta }
@@ -21867,6 +21880,40 @@ if (client instanceof DaemonClient) {
     });
     await client.registerChannel(`http://127.0.0.1:${listener.port}`);
   } catch {
+  }
+}
+async function handlePairingElicitation(meta3, daemon) {
+  const sender = meta3.sender ?? "unknown";
+  const userId = meta3.pairing_user_id ?? "";
+  const chatId = meta3.chat_id ?? "";
+  const transport2 = meta3.transport ?? "unknown";
+  try {
+    const result = await mcp.elicitInput({
+      mode: "form",
+      message: `${transport2} pairing request from "${sender}" (${userId}). Approve access?`,
+      requestedSchema: {
+        type: "object",
+        properties: {
+          approve: {
+            type: "boolean",
+            title: "Approve this sender?",
+            default: false
+          }
+        },
+        required: ["approve"]
+      }
+    });
+    if (result.action === "accept" && result.content?.approve) {
+      await daemon.approvePairing(chatId, userId);
+    }
+  } catch {
+    mcp.notification({
+      method: "notifications/claude/channel",
+      params: {
+        content: `Pairing request from "${sender}" (${userId}). Use /bridgey-discord:access pair to approve manually.`,
+        meta: meta3
+      }
+    });
   }
 }
 process.on("beforeExit", () => {

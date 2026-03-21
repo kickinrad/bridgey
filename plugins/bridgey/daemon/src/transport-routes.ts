@@ -68,6 +68,47 @@ export function registerTransportRoutes(
 
   // ── Messages ────────────────────────────────────────────────────────
 
+  // ── Pairing ───────────────────────────────────────────────────────
+
+  app.post('/pairing/approve', async (req, reply) => {
+    const schema = z.object({
+      chat_id: z.string().min(1),
+      user_id: z.string().min(1),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+
+    const { chat_id, user_id } = parsed.data;
+    const transport = registry.resolveFromChatId(chat_id);
+
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/pairing-approved`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id }),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+
+      return reply.send({ ok: true, user_id });
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : 'Failed to deliver pairing approval',
+      });
+    }
+  });
+
+  // ── Messages ────────────────────────────────────────────────────────
+
   app.post('/messages/inbound', async (req, reply) => {
     const parsed = InboundMessageSchema.safeParse(req.body);
     if (!parsed.success) {

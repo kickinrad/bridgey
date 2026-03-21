@@ -1,28 +1,21 @@
 ---
 name: access
-description: Manage Discord sender access — pair new users, allow/deny senders, set DM policy. Use when user says "pair discord", "discord access", "allow discord user", "deny discord user", "discord pairing".
+description: Manage Discord sender access — allow/deny senders, set DM policy. Use when user says "discord access", "allow discord user", "deny discord user", "discord pairing".
 ---
 
 # Discord Access Management
 
 Manage who can send messages through the Discord transport.
 
+## Pairing Flow
+
+When a new Discord user sends a DM with `dm_policy: "pairing"`, the bot sends a pairing request through the bridgey daemon. The bridgey MCP server triggers an **elicitation dialog** — you'll see an inline approve/decline prompt in your Claude session. No codes or manual commands needed.
+
+If elicitation isn't available (e.g. orchestrator mode), use `allow <user_id>` below.
+
 ## Commands
 
 Parse `$ARGUMENTS` to determine the action:
-
-### `pair <code>`
-Approve a pending pairing code from a Discord user.
-
-1. Read the 6-character hex code from arguments
-2. Write the code to the approved directory so the bot can pick it up:
-   ```bash
-   mkdir -p ~/.bridgey/discord/approved
-   # The bot watches this directory. Write a file named with the pending user ID.
-   # Since we don't know the user ID from the code alone, write the code as a marker.
-   echo "<code>" > ~/.bridgey/discord/approved/<code>
-   ```
-3. The bot will match the code to a pending pairing, add the sender to the allowlist, and clean up
 
 ### `allow <user_id>`
 Directly add a Discord user ID to the allowlist:

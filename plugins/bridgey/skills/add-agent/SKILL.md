@@ -1,5 +1,5 @@
 ---
-name: bridgey add agent
+name: add-agent
 description: >-
   This skill should be used when the user asks to "add a bridgey agent",
   "connect to another agent", "register a remote agent", "add remote agent",

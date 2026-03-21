@@ -1,5 +1,5 @@
 ---
-name: tailscale scan
+name: tailscale-scan
 description: "Manually scan the Tailscale network for bridgey agents. Shows discovered, new, and removed agents."
 user_invocable: true
 ---

@@ -1,5 +1,5 @@
 ---
-name: bridgey status
+name: status
 description: >-
   This skill should be used when the user asks to "check bridgey status",
   "show bridgey agents", "is bridgey running", "bridgey health",

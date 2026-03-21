@@ -22,7 +22,9 @@ Use these tools naturally in conversation:
 | `bridgey_send` | Send a message to another agent. Pass `agent` (name) and `message`. Returns their response. |
 | `bridgey_list_agents` | List all known agents (local auto-discovered + configured remote). |
 | `bridgey_get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
-| `bridgey_agent_status` | Check daemon health and agent connectivity. |
+| `bridgey_agent_status` | Check daemon health and agent connectivity. Shows connection info to share. |
+| `bridgey_configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
+| `bridgey_remove_agent` | Remove a remote agent from the local config. |
 
 ### Usage Patterns
 

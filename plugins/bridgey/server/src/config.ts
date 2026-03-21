@@ -1,10 +1,43 @@
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { hostname } from 'os';
 import type { AgentConfig } from './types.js';
 
 export interface BridgeyConfigFile {
   name?: string;
   agents?: AgentConfig[];
+  [key: string]: unknown;
+}
+
+/**
+ * Resolve the config file path. Prefers plugin root, falls back to ~/.bridgey/.
+ */
+export function getConfigPath(): string {
+  const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
+  if (pluginRoot) {
+    const pluginPath = join(pluginRoot, 'bridgey.config.json');
+    if (existsSync(pluginPath)) return pluginPath;
+  }
+
+  const home = process.env.HOME || '';
+  return join(home, '.bridgey', 'bridgey.config.json');
+}
+
+/**
+ * Ensure a config file exists. Creates a minimal default if missing.
+ */
+export function ensureConfig(): void {
+  const configPath = getConfigPath();
+  if (existsSync(configPath)) return;
+
+  const dir = join(configPath, '..');
+  mkdirSync(dir, { recursive: true });
+
+  const defaults: BridgeyConfigFile = {
+    name: hostname().split('.')[0],
+    agents: [],
+  };
+  writeFileSync(configPath, JSON.stringify(defaults, null, 2) + '\n', 'utf-8');
 }
 
 /**
@@ -29,6 +62,16 @@ export function loadConfig(): BridgeyConfigFile | null {
     }
   }
   return null;
+}
+
+/**
+ * Save config back to disk. Preserves all existing fields.
+ */
+export function saveConfig(config: BridgeyConfigFile): void {
+  const configPath = getConfigPath();
+  const dir = join(configPath, '..');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
 }
 
 /**

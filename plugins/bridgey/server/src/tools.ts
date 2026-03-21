@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import type { BridgeyClient } from './types.js';
 import { DaemonClient } from './daemon-client.js';
+import { loadConfig, saveConfig } from './config.js';
 import { scanTailnet } from '../../daemon/src/tailscale/scanner.js';
 import {
   readLocalDaemon,
@@ -145,6 +146,32 @@ export function getToolDefinitions(): ToolDefinition[] {
         required: ['attachment_id', 'filename'],
       },
     },
+    {
+      name: 'configure_agent',
+      description:
+        'Add or update a remote agent\'s connection info. Use this when someone shares their bridgey connection details (name, url, token).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Agent name' },
+          url: { type: 'string', description: 'Agent daemon URL (e.g. http://100.64.1.2:8092)' },
+          token: { type: 'string', description: 'Bearer token for authentication (brg_...)' },
+        },
+        required: ['name', 'url', 'token'],
+      },
+    },
+    {
+      name: 'remove_agent',
+      description:
+        'Remove a remote agent from the local config.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the agent to remove' },
+        },
+        required: ['name'],
+      },
+    },
   ];
 }
 
@@ -174,6 +201,10 @@ export async function handleToolCall(
       return handleReact(args, client);
     case 'download_attachment':
       return handleDownloadAttachment(args, client);
+    case 'configure_agent':
+      return handleConfigureAgent(args);
+    case 'remove_agent':
+      return handleRemoveAgent(args);
     default:
       return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
   }
@@ -328,6 +359,32 @@ async function handleStatus(
         }
       } catch {
         // transports endpoint may not exist yet — silently skip
+      }
+    }
+
+    // Connection info — share this so other Claude instances can reach you
+    const config = loadConfig();
+    if (config) {
+      const daemonPort = (config as Record<string, unknown>).port ?? 8092;
+      const daemonBind = (config as Record<string, unknown>).bind as string | undefined;
+      const token = (config as Record<string, unknown>).token as string | undefined;
+      const name = config.name ?? 'unnamed';
+
+      // Build URL: use bind address if non-localhost, otherwise show placeholder
+      let host: string;
+      if (daemonBind && daemonBind !== '127.0.0.1' && daemonBind !== 'localhost') {
+        host = daemonBind === '0.0.0.0' ? '<your-ip>' : daemonBind;
+      } else {
+        host = '<your-ip>';
+      }
+      const url = `http://${host}:${daemonPort}`;
+
+      if (token) {
+        sections.push('');
+        sections.push('Connection Info (share this to let other Claude instances reach you):');
+        sections.push(`  { "name": "${name}", "url": "${url}", "token": "${token}" }`);
+        sections.push('');
+        sections.push('The receiving Claude can use the configure_agent tool to add this agent.');
       }
     }
   }
@@ -493,6 +550,72 @@ async function handleDownloadAttachment(
     const msg = err instanceof Error ? err.message : String(err);
     return { content: [{ type: 'text', text: `Download failed: ${msg}` }], isError: true };
   }
+}
+
+async function handleConfigureAgent(
+  args: Record<string, unknown>,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  const name = args.name as string;
+  const url = args.url as string;
+  const token = args.token as string;
+
+  if (!name || !url || !token) {
+    return {
+      content: [{ type: 'text', text: 'Missing required fields: name, url, and token are all required.' }],
+      isError: true,
+    };
+  }
+
+  const config = loadConfig() ?? { name: 'unnamed', agents: [] };
+  if (!config.agents) config.agents = [];
+
+  const existing = config.agents.findIndex((a) => a.name === name);
+  if (existing >= 0) {
+    config.agents[existing] = { name, url, token };
+  } else {
+    config.agents.push({ name, url, token });
+  }
+
+  saveConfig(config);
+
+  const verb = existing >= 0 ? 'Updated' : 'Added';
+  return {
+    content: [{ type: 'text', text: `${verb} agent "${name}" (${url}). It will be available on next daemon restart or in orchestrator mode immediately.` }],
+  };
+}
+
+async function handleRemoveAgent(
+  args: Record<string, unknown>,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  const name = args.name as string;
+
+  if (!name) {
+    return {
+      content: [{ type: 'text', text: 'Missing required field: name.' }],
+      isError: true,
+    };
+  }
+
+  const config = loadConfig();
+  if (!config?.agents?.length) {
+    return {
+      content: [{ type: 'text', text: `No agents configured. Nothing to remove.` }],
+    };
+  }
+
+  const before = config.agents.length;
+  config.agents = config.agents.filter((a) => a.name !== name);
+
+  if (config.agents.length === before) {
+    return {
+      content: [{ type: 'text', text: `Agent "${name}" not found in config.` }],
+    };
+  }
+
+  saveConfig(config);
+  return {
+    content: [{ type: 'text', text: `Removed agent "${name}" from config.` }],
+  };
 }
 
 // ---------------------------------------------------------------------------

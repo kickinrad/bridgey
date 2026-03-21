@@ -8,13 +8,19 @@ var DEFAULTS = {
   exclude_peers: [],
   scan_on_session_start: true
 };
+function freshDefaults() {
+  return {
+    ...DEFAULTS,
+    exclude_peers: [...DEFAULTS.exclude_peers]
+  };
+}
 function loadConfig(configPath) {
-  if (!configPath || !existsSync(configPath)) return { ...DEFAULTS };
+  if (!configPath || !existsSync(configPath)) return freshDefaults();
   try {
     const raw = JSON.parse(readFileSync(configPath, "utf-8"));
-    return { ...DEFAULTS, ...raw };
+    return { ...freshDefaults(), ...raw };
   } catch {
-    return { ...DEFAULTS };
+    return freshDefaults();
   }
 }
 

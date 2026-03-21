@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { mkdirSync, writeFileSync } from 'node:fs';
 import type { BridgeyClient } from './types.js';
 import { DaemonClient } from './daemon-client.js';
 import { loadConfig, saveConfig } from './config.js';
@@ -39,7 +38,9 @@ export interface ToolDefinition {
   };
 }
 
-export function getToolDefinitions(): ToolDefinition[] {
+export type ServerMode = 'daemon' | 'orchestrator';
+
+export function getToolDefinitions(mode: ServerMode = 'daemon'): ToolDefinition[] {
   return [
     {
       name: 'send',
@@ -97,55 +98,44 @@ export function getToolDefinitions(): ToolDefinition[] {
         },
       },
     },
-    {
-      name: 'reply',
-      description:
-        'Reply to a message received via a channel (Discord, Telegram, etc). Use the chat_id from the incoming channel message.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
-          text: { type: 'string', description: 'Reply text' },
-          reply_to: {
-            type: 'string',
-            description: 'Optional message ID to reply to (thread)',
+    ...(mode === 'daemon' ? [
+      {
+        name: 'reply',
+        description:
+          'Reply to a message received via a channel (Discord, Telegram, etc). Use the chat_id from the incoming channel message.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            text: { type: 'string', description: 'Reply text' },
+            reply_to: {
+              type: 'string',
+              description: 'Optional message ID to reply to (thread)',
+            },
+            files: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional file paths to attach',
+            },
           },
-          files: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Optional file paths to attach',
+          required: ['chat_id', 'text'],
+        },
+      },
+      {
+        name: 'react',
+        description:
+          'Add an emoji reaction to a message received via a channel (Discord, Telegram, etc).',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            message_id: { type: 'string', description: 'ID of the message to react to' },
+            emoji: { type: 'string', description: 'Emoji to react with (e.g. "👍")' },
           },
+          required: ['chat_id', 'message_id', 'emoji'],
         },
-        required: ['chat_id', 'text'],
       },
-    },
-    {
-      name: 'react',
-      description:
-        'Add an emoji reaction to a message received via a channel (Discord, Telegram, etc).',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
-          message_id: { type: 'string', description: 'ID of the message to react to' },
-          emoji: { type: 'string', description: 'Emoji to react with (e.g. "👍")' },
-        },
-        required: ['chat_id', 'message_id', 'emoji'],
-      },
-    },
-    {
-      name: 'download_attachment',
-      description:
-        'Download a file attachment from a channel message to the local inbox directory.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          attachment_id: { type: 'string', description: 'Attachment ID from the channel message' },
-          filename: { type: 'string', description: 'Filename to save as' },
-        },
-        required: ['attachment_id', 'filename'],
-      },
-    },
+    ] : []),
     {
       name: 'configure_agent',
       description:
@@ -170,6 +160,18 @@ export function getToolDefinitions(): ToolDefinition[] {
           name: { type: 'string', description: 'Name of the agent to remove' },
         },
         required: ['name'],
+      },
+    },
+    {
+      name: 'agent_info',
+      description:
+        'Fetch the A2A agent card for a remote agent. Shows name, description, capabilities, and skills.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string', description: 'Agent name' },
+        },
+        required: ['agent'],
       },
     },
   ];
@@ -199,12 +201,12 @@ export async function handleToolCall(
       return handleReply(args, client);
     case 'react':
       return handleReact(args, client);
-    case 'download_attachment':
-      return handleDownloadAttachment(args, client);
     case 'configure_agent':
       return handleConfigureAgent(args);
     case 'remove_agent':
       return handleRemoveAgent(args);
+    case 'agent_info':
+      return handleAgentInfo(args, client);
     default:
       return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
   }
@@ -353,8 +355,8 @@ async function handleStatus(
           sections.push('');
           sections.push(`Transports: ${transports.length} registered`);
           for (const t of transports) {
-            const icon = t.status === 'connected' ? '[ok]' : '[--]';
-            sections.push(`  ${icon} ${t.name} (${t.type}) — ${t.status}`);
+            const icon = t.healthy ? '[ok]' : '[--]';
+            sections.push(`  ${icon} ${t.name} (${t.capabilities.join(', ')}) — ${t.healthy ? 'connected' : 'disconnected'}`);
           }
         }
       } catch {
@@ -521,36 +523,6 @@ async function handleReact(
   }
 }
 
-async function handleDownloadAttachment(
-  args: Record<string, unknown>,
-  client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
-  if (!(client instanceof DaemonClient)) {
-    return {
-      content: [
-        { type: 'text', text: 'Download requires a running bridgey daemon. Channel features are not available in orchestrator mode.' },
-      ],
-      isError: true,
-    };
-  }
-
-  const attachmentId = args.attachment_id as string;
-  const filename = args.filename as string;
-
-  try {
-    const data = await client.downloadAttachment(attachmentId);
-    const inboxDir = resolve(homedir(), '.bridgey', 'inbox');
-    mkdirSync(inboxDir, { recursive: true });
-    const outPath = resolve(inboxDir, filename);
-    writeFileSync(outPath, Buffer.from(data));
-    return {
-      content: [{ type: 'text', text: `Downloaded to ${outPath}` }],
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { content: [{ type: 'text', text: `Download failed: ${msg}` }], isError: true };
-  }
-}
 
 async function handleConfigureAgent(
   args: Record<string, unknown>,
@@ -616,6 +588,65 @@ async function handleRemoveAgent(
   return {
     content: [{ type: 'text', text: `Removed agent "${name}" from config.` }],
   };
+}
+
+async function handleAgentInfo(
+  args: Record<string, unknown>,
+  client: BridgeyClient,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  const agentName = args.agent as string;
+  if (!agentName) {
+    return { content: [{ type: 'text', text: 'Missing required field: agent.' }], isError: true };
+  }
+
+  try {
+    const agents = await client.listAgents();
+    const agent = agents.find((a) => a.name === agentName);
+    if (!agent) {
+      return {
+        content: [{ type: 'text', text: `Unknown agent "${agentName}". Use list_agents to see available agents.` }],
+        isError: true,
+      };
+    }
+
+    const res = await fetch(`${agent.url.replace(/\/$/, '')}/.well-known/agent-card.json`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      return {
+        content: [{ type: 'text', text: `Could not fetch agent card from ${agent.url} (HTTP ${res.status}) — agent may be offline.` }],
+      };
+    }
+
+    const card = (await res.json()) as Record<string, unknown>;
+    const lines = [
+      `Agent: ${card.name ?? agentName}`,
+      card.description ? `Description: ${card.description}` : null,
+      card.url ? `URL: ${card.url}` : null,
+      card.version ? `Version: ${card.version}` : null,
+    ].filter(Boolean) as string[];
+
+    const capabilities = card.capabilities as Record<string, unknown> | undefined;
+    if (capabilities) {
+      lines.push('', 'Capabilities:');
+      for (const [key, val] of Object.entries(capabilities)) {
+        lines.push(`  ${key}: ${JSON.stringify(val)}`);
+      }
+    }
+
+    const skills = card.skills as Array<{ name: string; description?: string }> | undefined;
+    if (skills?.length) {
+      lines.push('', 'Skills:');
+      for (const skill of skills) {
+        lines.push(`  - ${skill.name}${skill.description ? `: ${skill.description}` : ''}`);
+      }
+    }
+
+    return { content: [{ type: 'text', text: lines.join('\n') }] };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: 'text', text: `Failed to fetch agent info: ${msg}` }], isError: true };
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ Scan your tailnet for bridgey agents.
 
 ## Steps
 
-1. Use the `bridgey_tailscale_scan` MCP tool with `force: true` to re-probe all peers.
+1. Use the `tailscale_scan` MCP tool with `force: true` to re-probe all peers.
 2. Display the results to the user in a readable format:
    - **New agents** — discovered for the first time this scan
    - **Known agents** — previously discovered and still online

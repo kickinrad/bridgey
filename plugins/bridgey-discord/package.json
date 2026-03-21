@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "discord.js": "^14.17.0",
-    "zod": "^3.24.0"
+    "zod": "^4.3.6"
   }
 }

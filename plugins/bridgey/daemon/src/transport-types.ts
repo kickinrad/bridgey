@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const TransportRegisterSchema = z.object({
   name: z.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
   callback_url: z.string().url(),
-  capabilities: z.array(z.enum(['reply', 'react', 'edit', 'download_attachment'])),
+  capabilities: z.array(z.enum(['reply', 'react', 'edit'])),
 });
 
 export const TransportUnregisterSchema = z.object({
@@ -52,6 +52,16 @@ export const OutboundReplySchema = z.object({
 });
 
 export type OutboundReply = z.infer<typeof OutboundReplySchema>;
+
+// --- Outbound Reactions (Channel Server → Daemon → Transport) ---
+
+export const OutboundReactSchema = z.object({
+  chat_id: z.string().min(1),
+  message_id: z.string().min(1),
+  emoji: z.string().min(1),
+});
+
+export type OutboundReact = z.infer<typeof OutboundReactSchema>;
 
 // --- Channel Server Registration ---
 

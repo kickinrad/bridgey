@@ -84,7 +84,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
 ### 6. Confirm
 
 Verify the agent appears in the list:
-- Use `bridgey_list_agents` MCP tool
+- Use `list_agents` MCP tool
 - Or run `/bridgey:status`
 
 ### 7. Mutual Registration

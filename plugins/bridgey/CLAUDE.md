@@ -13,37 +13,42 @@ The daemon starts automatically via SessionStart hook and manages itself via pid
 
 **Storage:** JSON files in `~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl
 
+**Adaptive mode:** The MCP server auto-detects its environment. With a daemon, it runs in **daemon mode** (full tool set including channel reply/react). Without a daemon (Claude Desktop, Cursor), it runs in **orchestrator mode** — sending messages directly to remote agents. Agent tokens support `$ENV_VAR` syntax for secrets.
+
 ## MCP Tools
 
 Use these tools naturally in conversation:
 
 | Tool | Purpose |
 |------|---------|
-| `bridgey_send` | Send a message to another agent. Pass `agent` (name) and `message`. Returns their response. |
-| `bridgey_list_agents` | List all known agents (local auto-discovered + configured remote). |
-| `bridgey_get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
-| `bridgey_agent_status` | Check daemon health and agent connectivity. Shows connection info to share. |
-| `bridgey_configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
-| `bridgey_remove_agent` | Remove a remote agent from the local config. |
+| `send` | Send a message to another agent. Pass `agent` (name) and `message`. Returns their response. |
+| `list_agents` | List all known agents (local auto-discovered + configured remote). |
+| `get_inbox` | View recent inbound and outbound messages. Pass optional `limit`. |
+| `status` | Check daemon health and agent connectivity. Shows connection info to share. |
+| `configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
+| `remove_agent` | Remove a remote agent from the local config. |
+| `agent_info` | Fetch a remote agent's A2A card (capabilities, skills, description). |
+| `reply` | Reply to a channel message (daemon mode only). |
+| `react` | Add emoji reaction to a channel message (daemon mode only). |
 
 ### Usage Patterns
 
 When the user asks to communicate with another agent:
 ```
 User: "ask cloud-coder to review my PR"
-→ bridgey_send(agent: "cloud-coder", message: "Please review the PR at ...")
+→ send(agent: "cloud-coder", message: "Please review the PR at ...")
 ```
 
 When the user asks about other agents:
 ```
 User: "who's online?"
-→ bridgey_list_agents()
+→ list_agents()
 ```
 
 When the user asks about recent messages:
 ```
 User: "any new messages?"
-→ bridgey_get_inbox(limit: 5)
+→ get_inbox(limit: 5)
 ```
 
 ## Skills

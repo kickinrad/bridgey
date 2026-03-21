@@ -48905,7 +48905,7 @@ function a2aRoutes(fastify, config2, store) {
 var TransportRegisterSchema = external_exports.object({
   name: external_exports.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
   callback_url: external_exports.string().url(),
-  capabilities: external_exports.array(external_exports.enum(["reply", "react", "edit", "download_attachment"]))
+  capabilities: external_exports.array(external_exports.enum(["reply", "react", "edit"]))
 });
 var TransportUnregisterSchema = external_exports.object({
   name: external_exports.string().min(1)
@@ -48933,6 +48933,11 @@ var OutboundReplySchema = external_exports.object({
   text: external_exports.string().min(1),
   reply_to: external_exports.string().optional(),
   files: external_exports.array(external_exports.string()).max(10).optional()
+});
+var OutboundReactSchema = external_exports.object({
+  chat_id: external_exports.string().min(1),
+  message_id: external_exports.string().min(1),
+  emoji: external_exports.string().min(1)
 });
 var ChannelRegisterSchema = external_exports.object({
   push_url: external_exports.string().url()
@@ -49063,11 +49068,6 @@ var ChannelPush = class {
 };
 
 // daemon/src/transport-routes.ts
-var OutboundReactSchema = external_exports.object({
-  chat_id: external_exports.string().min(1),
-  message_id: external_exports.string().min(1),
-  emoji: external_exports.string().min(1)
-});
 function registerTransportRoutes(app, registry2, channelPush) {
   app.post("/transports/register", async (req, reply) => {
     const parsed = TransportRegisterSchema.safeParse(req.body);

@@ -16,7 +16,7 @@ Display the health and status of the bridgey daemon and all connected agents.
 
 ### 1. Check Daemon Health
 
-Use the `bridgey_agent_status` MCP tool to get daemon health and agent list. If the daemon is unreachable, inform the user and suggest:
+Use the `status` MCP tool to get daemon health and agent list. If the daemon is unreachable, inform the user and suggest:
 - Check if config exists: `cat ~/.bridgey/bridgey.config.json`
 - Run `/bridgey:setup` if no config
 - Manually start: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json`
@@ -60,7 +60,7 @@ If any agents are offline, suggest:
 
 If agents return 400 on send:
 - The `/send` endpoint requires `{agent, message}` — the `agent` field names the target and is required
-- Verify agent name matches a registered agent (`bridgey_list_agents`)
+- Verify agent name matches a registered agent (`list_agents`)
 
 If agents return 401/403:
 - Bearer token mismatch — verify token matches the remote agent's config

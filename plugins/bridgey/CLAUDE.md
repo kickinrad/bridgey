@@ -13,6 +13,8 @@ The daemon starts automatically via SessionStart hook and manages itself via pid
 
 **Storage:** JSON files in `~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl
 
+**Adaptive mode:** The MCP server auto-detects its environment. With a daemon, it runs in **daemon mode** (full tool set including channel reply/react). Without a daemon (Claude Desktop, Cursor), it runs in **orchestrator mode** — sending messages directly to remote agents. Agent tokens support `$ENV_VAR` syntax for secrets.
+
 ## MCP Tools
 
 Use these tools naturally in conversation:
@@ -25,6 +27,9 @@ Use these tools naturally in conversation:
 | `status` | Check daemon health and agent connectivity. Shows connection info to share. |
 | `configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
 | `remove_agent` | Remove a remote agent from the local config. |
+| `agent_info` | Fetch a remote agent's A2A card (capabilities, skills, description). |
+| `reply` | Reply to a channel message (daemon mode only). |
+| `react` | Add emoji reaction to a channel message (daemon mode only). |
 
 ### Usage Patterns
 

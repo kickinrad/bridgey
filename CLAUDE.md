@@ -16,9 +16,8 @@ npm test              # Run all tests
 
 | Component | Purpose |
 |-----------|---------|
-| `bridgey` | Core A2A daemon + Channel Server (Channels API) + Tailscale mesh discovery |
+| `bridgey` | Core A2A daemon + adaptive MCP server (Channels API) + Tailscale mesh discovery |
 | `bridgey-discord` | Discord transport adapter — bridges Discord into the A2A mesh |
-| `bridgey-connect` | Standalone MCP client for any MCP host (Claude Desktop, Cursor, etc.) |
 
 The daemon maintains a **transport registry** where adapters (Discord, Telegram, etc.) register on startup. Inbound messages from transports are pushed to Claude Code via the Channel Server.
 
@@ -50,16 +49,10 @@ plugins/
 │   ├── bot.ts             # Discord.js gateway + message handling
 │   ├── transport.ts       # Daemon registration + message forwarding
 │   ├── gate.ts            # Sender allowlist and gating
-│   ├── pairing.ts         # Pairing flow for new senders
 │   ├── config.ts          # Zod config schema and loader
 │   └── CLAUDE.md          # Plugin-level instructions
-├── bridgey-connect/
-│   ├── src/               # MCP server, a2a-client, config, discovery
-│   ├── skills/            # setup
-│   └── CLAUDE.md
 dev/
-├── contracts/             # JSON schemas for cross-plugin contracts
-└── test-utils/            # Shared test helpers (Fastify, MSW)
+└── contracts/             # JSON schemas for cross-plugin contracts
 ```
 
 ## Tech Stack
@@ -115,7 +108,7 @@ The Channel Server uses the official Claude Code Channels API (`--channels` rese
 
 ## Status
 
-Core plugin with Channels API integration and Tailscale discovery complete. bridgey-discord transport adapter complete. bridgey-connect complete. bridgey-telegram planned.
+Core plugin with Channels API integration, Tailscale discovery, and adaptive MCP server (daemon + orchestrator modes) complete. bridgey-discord transport adapter complete. bridgey-telegram planned.
 
 ## Related Projects
 

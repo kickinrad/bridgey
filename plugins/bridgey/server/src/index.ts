@@ -7,7 +7,7 @@ import {
 import { DaemonClient } from './daemon-client.js';
 import { OrchestratorClient } from './orchestrator-client.js';
 import { loadConfig, ensureConfig, resolveAgentName } from './config.js';
-import { getToolDefinitions, handleToolCall } from './tools.js';
+import { getToolDefinitions, handleToolCall, type ServerMode } from './tools.js';
 import { startChannelListener } from './channel-listener.js';
 import type { BridgeyClient } from './types.js';
 import type { ChannelListenerHandle } from './channel-listener.js';
@@ -29,7 +29,6 @@ Tools:
 - react(chat_id, message_id, emoji): add a reaction
 - send(agent, message): send a direct A2A message
 - list_agents(): show available agents
-- download_attachment(attachment_id, filename): download a file
 - status(): show daemon health, transports, and connection info to share
 - configure_agent(name, url, token): add a remote agent from shared connection info
 - remove_agent(name): remove a remote agent from config
@@ -79,25 +78,26 @@ async function createClient(): Promise<BridgeyClient> {
 }
 
 // ---------------------------------------------------------------------------
+// Bootstrap — determine mode before registering handlers
+// ---------------------------------------------------------------------------
+
+ensureConfig();
+const client = await createClient();
+const serverMode: ServerMode = client instanceof DaemonClient ? 'daemon' : 'orchestrator';
+let listener: ChannelListenerHandle | null = null;
+
+// ---------------------------------------------------------------------------
 // Register tool handlers
 // ---------------------------------------------------------------------------
 
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: getToolDefinitions(),
+  tools: getToolDefinitions(serverMode),
 }));
 
 mcp.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   return handleToolCall(name, args ?? {}, client);
 });
-
-// ---------------------------------------------------------------------------
-// Bootstrap
-// ---------------------------------------------------------------------------
-
-ensureConfig();
-const client = await createClient();
-let listener: ChannelListenerHandle | null = null;
 
 // Start channel push listener and register with daemon (only when daemon is reachable)
 if (client instanceof DaemonClient) {

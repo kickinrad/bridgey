@@ -38,7 +38,9 @@ export interface ToolDefinition {
   };
 }
 
-export function getToolDefinitions(): ToolDefinition[] {
+export type ServerMode = 'daemon' | 'orchestrator';
+
+export function getToolDefinitions(mode: ServerMode = 'daemon'): ToolDefinition[] {
   return [
     {
       name: 'send',
@@ -96,42 +98,44 @@ export function getToolDefinitions(): ToolDefinition[] {
         },
       },
     },
-    {
-      name: 'reply',
-      description:
-        'Reply to a message received via a channel (Discord, Telegram, etc). Use the chat_id from the incoming channel message.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
-          text: { type: 'string', description: 'Reply text' },
-          reply_to: {
-            type: 'string',
-            description: 'Optional message ID to reply to (thread)',
+    ...(mode === 'daemon' ? [
+      {
+        name: 'reply',
+        description:
+          'Reply to a message received via a channel (Discord, Telegram, etc). Use the chat_id from the incoming channel message.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            text: { type: 'string', description: 'Reply text' },
+            reply_to: {
+              type: 'string',
+              description: 'Optional message ID to reply to (thread)',
+            },
+            files: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional file paths to attach',
+            },
           },
-          files: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Optional file paths to attach',
+          required: ['chat_id', 'text'],
+        },
+      },
+      {
+        name: 'react',
+        description:
+          'Add an emoji reaction to a message received via a channel (Discord, Telegram, etc).',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            message_id: { type: 'string', description: 'ID of the message to react to' },
+            emoji: { type: 'string', description: 'Emoji to react with (e.g. "👍")' },
           },
+          required: ['chat_id', 'message_id', 'emoji'],
         },
-        required: ['chat_id', 'text'],
       },
-    },
-    {
-      name: 'react',
-      description:
-        'Add an emoji reaction to a message received via a channel (Discord, Telegram, etc).',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
-          message_id: { type: 'string', description: 'ID of the message to react to' },
-          emoji: { type: 'string', description: 'Emoji to react with (e.g. "👍")' },
-        },
-        required: ['chat_id', 'message_id', 'emoji'],
-      },
-    },
+    ] : []),
     {
       name: 'configure_agent',
       description:

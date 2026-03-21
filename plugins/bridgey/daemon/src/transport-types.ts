@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const TransportRegisterSchema = z.object({
   name: z.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
   callback_url: z.string().url(),
-  capabilities: z.array(z.enum(['reply', 'react', 'edit', 'download_attachment'])),
+  capabilities: z.array(z.enum(['reply', 'react', 'edit'])),
 });
 
 export const TransportUnregisterSchema = z.object({

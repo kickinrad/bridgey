@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { mkdirSync, writeFileSync } from 'node:fs';
 import type { BridgeyClient } from './types.js';
 import { DaemonClient } from './daemon-client.js';
 import { loadConfig, saveConfig } from './config.js';
@@ -134,19 +133,6 @@ export function getToolDefinitions(): ToolDefinition[] {
       },
     },
     {
-      name: 'download_attachment',
-      description:
-        'Download a file attachment from a channel message to the local inbox directory.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          attachment_id: { type: 'string', description: 'Attachment ID from the channel message' },
-          filename: { type: 'string', description: 'Filename to save as' },
-        },
-        required: ['attachment_id', 'filename'],
-      },
-    },
-    {
       name: 'configure_agent',
       description:
         'Add or update a remote agent\'s connection info. Use this when someone shares their bridgey connection details (name, url, token).',
@@ -199,8 +185,6 @@ export async function handleToolCall(
       return handleReply(args, client);
     case 'react':
       return handleReact(args, client);
-    case 'download_attachment':
-      return handleDownloadAttachment(args, client);
     case 'configure_agent':
       return handleConfigureAgent(args);
     case 'remove_agent':
@@ -521,36 +505,6 @@ async function handleReact(
   }
 }
 
-async function handleDownloadAttachment(
-  args: Record<string, unknown>,
-  client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
-  if (!(client instanceof DaemonClient)) {
-    return {
-      content: [
-        { type: 'text', text: 'Download requires a running bridgey daemon. Channel features are not available in orchestrator mode.' },
-      ],
-      isError: true,
-    };
-  }
-
-  const attachmentId = args.attachment_id as string;
-  const filename = args.filename as string;
-
-  try {
-    const data = await client.downloadAttachment(attachmentId);
-    const inboxDir = resolve(homedir(), '.bridgey', 'inbox');
-    mkdirSync(inboxDir, { recursive: true });
-    const outPath = resolve(inboxDir, filename);
-    writeFileSync(outPath, Buffer.from(data));
-    return {
-      content: [{ type: 'text', text: `Downloaded to ${outPath}` }],
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { content: [{ type: 'text', text: `Download failed: ${msg}` }], isError: true };
-  }
-}
 
 async function handleConfigureAgent(
   args: Record<string, unknown>,

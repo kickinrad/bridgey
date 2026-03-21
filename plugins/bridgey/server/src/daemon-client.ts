@@ -133,15 +133,6 @@ export class DaemonClient implements BridgeyClient {
     return res.json();
   }
 
-  async downloadAttachment(attachmentId: string): Promise<ArrayBuffer> {
-    const res = await fetch(
-      `${this.baseUrl}/attachments/${encodeURIComponent(attachmentId)}`,
-      { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) },
-    );
-    if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
-    return res.arrayBuffer();
-  }
-
   private friendlyError(err: unknown): string {
     if (err instanceof TypeError && String(err.message).includes('fetch')) {
       return `Bridgey daemon is not reachable at ${this.baseUrl}. Is it running? Start it with: bridgey daemon start`;

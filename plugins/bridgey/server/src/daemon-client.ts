@@ -123,6 +123,16 @@ export class DaemonClient implements BridgeyClient {
     return res.json();
   }
 
+  async approvePairing(chatId: string, userId: string): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/pairing/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, user_id: userId }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    return res.json();
+  }
+
   async downloadAttachment(attachmentId: string): Promise<ArrayBuffer> {
     const res = await fetch(
       `${this.baseUrl}/attachments/${encodeURIComponent(attachmentId)}`,

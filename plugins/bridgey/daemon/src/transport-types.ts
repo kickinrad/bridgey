@@ -33,7 +33,10 @@ export const InboundMessageSchema = z.object({
   chat_id: z.string().min(1),
   sender: z.string().min(1),
   content: z.string(),
-  meta: z.record(z.string(), z.string()),
+  meta: z.record(
+    z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Meta keys must be identifiers (letters, digits, underscores). Hyphens are silently dropped by Claude Code.'),
+    z.string(),
+  ),
   attachments: z.array(AttachmentSchema).optional(),
 });
 

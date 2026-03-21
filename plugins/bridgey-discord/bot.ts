@@ -2,8 +2,7 @@
 import { Client, GatewayIntentBits, type Message } from 'discord.js'
 import { loadConfig } from './config.js'
 import { TransportClient } from './transport.js'
-import { gateSender } from './gate.js'
-import { createPairing, checkApproved } from './pairing.js'
+import { gateSender, addSender } from './gate.js'
 
 const config = loadConfig()
 const token = process.env[config.token_env]
@@ -70,6 +69,9 @@ const callbackServer = createServer(async (req, res) => {
   } else if (url.pathname === '/callback/react') {
     await handleOutboundReact(body)
     res.writeHead(200).end('ok')
+  } else if (url.pathname === '/callback/pairing-approved') {
+    await handlePairingApproved(body)
+    res.writeHead(200).end('ok')
   } else {
     res.writeHead(404).end()
   }
@@ -128,6 +130,48 @@ async function handleOutboundReact(body: { chat_id: string; message_id: string; 
   }
 }
 
+// --- Pairing request (triggers elicitation on MCP server side) ---
+
+const pendingPairings = new Set<string>()
+const PAIRING_COOLDOWN_MS = 60_000 // 1 min between requests per user
+
+async function sendPairingRequest(chatId: string, userId: string, username: string): Promise<boolean> {
+  if (pendingPairings.has(userId)) return false
+  pendingPairings.add(userId)
+  setTimeout(() => pendingPairings.delete(userId), PAIRING_COOLDOWN_MS)
+
+  try {
+    await transport.sendInbound({
+      chat_id: chatId,
+      sender: username,
+      content: `[Pairing request from ${username}]`,
+      meta: {
+        pairing_request: 'true',
+        pairing_user_id: userId,
+      },
+    })
+    return true
+  } catch {
+    pendingPairings.delete(userId)
+    return false
+  }
+}
+
+// --- Pairing approval handler (called by daemon after elicitation) ---
+
+async function handlePairingApproved(body: { user_id: string }) {
+  const { user_id } = body
+  addSender(user_id)
+
+  try {
+    const user = await client.users.fetch(user_id)
+    const dm = await user.createDM()
+    await dm.send('Paired! Your messages will now be forwarded to Claude Code.')
+  } catch (err) {
+    console.error(`Failed to send pairing confirmation to ${user_id}:`, err)
+  }
+}
+
 // --- Inbound message handling ---
 
 client.on('messageCreate', async (msg: Message) => {
@@ -143,13 +187,11 @@ client.on('messageCreate', async (msg: Message) => {
   if (gateResult === 'denied') return // silent drop
 
   if (gateResult === 'pairing') {
-    const code = createPairing(msg.author.id, msg.author.username)
-    if (code) {
-      await msg.reply(
-        `Pairing required. Run this in Claude Code:\n\`/bridgey-discord:access pair ${code}\``
-      )
+    const chatId = `discord:dm:${msg.author.id}`
+    const sent = await sendPairingRequest(chatId, msg.author.id, msg.author.username)
+    if (sent) {
+      await msg.reply('Pairing request sent to the Claude operator. Please wait for approval.')
     }
-    // null means max retries reached — silent drop
     return
   }
 
@@ -189,21 +231,6 @@ client.on('messageCreate', async (msg: Message) => {
   }
 })
 
-// --- Pairing approval polling ---
-
-const pairingInterval = setInterval(async () => {
-  const approved = checkApproved()
-  for (const { userId, username } of approved) {
-    try {
-      const user = await client.users.fetch(userId)
-      const dm = await user.createDM()
-      await dm.send(`Paired! Your messages will now be forwarded to Claude Code.`)
-    } catch (err) {
-      console.error(`Failed to send pairing confirmation to ${username}:`, err)
-    }
-  }
-}, 5000)
-
 // --- Startup ---
 
 client.once('ready', async () => {
@@ -220,7 +247,6 @@ client.once('ready', async () => {
 // --- Graceful shutdown ---
 
 async function shutdown() {
-  clearInterval(pairingInterval)
   await transport.unregister()
   client.destroy()
   callbackServer.close()

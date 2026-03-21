@@ -27,7 +27,6 @@ DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
 | `bot.ts` | Discord.js gateway + message handling + callback HTTP API |
 | `transport.ts` | Daemon registration + inbound message forwarding |
 | `gate.ts` | Sender allowlist and gating logic |
-| `pairing.ts` | Legacy pairing flow (file-based, kept for reference) |
 | `config.ts` | Zod config schema and loader |
 
 ## State
@@ -37,7 +36,6 @@ DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
 | `~/.bridgey/discord.config.json` | Bot configuration |
 | `~/.bridgey/discord/access.json` | Sender allowlist |
 | `~/.bridgey/discord/.env` | Bot token (mode 600) |
-| `~/.bridgey/discord/approved/` | Legacy pairing approval markers (unused — elicitation handles pairing now) |
 | `~/.bridgey/discord/inbox/` | Downloaded attachments |
 
 ## Pairing Flow

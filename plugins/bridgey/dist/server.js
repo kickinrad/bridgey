@@ -20920,14 +20920,6 @@ var DaemonClient = class {
     });
     return res.json();
   }
-  async downloadAttachment(attachmentId) {
-    const res = await fetch(
-      `${this.baseUrl}/attachments/${encodeURIComponent(attachmentId)}`,
-      { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) }
-    );
-    if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
-    return res.arrayBuffer();
-  }
   friendlyError(err) {
     if (err instanceof TypeError && String(err.message).includes("fetch")) {
       return `Bridgey daemon is not reachable at ${this.baseUrl}. Is it running? Start it with: bridgey daemon start`;
@@ -21097,7 +21089,13 @@ function loadConfig() {
   for (const path of candidates) {
     if (existsSync(path)) {
       try {
-        return JSON.parse(readFileSync(path, "utf-8"));
+        const config2 = JSON.parse(readFileSync(path, "utf-8"));
+        if (config2.agents) {
+          for (const agent of config2.agents) {
+            agent.token = resolveToken(agent.token) ?? agent.token;
+          }
+        }
+        return config2;
       } catch {
       }
     }
@@ -21110,6 +21108,15 @@ function saveConfig(config2) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(configPath, JSON.stringify(config2, null, 2) + "\n", "utf-8");
 }
+function resolveToken(token) {
+  if (!token) return void 0;
+  if (token.startsWith("$")) {
+    const envVal = process.env[token.slice(1)];
+    if (!envVal) throw new Error(`Token env var ${token} is not set`);
+    return envVal;
+  }
+  return token;
+}
 function resolveAgentName(config2) {
   if (process.env.BRIDGEY_AGENT_NAME) return process.env.BRIDGEY_AGENT_NAME;
   if (config2?.name) return config2.name;
@@ -21120,7 +21127,6 @@ function resolveAgentName(config2) {
 // server/src/tools.ts
 import { resolve } from "node:path";
 import { homedir as homedir2 } from "node:os";
-import { mkdirSync as mkdirSync3, writeFileSync as writeFileSync3 } from "node:fs";
 
 // daemon/src/tailscale/scanner.ts
 import { execFile } from "node:child_process";
@@ -21282,7 +21288,7 @@ function assertSendable(filePath) {
     throw new Error(`Refusing to send file from bridgey state directory: ${filePath}`);
   }
 }
-function getToolDefinitions() {
+function getToolDefinitions(mode = "daemon") {
   return [
     {
       name: "send",
@@ -21336,52 +21342,42 @@ function getToolDefinitions() {
         }
       }
     },
-    {
-      name: "reply",
-      description: "Reply to a message received via a channel (Discord, Telegram, etc). Use the chat_id from the incoming channel message.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          chat_id: { type: "string", description: "Routing key from the incoming channel message" },
-          text: { type: "string", description: "Reply text" },
-          reply_to: {
-            type: "string",
-            description: "Optional message ID to reply to (thread)"
+    ...mode === "daemon" ? [
+      {
+        name: "reply",
+        description: "Reply to a message received via a channel (Discord, Telegram, etc). Use the chat_id from the incoming channel message.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            chat_id: { type: "string", description: "Routing key from the incoming channel message" },
+            text: { type: "string", description: "Reply text" },
+            reply_to: {
+              type: "string",
+              description: "Optional message ID to reply to (thread)"
+            },
+            files: {
+              type: "array",
+              items: { type: "string" },
+              description: "Optional file paths to attach"
+            }
           },
-          files: {
-            type: "array",
-            items: { type: "string" },
-            description: "Optional file paths to attach"
-          }
-        },
-        required: ["chat_id", "text"]
+          required: ["chat_id", "text"]
+        }
+      },
+      {
+        name: "react",
+        description: "Add an emoji reaction to a message received via a channel (Discord, Telegram, etc).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            chat_id: { type: "string", description: "Routing key from the incoming channel message" },
+            message_id: { type: "string", description: "ID of the message to react to" },
+            emoji: { type: "string", description: 'Emoji to react with (e.g. "\u{1F44D}")' }
+          },
+          required: ["chat_id", "message_id", "emoji"]
+        }
       }
-    },
-    {
-      name: "react",
-      description: "Add an emoji reaction to a message received via a channel (Discord, Telegram, etc).",
-      inputSchema: {
-        type: "object",
-        properties: {
-          chat_id: { type: "string", description: "Routing key from the incoming channel message" },
-          message_id: { type: "string", description: "ID of the message to react to" },
-          emoji: { type: "string", description: 'Emoji to react with (e.g. "\u{1F44D}")' }
-        },
-        required: ["chat_id", "message_id", "emoji"]
-      }
-    },
-    {
-      name: "download_attachment",
-      description: "Download a file attachment from a channel message to the local inbox directory.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          attachment_id: { type: "string", description: "Attachment ID from the channel message" },
-          filename: { type: "string", description: "Filename to save as" }
-        },
-        required: ["attachment_id", "filename"]
-      }
-    },
+    ] : [],
     {
       name: "configure_agent",
       description: "Add or update a remote agent's connection info. Use this when someone shares their bridgey connection details (name, url, token).",
@@ -21405,6 +21401,17 @@ function getToolDefinitions() {
         },
         required: ["name"]
       }
+    },
+    {
+      name: "agent_info",
+      description: "Fetch the A2A agent card for a remote agent. Shows name, description, capabilities, and skills.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          agent: { type: "string", description: "Agent name" }
+        },
+        required: ["agent"]
+      }
     }
   ];
 }
@@ -21424,12 +21431,12 @@ async function handleToolCall(name, args, client2) {
       return handleReply(args, client2);
     case "react":
       return handleReact(args, client2);
-    case "download_attachment":
-      return handleDownloadAttachment(args, client2);
     case "configure_agent":
       return handleConfigureAgent(args);
     case "remove_agent":
       return handleRemoveAgent(args);
+    case "agent_info":
+      return handleAgentInfo(args, client2);
     default:
       return { content: [{ type: "text", text: `Unknown tool: ${name}` }], isError: true };
   }
@@ -21542,8 +21549,8 @@ async function handleStatus(client2) {
           sections.push("");
           sections.push(`Transports: ${transports.length} registered`);
           for (const t of transports) {
-            const icon = t.status === "connected" ? "[ok]" : "[--]";
-            sections.push(`  ${icon} ${t.name} (${t.type}) \u2014 ${t.status}`);
+            const icon = t.healthy ? "[ok]" : "[--]";
+            sections.push(`  ${icon} ${t.name} (${t.capabilities.join(", ")}) \u2014 ${t.healthy ? "connected" : "disconnected"}`);
           }
         }
       } catch {
@@ -21679,31 +21686,6 @@ async function handleReact(args, client2) {
     return { content: [{ type: "text", text: `React failed: ${msg}` }], isError: true };
   }
 }
-async function handleDownloadAttachment(args, client2) {
-  if (!(client2 instanceof DaemonClient)) {
-    return {
-      content: [
-        { type: "text", text: "Download requires a running bridgey daemon. Channel features are not available in orchestrator mode." }
-      ],
-      isError: true
-    };
-  }
-  const attachmentId = args.attachment_id;
-  const filename = args.filename;
-  try {
-    const data = await client2.downloadAttachment(attachmentId);
-    const inboxDir = resolve(homedir2(), ".bridgey", "inbox");
-    mkdirSync3(inboxDir, { recursive: true });
-    const outPath = resolve(inboxDir, filename);
-    writeFileSync3(outPath, Buffer.from(data));
-    return {
-      content: [{ type: "text", text: `Downloaded to ${outPath}` }]
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { content: [{ type: "text", text: `Download failed: ${msg}` }], isError: true };
-  }
-}
 async function handleConfigureAgent(args) {
   const name = args.name;
   const url2 = args.url;
@@ -21753,6 +21735,55 @@ async function handleRemoveAgent(args) {
   return {
     content: [{ type: "text", text: `Removed agent "${name}" from config.` }]
   };
+}
+async function handleAgentInfo(args, client2) {
+  const agentName = args.agent;
+  if (!agentName) {
+    return { content: [{ type: "text", text: "Missing required field: agent." }], isError: true };
+  }
+  try {
+    const agents = await client2.listAgents();
+    const agent = agents.find((a) => a.name === agentName);
+    if (!agent) {
+      return {
+        content: [{ type: "text", text: `Unknown agent "${agentName}". Use list_agents to see available agents.` }],
+        isError: true
+      };
+    }
+    const res = await fetch(`${agent.url.replace(/\/$/, "")}/.well-known/agent-card.json`, {
+      signal: AbortSignal.timeout(5e3)
+    });
+    if (!res.ok) {
+      return {
+        content: [{ type: "text", text: `Could not fetch agent card from ${agent.url} (HTTP ${res.status}) \u2014 agent may be offline.` }]
+      };
+    }
+    const card = await res.json();
+    const lines = [
+      `Agent: ${card.name ?? agentName}`,
+      card.description ? `Description: ${card.description}` : null,
+      card.url ? `URL: ${card.url}` : null,
+      card.version ? `Version: ${card.version}` : null
+    ].filter(Boolean);
+    const capabilities = card.capabilities;
+    if (capabilities) {
+      lines.push("", "Capabilities:");
+      for (const [key, val] of Object.entries(capabilities)) {
+        lines.push(`  ${key}: ${JSON.stringify(val)}`);
+      }
+    }
+    const skills = card.skills;
+    if (skills?.length) {
+      lines.push("", "Skills:");
+      for (const skill of skills) {
+        lines.push(`  - ${skill.name}${skill.description ? `: ${skill.description}` : ""}`);
+      }
+    }
+    return { content: [{ type: "text", text: lines.join("\n") }] };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: "text", text: `Failed to fetch agent info: ${msg}` }], isError: true };
+  }
 }
 function formatTimestamp(iso) {
   try {
@@ -21822,7 +21853,6 @@ Tools:
 - react(chat_id, message_id, emoji): add a reaction
 - send(agent, message): send a direct A2A message
 - list_agents(): show available agents
-- download_attachment(attachment_id, filename): download a file
 - status(): show daemon health, transports, and connection info to share
 - configure_agent(name, url, token): add a remote agent from shared connection info
 - remove_agent(name): remove a remote agent from config
@@ -21854,16 +21884,17 @@ async function createClient() {
   const agentName = resolveAgentName(config2);
   return new OrchestratorClient(agentName, config2.agents);
 }
+ensureConfig();
+var client = await createClient();
+var serverMode = client instanceof DaemonClient ? "daemon" : "orchestrator";
+var listener = null;
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: getToolDefinitions()
+  tools: getToolDefinitions(serverMode)
 }));
 mcp.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   return handleToolCall(name, args ?? {}, client);
 });
-ensureConfig();
-var client = await createClient();
-var listener = null;
 if (client instanceof DaemonClient) {
   try {
     listener = await startChannelListener({

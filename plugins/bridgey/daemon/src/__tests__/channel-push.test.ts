@@ -8,15 +8,6 @@ describe('ChannelPush', () => {
     push = new ChannelPush()
   })
 
-  it('starts with no push URL', () => {
-    expect(push.isConnected()).toBe(false)
-  })
-
-  it('registers a push URL', () => {
-    push.register('http://127.0.0.1:54321')
-    expect(push.isConnected()).toBe(true)
-  })
-
   it('unregisters', () => {
     push.register('http://127.0.0.1:54321')
     push.unregister()

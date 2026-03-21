@@ -8,14 +8,9 @@ import {
   ChannelRegisterSchema,
   InboundMessageSchema,
   OutboundReplySchema,
+  OutboundReactSchema,
   parseTransportFromChatId,
 } from './transport-types.js';
-
-export const OutboundReactSchema = z.object({
-  chat_id: z.string().min(1),
-  message_id: z.string().min(1),
-  emoji: z.string().min(1),
-});
 
 /**
  * Register transport management, channel server, and message routes.

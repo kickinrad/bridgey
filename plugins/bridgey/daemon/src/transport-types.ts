@@ -53,6 +53,16 @@ export const OutboundReplySchema = z.object({
 
 export type OutboundReply = z.infer<typeof OutboundReplySchema>;
 
+// --- Outbound Reactions (Channel Server → Daemon → Transport) ---
+
+export const OutboundReactSchema = z.object({
+  chat_id: z.string().min(1),
+  message_id: z.string().min(1),
+  emoji: z.string().min(1),
+});
+
+export type OutboundReact = z.infer<typeof OutboundReactSchema>;
+
 // --- Channel Server Registration ---
 
 export const ChannelRegisterSchema = z.object({

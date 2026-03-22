@@ -5,6 +5,8 @@
 bridgey.config.json
 tailscale.config.json
 coverage/
+docs/
+tests/e2e/runs/
 .claude/worktrees/
 **/package-lock.json
 

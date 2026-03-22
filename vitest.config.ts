@@ -14,6 +14,7 @@ export default defineConfig({
     projects: [
       'plugins/bridgey/daemon',
       'plugins/bridgey/server',
+      'plugins/bridgey-connect',
     ],
   },
 });

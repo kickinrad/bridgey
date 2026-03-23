@@ -18,6 +18,7 @@ npm test              # Run all tests
 |-----------|---------|
 | `bridgey` | Core A2A daemon + adaptive MCP server (Channels API) + Tailscale mesh discovery |
 | `bridgey-discord` | Discord transport adapter — bridges Discord into the A2A mesh |
+| `bridgey-deploy` | Remote agent deployment — Docker containers, Tailscale SSH, Coolify integration, bidirectional sync |
 
 The daemon maintains a **transport registry** where adapters (Discord, Telegram, etc.) register on startup. Inbound messages from transports are pushed to Claude Code via the Channel Server.
 
@@ -51,6 +52,14 @@ plugins/
 │   ├── gate.ts            # Sender allowlist and gating
 │   ├── config.ts          # Zod config schema and loader
 │   └── CLAUDE.md          # Plugin-level instructions
+├── bridgey-deploy/
+│   ├── .claude-plugin/    # plugin.json
+│   ├── skills/            # deploy, sync, remote-status, coolify
+│   │   ├── deploy/        # Main deployment walkthrough + references (Dockerfile, compose, entrypoint)
+│   │   ├── sync/          # Bidirectional rsync (push/pull)
+│   │   ├── remote-status/ # Container + daemon health checks
+│   │   └── coolify/       # Coolify API integration
+│   └── hooks/             # sync-reminder (Stop hook snippet)
 dev/
 └── contracts/             # JSON schemas for cross-plugin contracts
 ```

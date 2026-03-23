@@ -112,7 +112,7 @@ export function a2aRoutes(
     });
   });
 
-  // List all known agents (DB + local registry)
+  // List all known agents (DB + local registry) with live health probes
   fastify.get('/agents', async (req, reply) => {
     if (!isAuthorized(req, config)) {
       return reply.code(401).send({ error: 'Unauthorized' });
@@ -121,16 +121,40 @@ export function a2aRoutes(
     const dbAgents = store.getAgents();
     const localAgents = listLocal();
 
+    // Live health probe for remote agents (parallel, 5s timeout)
+    const probeResults = await Promise.allSettled(
+      dbAgents.map(async (a) => {
+        try {
+          const res = await fetch(`${a.url.replace(/\/$/, '')}/health`, {
+            signal: AbortSignal.timeout(5000),
+          });
+          return { name: a.name, online: res.ok };
+        } catch {
+          return { name: a.name, online: false };
+        }
+      }),
+    );
+    const statusMap = new Map<string, boolean>();
+    for (const r of probeResults) {
+      if (r.status === 'fulfilled') {
+        statusMap.set(r.value.name, r.value.online);
+      }
+    }
+
     // Merge: local agents that aren't already in DB
     const dbNames = new Set(dbAgents.map((a) => a.name));
+    const now = new Date().toISOString();
     const merged = [
-      ...dbAgents.map((a) => ({
-        name: a.name,
-        url: a.url,
-        status: a.status,
-        last_seen: a.last_seen,
-        source: 'remote' as const,
-      })),
+      ...dbAgents.map((a) => {
+        const online = statusMap.get(a.name) ?? false;
+        return {
+          name: a.name,
+          url: a.url,
+          status: online ? 'online' : 'offline',
+          last_seen: online ? now : a.last_seen,
+          source: 'remote' as const,
+        };
+      }),
       ...localAgents
         .filter((a) => !dbNames.has(a.name))
         .map((a) => ({

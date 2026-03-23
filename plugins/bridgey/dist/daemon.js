@@ -48713,15 +48713,37 @@ function a2aRoutes(fastify, config2, store) {
     }
     const dbAgents = store.getAgents();
     const localAgents = listLocal();
+    const probeResults = await Promise.allSettled(
+      dbAgents.map(async (a) => {
+        try {
+          const res = await fetch(`${a.url.replace(/\/$/, "")}/health`, {
+            signal: AbortSignal.timeout(5e3)
+          });
+          return { name: a.name, online: res.ok };
+        } catch {
+          return { name: a.name, online: false };
+        }
+      })
+    );
+    const statusMap = /* @__PURE__ */ new Map();
+    for (const r of probeResults) {
+      if (r.status === "fulfilled") {
+        statusMap.set(r.value.name, r.value.online);
+      }
+    }
     const dbNames = new Set(dbAgents.map((a) => a.name));
+    const now = (/* @__PURE__ */ new Date()).toISOString();
     const merged = [
-      ...dbAgents.map((a) => ({
-        name: a.name,
-        url: a.url,
-        status: a.status,
-        last_seen: a.last_seen,
-        source: "remote"
-      })),
+      ...dbAgents.map((a) => {
+        const online = statusMap.get(a.name) ?? false;
+        return {
+          name: a.name,
+          url: a.url,
+          status: online ? "online" : "offline",
+          last_seen: online ? now : a.last_seen,
+          source: "remote"
+        };
+      }),
       ...localAgents.filter((a) => !dbNames.has(a.name)).map((a) => ({
         name: a.name,
         url: a.url,

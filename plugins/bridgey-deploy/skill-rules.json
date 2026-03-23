@@ -1,0 +1,53 @@
+{
+  "description": "Activation rules for bridgey-deploy skills",
+  "rules": {
+    "deploy": {
+      "kind": "skill",
+      "type": "process",
+      "enforcement": "must",
+      "priority": "medium",
+      "activationHint": "Skill('bridgey-deploy:deploy')",
+      "promptTriggers": {
+        "keywords": ["remote deploy", "deploy agent", "deploy persona", "remote server", "deploy to server", "run agent remotely", "headless agent", "24/7 agent"],
+        "intentPatterns": ["(deploy|run|set up|install).*?(remote|server|vps|headless)", "(agent|persona).*?(remote|server|deploy|headless)", "run.*?24.?7", "always.?on.*?(agent|persona)"]
+      },
+      "fileTriggers": { "pathPatterns": [], "contentPatterns": [] }
+    },
+    "sync": {
+      "kind": "skill",
+      "type": "process",
+      "enforcement": "must",
+      "priority": "medium",
+      "activationHint": "Skill('bridgey-deploy:sync')",
+      "promptTriggers": {
+        "keywords": ["sync", "sync push", "sync pull", "push to remote", "pull from remote", "sync agent"],
+        "intentPatterns": ["sync.*?(remote|push|pull|agent|persona)", "(push|pull).*?(remote|server)"]
+      },
+      "fileTriggers": { "pathPatterns": [], "contentPatterns": [] }
+    },
+    "remote-status": {
+      "kind": "skill",
+      "type": "process",
+      "enforcement": "must",
+      "priority": "medium",
+      "activationHint": "Skill('bridgey-deploy:remote-status')",
+      "promptTriggers": {
+        "keywords": ["remote status", "check remote", "is my agent running", "server status", "remote health"],
+        "intentPatterns": ["(check|status|health).*?(remote|server|container|deploy)", "(agent|persona).*?(running|status|health)"]
+      },
+      "fileTriggers": { "pathPatterns": [], "contentPatterns": [] }
+    },
+    "coolify": {
+      "kind": "skill",
+      "type": "process",
+      "enforcement": "must",
+      "priority": "medium",
+      "activationHint": "Skill('bridgey-deploy:coolify')",
+      "promptTriggers": {
+        "keywords": ["coolify", "coolify deploy", "coolify status", "coolify logs"],
+        "intentPatterns": ["coolify.*?(deploy|create|update|status|logs|service)", "(deploy|manage).*?coolify"]
+      },
+      "fileTriggers": { "pathPatterns": [], "contentPatterns": [] }
+    }
+  }
+}

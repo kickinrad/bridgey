@@ -20,6 +20,13 @@
       "description": "Discord bot bridge for bridgey — route Discord channel messages to Claude Code agents via A2A",
       "version": "0.1.0",
       "category": "productivity"
+    },
+    {
+      "name": "bridgey-deploy",
+      "source": "./plugins/bridgey-deploy",
+      "description": "Deploy agents to remote servers as Docker containers with Tailscale SSH, Coolify integration, and bidirectional sync",
+      "version": "0.1.0",
+      "category": "infrastructure"
     }
   ]
 }

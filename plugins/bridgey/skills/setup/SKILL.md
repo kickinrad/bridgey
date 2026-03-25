@@ -84,7 +84,7 @@ Note: `trusted_networks` is an empty array by default. Only populated if user ch
 
 ### 5. Start the Daemon
 
-Run the daemon start command:
+Run the daemon start command (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first):
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
   --config ~/.bridgey/bridgey.config.json

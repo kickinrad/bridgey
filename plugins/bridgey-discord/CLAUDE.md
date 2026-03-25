@@ -35,8 +35,7 @@ DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
 |------|---------|
 | `~/.bridgey/discord.config.json` | Bot configuration |
 | `~/.bridgey/discord/access.json` | Sender allowlist |
-| `~/.bridgey/discord/.env` | Bot token (mode 600) |
-| `~/.bridgey/discord/inbox/` | Downloaded attachments |
+| `~/.bridgey/discord/.env` | Bot token (not auto-loaded — set env var directly or source before running) |
 
 ## Pairing Flow
 
@@ -53,6 +52,6 @@ Falls back to a channel notification with manual instructions if elicitation is 
 ## Conventions
 
 - Token via `pass` or env var — never hardcoded
-- Sender gating on user ID, not guild/channel ID
+- Sender gating on user ID for DMs, guild ID + channel ID + user ID for guild messages
 - Messages >2000 chars chunked at newline boundaries
 - Bot registers/unregisters with daemon on startup/shutdown

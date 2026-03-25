@@ -384,7 +384,9 @@ async function handleStatus(
       if (token) {
         sections.push('');
         sections.push('Connection Info (share this to let other Claude instances reach you):');
-        sections.push(`  { "name": "${name}", "url": "${url}", "token": "${token}" }`);
+        const masked = token.length > 8 ? token.slice(0, 8) + '...' : token;
+        sections.push(`  { "name": "${name}", "url": "${url}", "token": "${masked}" }`);
+        sections.push(`  (Full token hidden for security. View in ~/.bridgey/bridgey.config.json)`);
         sections.push('');
         sections.push('The receiving Claude can use the configure_agent tool to add this agent.');
       }

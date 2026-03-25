@@ -30,6 +30,7 @@ Use these tools naturally in conversation:
 | `agent_info` | Fetch a remote agent's A2A card (capabilities, skills, description). |
 | `reply` | Reply to a channel message (daemon mode only). |
 | `react` | Add emoji reaction to a channel message (daemon mode only). |
+| `tailscale_scan` | Scan Tailscale network for bridgey peers and register as agents. Pass optional `force` to re-probe. |
 
 ### Usage Patterns
 
@@ -58,6 +59,8 @@ User: "any new messages?"
 | `/bridgey:setup` | First-time configuration — name, port, token generation |
 | `/bridgey:status` | Dashboard showing daemon health and agent status |
 | `/bridgey:add-agent` | Register a remote agent (URL + token) |
+| `/bridgey:tailscale-setup` | Configure Tailscale mesh scanning |
+| `/bridgey:tailscale-scan` | Scan tailnet for bridgey agents |
 
 ## Config
 
@@ -87,6 +90,7 @@ The `bind` config field controls where the daemon listens:
 - `"localhost"` (default) — only reachable from same machine
 - `"lan"` — bind to first non-localhost IPv4
 - `"0.0.0.0"` — all interfaces (required for Docker containers)
+- `"tailscale"` — bind to `0.0.0.0` (for Tailscale-exposed services)
 - Custom IP — bind to specific address
 
 When binding to non-localhost, configure `trusted_networks` to allow token-free access from trusted CIDRs:
@@ -125,7 +129,7 @@ When running in Docker or on a headless server:
 If tools return "daemon unreachable":
 1. Check config exists: `cat ~/.bridgey/bridgey.config.json`
 2. If no config: run `/bridgey:setup`
-3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json`
+3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first)
 4. Check daemon logs: `cat ~/.bridgey/daemon.log`
 
 If A2A sends return 400:

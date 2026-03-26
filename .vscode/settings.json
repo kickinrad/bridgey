@@ -1,3 +1,7 @@
 {
-  "vitest.workspaceConfig": "vitest.config.ts"
+  "vitest.workspaceConfig": "vitest.config.ts",
+  "innerloop.tools.lsp": true,
+  "innerloop.tools.debug": true,
+  "innerloop.tools.test": true,
+  "innerloop.tools.browser": true
 }

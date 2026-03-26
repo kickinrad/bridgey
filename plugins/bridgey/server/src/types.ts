@@ -8,7 +8,7 @@ export interface AgentInfo {
   url: string;
   status: string;
   last_seen: string | null;
-  source: 'config' | 'local' | 'discovered';
+  source: 'config' | 'local' | 'discovered' | 'remote';
 }
 
 export interface MessageInfo {

@@ -35,10 +35,11 @@ export class TransportClient {
     meta: Record<string, string>
     attachments?: Array<{ id: string; name: string; type: string; size: number; url: string }>
   }): Promise<void> {
-    await fetch(`${this.daemonUrl}/messages/inbound`, {
+    const res = await fetch(`${this.daemonUrl}/messages/inbound`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transport: 'discord', ...msg }),
     })
+    if (!res.ok) throw new Error(`Failed to send inbound message: ${res.status}`)
   }
 }

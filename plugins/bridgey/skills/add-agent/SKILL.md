@@ -74,7 +74,7 @@ Write the updated config back.
 
 ### 5. Sync to Daemon
 
-The daemon picks up config changes on the next request, or restart it:
+The daemon picks up config changes on the next request, or restart it (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first):
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js stop
 node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \

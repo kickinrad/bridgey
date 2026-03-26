@@ -96,41 +96,41 @@ export class DaemonClient implements BridgeyClient {
     }).catch(() => {});
   }
 
-  async reply(chatId: string, text: string, replyTo?: string, files?: string[]): Promise<any> {
+  async reply(chatId: string, text: string, replyTo?: string, files?: string[]): Promise<{ ok: boolean }> {
     const res = await fetch(`${this.baseUrl}/messages/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, reply_to: replyTo, files }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
-    return res.json();
+    return (await res.json()) as { ok: boolean };
   }
 
-  async react(chatId: string, messageId: string, emoji: string): Promise<any> {
+  async react(chatId: string, messageId: string, emoji: string): Promise<{ ok: boolean }> {
     const res = await fetch(`${this.baseUrl}/messages/react`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, message_id: messageId, emoji }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
-    return res.json();
+    return (await res.json()) as { ok: boolean };
   }
 
-  async getTransports(): Promise<any> {
+  async getTransports(): Promise<Array<{ name: string; callback_url: string; capabilities: string[]; healthy: boolean }>> {
     const res = await fetch(`${this.baseUrl}/transports`, {
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
-    return res.json();
+    return (await res.json()) as Array<{ name: string; callback_url: string; capabilities: string[]; healthy: boolean }>;
   }
 
-  async approvePairing(chatId: string, userId: string): Promise<any> {
+  async approvePairing(chatId: string, userId: string): Promise<{ ok: boolean }> {
     const res = await fetch(`${this.baseUrl}/pairing/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, user_id: userId }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
-    return res.json();
+    return (await res.json()) as { ok: boolean };
   }
 
   private friendlyError(err: unknown): string {

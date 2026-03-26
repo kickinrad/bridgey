@@ -10742,18 +10742,26 @@ var require_request = __commonJS({
         return tp;
       }
       if (tp === true) {
-        return null;
+        return function() {
+          return true;
+        };
       }
       if (typeof tp === "number") {
         return function(a, i) {
-          return i < tp;
+          return a != null && i < tp;
         };
       }
       if (typeof tp === "string") {
         const values = tp.split(",").map((it) => it.trim());
-        return proxyAddr.compile(values);
+        const trust2 = proxyAddr.compile(values);
+        return function(a, i) {
+          return a != null && trust2(a, i);
+        };
       }
-      return proxyAddr.compile(tp);
+      const trust = proxyAddr.compile(tp);
+      return function(a, i) {
+        return a != null && trust(a, i);
+      };
     }
     function buildRequest(R, trustProxy) {
       if (trustProxy) {
@@ -10805,7 +10813,7 @@ var require_request = __commonJS({
         },
         host: {
           get() {
-            if (this.ip !== void 0 && this.headers["x-forwarded-host"]) {
+            if (this.headers["x-forwarded-host"] && proxyFn(this.raw.socket?.remoteAddress, 0)) {
               return getLastEntryInMultiHeaderValue(this.headers["x-forwarded-host"]);
             }
             return this.headers.host ?? this.headers[":authority"] ?? "";
@@ -10813,7 +10821,7 @@ var require_request = __commonJS({
         },
         protocol: {
           get() {
-            if (this.headers["x-forwarded-proto"]) {
+            if (this.headers["x-forwarded-proto"] && proxyFn(this.raw.socket?.remoteAddress, 0)) {
               return getLastEntryInMultiHeaderValue(this.headers["x-forwarded-proto"]);
             }
             if (this.socket) {
@@ -33403,7 +33411,7 @@ var require_light_my_request = __commonJS({
 var require_fastify = __commonJS({
   "daemon/node_modules/fastify/fastify.js"(exports, module) {
     "use strict";
-    var VERSION = "5.8.2";
+    var VERSION = "5.8.4";
     var Avvio = require_boot();
     var http = __require("node:http");
     var diagnostics = __require("node:diagnostics_channel");
@@ -34679,6 +34687,13 @@ async function withRetry(fn, options = {}) {
 }
 
 // daemon/src/a2a-client.ts
+var NonRetryableError = class extends Error {
+  nonRetryable = true;
+  constructor(message) {
+    super(message);
+    this.name = "NonRetryableError";
+  }
+};
 async function sendA2AMessage(agentUrl, token, message, contextId) {
   const body = {
     jsonrpc: "2.0",
@@ -34708,9 +34723,7 @@ async function sendA2AMessage(agentUrl, token, message, contextId) {
             signal: controller.signal
           });
           if (res.status >= 400 && res.status < 500) {
-            const err = new Error(`HTTP ${res.status}: ${await res.text().catch(() => "no body")}`);
-            err.nonRetryable = true;
-            throw err;
+            throw new NonRetryableError(`HTTP ${res.status}: ${await res.text().catch(() => "no body")}`);
           }
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${await res.text().catch(() => "no body")}`);
@@ -34723,7 +34736,7 @@ async function sendA2AMessage(agentUrl, token, message, contextId) {
       {
         maxAttempts: 3,
         baseDelayMs: 1e3,
-        isRetryable: (err) => !err.nonRetryable
+        isRetryable: (err) => !(err instanceof NonRetryableError)
       }
     );
     const json2 = await response.json();
@@ -34740,7 +34753,7 @@ async function sendA2AMessage(agentUrl, token, message, contextId) {
     if (err instanceof Error && err.name === "AbortError") {
       return "[error] Request to remote agent timed out after 5 minutes";
     }
-    if (err?.nonRetryable) {
+    if (err instanceof NonRetryableError) {
       return `[error] Remote agent returned ${err instanceof Error ? err.message : String(err)}`;
     }
     const msg = err instanceof Error ? err.message : String(err);

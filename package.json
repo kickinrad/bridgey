@@ -5,8 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "cd plugins/bridgey && npm run build",
-    "install:all": "cd plugins/bridgey && npm install && npm run install:all",
+    "build": "cd plugins/bridgey && npm run build && cd ../bridgey-discord && npm run build",
+    "install:all": "cd plugins/bridgey && npm install && npm run install:all && cd ../bridgey-discord && npm install",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "4.1.0",
-    "ajv": "8.18.0",
     "msw": "2.12.11",
     "tsx": "4.21.0",
     "vitest": "4.1.0",

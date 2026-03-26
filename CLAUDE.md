@@ -37,12 +37,13 @@ Claude Code <-stdio-> Channel Server <-HTTP-> Daemon <-A2A/HTTP-> Remote Daemons
 ```
 plugins/
 ├── bridgey/
-│   ├── .claude-plugin/    # plugin.json, .mcp.json
+│   ├── .claude-plugin/    # plugin.json
 │   ├── daemon/            # Fastify A2A server (TypeScript)
-│   │   └── src/           # index, a2a-server, a2a-client, store, auth, executor, queue, watchdog
-│   │       └── tailscale/ # scanner, registrar, config, scan-cli
+│   │   └── src/           # Core: index, a2a-server, a2a-client, store, registry, auth, rate-limiter, executor, queue, watchdog, channel-push, schemas, types
+│   │       ├── tailscale/ # scanner, registrar, config, scan-cli, index
+│   │       └── transport/ # transport-registry, transport-routes, transport-types
 │   ├── server/            # Channel Server — Channels API (TypeScript)
-│   │   └── src/           # index, tools, daemon-client
+│   │   └── src/           # index, tools, daemon-client, orchestrator-client, channel-listener, config, types
 │   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan)
 │   ├── skills/            # setup, status, add-agent, tailscale-setup, tailscale-scan
 │   └── CLAUDE.md          # Plugin-level instructions for CC
@@ -61,7 +62,7 @@ plugins/
 │   │   └── coolify/       # Coolify API integration
 │   └── hooks/             # sync-reminder (Stop hook snippet)
 dev/
-└── contracts/             # JSON schemas for cross-plugin contracts
+└── contracts/             # JSON schemas for cross-plugin contracts (generated via `npm run generate:contracts`, may not be committed)
 ```
 
 ## Tech Stack
@@ -73,7 +74,7 @@ dev/
 | Persistence | JSON files (`~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl) |
 | Channel Server | `@modelcontextprotocol/sdk` (stdio, Channels API) |
 | Validation | Zod |
-| Build | esbuild → single-file bundles in `dist/` (daemon.js, server.js, watchdog.js, scan-cli.js) |
+| Build | esbuild → single-file bundles in `plugins/bridgey/dist/` (daemon.js, server.js, watchdog.js, scan-cli.js) |
 | Auth | Bearer tokens (`brg_` prefix), CIDR trust, local registry |
 
 ## Key Runtime Paths
@@ -84,14 +85,14 @@ dev/
 | Data | `~/.bridgey/` (agents.json, messages.json, conversations.json, audit.jsonl) |
 | Daemon log | `~/.bridgey/daemon.log` |
 | Pidfile | `/tmp/bridgey-${USER}.pid` |
-| Agent registry | `~/.bridgey/agents/` (JSON file) |
+| Agent registry | `~/.bridgey/agents/` (directory of JSON files, one per agent) |
 
 ## Security Model
 
 - Bearer token auth for remote agents, local agents trusted via file registry
 - Tailscale IPs (`100.64.0.0/10`) trusted when `trusted_networks` configured
 - Inbound messages executed via `claude -p` with `shell: false`
-- Rate limiting: 10 req/min per source IP
+- Rate limiting: 10 req/min per source IP (applied to `/send` and A2A JSON-RPC endpoints; other endpoints are unthrottled)
 - Audit log: every request tracked (source IP, auth type, status)
 - Localhost bind by default — network exposure requires explicit opt-in
 
@@ -102,7 +103,7 @@ The Channel Server uses the official Claude Code Channels API (`--channels` rese
 - Emits `notifications/claude/channel` with `{ content, meta }` params
 - Injects `instructions` into Claude's system prompt automatically
 
-**Meta key constraint:** Claude Code silently drops meta keys containing hyphens. All meta keys MUST match `[a-zA-Z0-9_]+` only (e.g. `message_id`, `guild_id` — never `message-id`). Enforce via Zod in `transport-types.ts`.
+**Meta key constraint:** Claude Code silently drops meta keys containing hyphens. All meta keys MUST match `[a-zA-Z][a-zA-Z0-9_]*` only (first char must be a letter) (e.g. `message_id`, `guild_id` — never `message-id`). Enforce via Zod in `transport-types.ts`.
 
 **Permission relay** (v2.1.81): Channel servers can declare a `permission` capability to forward tool approval prompts through the channel (e.g. to Discord/phone). Not yet implemented — potential v2 feature.
 

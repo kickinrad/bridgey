@@ -13,12 +13,15 @@ Discord Gateway <-> Bot Process <-HTTP-> Bridgey Daemon <-push-> Channel Server 
 ## Running
 
 ```bash
-# Start the bot (requires DISCORD_BOT_TOKEN env var or ~/.bridgey/discord/.env)
-cd plugins/bridgey-discord && bun run bot.ts
+# Start the bot (requires DISCORD_BOT_TOKEN env var)
+cd plugins/bridgey-discord && npm start
 
 # Or with pass:
-DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
+DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start
 ```
+
+Dependencies are auto-installed on first Claude Code session via SessionStart hook.
+The bot runs from `dist/bot.js` (esbuild bundle, discord.js/zod external).
 
 ## Files
 
@@ -35,8 +38,7 @@ DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
 |------|---------|
 | `~/.bridgey/discord.config.json` | Bot configuration |
 | `~/.bridgey/discord/access.json` | Sender allowlist |
-| `~/.bridgey/discord/.env` | Bot token (mode 600) |
-| `~/.bridgey/discord/inbox/` | Downloaded attachments |
+| `~/.bridgey/discord/.env` | Bot token (not auto-loaded — set env var directly or source before running) |
 
 ## Pairing Flow
 
@@ -53,6 +55,6 @@ Falls back to a channel notification with manual instructions if elicitation is 
 ## Conventions
 
 - Token via `pass` or env var — never hardcoded
-- Sender gating on user ID, not guild/channel ID
+- Sender gating on user ID for DMs, guild ID + channel ID + user ID for guild messages
 - Messages >2000 chars chunked at newline boundaries
 - Bot registers/unregisters with daemon on startup/shutdown

@@ -1,13 +1,17 @@
 {
   "name": "bridgey-discord",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
-    "start": "bun run bot.ts",
-    "test": "bun test"
+    "build": "tsx esbuild.config.ts",
+    "start": "node dist/bot.js"
   },
   "dependencies": {
     "discord.js": "^14.17.0",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.4",
+    "tsx": "^4.21.0"
   }
 }

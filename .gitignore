@@ -12,3 +12,4 @@ tests/e2e/runs/
 
 # Allow plugin dist bundles (needed for marketplace distribution)
 !plugins/bridgey/dist/
+!plugins/bridgey-discord/dist/

@@ -11,14 +11,14 @@
       "name": "bridgey",
       "source": "./plugins/bridgey",
       "description": "Inter-agent communication via A2A protocol with Tailscale mesh discovery — send messages, discover agents, manage inbox",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "category": "productivity"
     },
     {
       "name": "bridgey-discord",
       "source": "./plugins/bridgey-discord",
       "description": "Discord bot bridge for bridgey — route Discord channel messages to Claude Code agents via A2A",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "productivity"
     },
     {

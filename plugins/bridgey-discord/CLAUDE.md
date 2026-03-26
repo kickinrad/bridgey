@@ -13,12 +13,15 @@ Discord Gateway <-> Bot Process <-HTTP-> Bridgey Daemon <-push-> Channel Server 
 ## Running
 
 ```bash
-# Start the bot (requires DISCORD_BOT_TOKEN env var or ~/.bridgey/discord/.env)
-cd plugins/bridgey-discord && bun run bot.ts
+# Start the bot (requires DISCORD_BOT_TOKEN env var)
+cd plugins/bridgey-discord && npm start
 
 # Or with pass:
-DISCORD_BOT_TOKEN=$(pass show discord/bot-token) bun run bot.ts
+DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start
 ```
+
+Dependencies are auto-installed on first Claude Code session via SessionStart hook.
+The bot runs from `dist/bot.js` (esbuild bundle, discord.js/zod external).
 
 ## Files
 

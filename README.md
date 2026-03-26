@@ -49,14 +49,9 @@ claude plugin add ./plugins/bridgey-deploy
 ```bash
 git clone https://github.com/kickinrad/bridgey.git
 cd bridgey
-npm run install:all   # Installs daemon + server deps
-npm run build         # Bundles to plugins/bridgey/dist/
+npm run install:all   # Installs all plugin dependencies
+npm run build         # Bundles all plugins to dist/
 npm test              # Runs all tests
-```
-
-The Discord plugin uses Bun:
-```bash
-cd plugins/bridgey-discord && bun install
 ```
 
 ## Quick start

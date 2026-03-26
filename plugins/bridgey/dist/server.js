@@ -20894,7 +20894,7 @@ var DaemonClient = class {
       body: JSON.stringify({ chat_id: chatId, text, reply_to: replyTo, files }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
-    return res.json();
+    return await res.json();
   }
   async react(chatId, messageId, emoji3) {
     const res = await fetch(`${this.baseUrl}/messages/react`, {
@@ -20903,13 +20903,13 @@ var DaemonClient = class {
       body: JSON.stringify({ chat_id: chatId, message_id: messageId, emoji: emoji3 }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
-    return res.json();
+    return await res.json();
   }
   async getTransports() {
     const res = await fetch(`${this.baseUrl}/transports`, {
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
-    return res.json();
+    return await res.json();
   }
   async approvePairing(chatId, userId) {
     const res = await fetch(`${this.baseUrl}/pairing/approve`, {
@@ -20918,7 +20918,7 @@ var DaemonClient = class {
       body: JSON.stringify({ chat_id: chatId, user_id: userId }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
-    return res.json();
+    return await res.json();
   }
   friendlyError(err) {
     if (err instanceof TypeError && String(err.message).includes("fetch")) {
@@ -21572,7 +21572,9 @@ async function handleStatus(client2) {
       if (token) {
         sections.push("");
         sections.push("Connection Info (share this to let other Claude instances reach you):");
-        sections.push(`  { "name": "${name}", "url": "${url2}", "token": "${token}" }`);
+        const masked = token.length > 8 ? token.slice(0, 8) + "..." : token;
+        sections.push(`  { "name": "${name}", "url": "${url2}", "token": "${masked}" }`);
+        sections.push(`  (Full token hidden for security. View in ~/.bridgey/bridgey.config.json)`);
         sections.push("");
         sections.push("The receiving Claude can use the configure_agent tool to add this agent.");
       }

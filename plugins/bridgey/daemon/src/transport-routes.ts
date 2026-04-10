@@ -11,6 +11,11 @@ import {
   InboundMessageSchema,
   OutboundReplySchema,
   OutboundReactSchema,
+  OutboundEditSchema,
+  FetchMessagesSchema,
+  DownloadAttachmentSchema,
+  PermissionRequestSchema,
+  PermissionResponseSchema,
   parseTransportFromChatId,
 } from './transport-types.js';
 
@@ -62,6 +67,60 @@ export function registerTransportRoutes(
   app.post('/channel/unregister', async (_req, reply) => {
     channelPush.unregister();
     return reply.send({ ok: true });
+  });
+
+  // ── Permission Relay ────────────────────────────────────────────────
+
+  app.post('/channel/permission-request', async (req, reply) => {
+    const parsed = PermissionRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+
+    const { request_id, tool_name, description, input_preview } = parsed.data;
+
+    // Fan out to all transports with 'permission' capability
+    const transports = registry.list().filter(
+      (t) => t.healthy && t.capabilities.includes('permission'),
+    );
+
+    if (transports.length === 0) {
+      return reply.code(404).send({ error: 'No transports with permission capability registered' });
+    }
+
+    const results = await Promise.allSettled(
+      transports.map((t) =>
+        fetch(`${t.callback_url}/callback/permission-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request_id, tool_name, description, input_preview }),
+          signal: AbortSignal.timeout(10_000),
+        }),
+      ),
+    );
+
+    const delivered = results.filter((r) => r.status === 'fulfilled').length;
+    return reply.send({ ok: true, delivered, total: transports.length });
+  });
+
+  app.post('/messages/permission-response', async (req, reply) => {
+    const parsed = PermissionResponseSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+
+    const { request_id, behavior } = parsed.data;
+
+    const pushed = await channelPush.push({
+      content: `[Permission ${behavior}: ${request_id}]`,
+      meta: {
+        permission_response: 'true',
+        request_id,
+        behavior,
+      },
+    });
+
+    return reply.send({ ok: true, delivered: pushed });
   });
 
   // ── Messages ────────────────────────────────────────────────────────
@@ -194,7 +253,8 @@ export function registerTransportRoutes(
         return reply.code(502).send({ error: `Transport returned ${res.status}` });
       }
 
-      return reply.send({ ok: true, delivered: true });
+      const data = await res.json() as Record<string, unknown>;
+      return reply.send({ ok: true, delivered: true, ...data });
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : 'Failed to deliver reply',
@@ -239,6 +299,131 @@ export function registerTransportRoutes(
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : 'Failed to deliver reaction',
+      });
+    }
+  });
+
+  app.post('/messages/edit', async (req, reply) => {
+    const parsed = OutboundEditSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+
+    const { chat_id, message_id, text } = parsed.data;
+    const transport = registry.resolveFromChatId(chat_id);
+
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+
+    if (!transport.capabilities.includes('edit_message')) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support message editing` });
+    }
+
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id, message_id, text }),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+
+      return reply.send({ ok: true, delivered: true });
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : 'Failed to deliver edit',
+      });
+    }
+  });
+
+  app.post('/messages/fetch', async (req, reply) => {
+    const parsed = FetchMessagesSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+
+    const { chat_id, limit } = parsed.data;
+    const transport = registry.resolveFromChatId(chat_id);
+
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+
+    if (!transport.capabilities.includes('fetch_messages')) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support fetching messages` });
+    }
+
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/fetch-messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id, limit }),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+
+      const data = await res.json();
+      return reply.send(data);
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : 'Failed to fetch messages',
+      });
+    }
+  });
+
+  app.post('/messages/download-attachment', async (req, reply) => {
+    const parsed = DownloadAttachmentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+
+    const { chat_id, message_id } = parsed.data;
+    const transport = registry.resolveFromChatId(chat_id);
+
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+
+    if (!transport.capabilities.includes('download_attachment')) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support attachment downloads` });
+    }
+
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/download-attachment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id, message_id }),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+
+      const data = await res.json();
+      return reply.send(data);
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : 'Failed to download attachment',
       });
     }
   });

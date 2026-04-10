@@ -19,7 +19,8 @@ import { loadConfig as loadTailscaleConfig } from '../../daemon/src/tailscale/co
 function assertSendable(filePath: string): void {
   const resolved = resolve(filePath);
   const stateDir = resolve(homedir(), '.bridgey');
-  if (resolved.startsWith(stateDir)) {
+  const inboxDir = resolve(stateDir, 'inbox');
+  if (resolved.startsWith(stateDir + '/') && !resolved.startsWith(inboxDir + '/')) {
     throw new Error(`Refusing to send file from bridgey state directory: ${filePath}`);
   }
 }
@@ -135,6 +136,46 @@ export function getToolDefinitions(mode: ServerMode = 'daemon'): ToolDefinition[
           required: ['chat_id', 'message_id', 'emoji'],
         },
       },
+      {
+        name: 'edit_message',
+        description:
+          'Edit a message previously sent by the bot. Useful for progress updates. Edits do not trigger push notifications — send a new reply when a long task completes so the user\'s device pings.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            message_id: { type: 'string', description: 'ID of the message to edit (must be a message sent by the bot)' },
+            text: { type: 'string', description: 'New message text' },
+          },
+          required: ['chat_id', 'message_id', 'text'],
+        },
+      },
+      {
+        name: 'fetch_messages',
+        description:
+          'Fetch recent messages from a channel. Returns up to 100 messages oldest-first, each with a message ID.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            limit: { type: 'number', description: 'Number of messages to fetch (1-100, default 20)' },
+          },
+          required: ['chat_id'],
+        },
+      },
+      {
+        name: 'download_attachment',
+        description:
+          'Download attachments from a specific message to the local inbox. Returns file paths ready to Read.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            chat_id: { type: 'string', description: 'Routing key from the incoming channel message' },
+            message_id: { type: 'string', description: 'ID of the message containing attachments' },
+          },
+          required: ['chat_id', 'message_id'],
+        },
+      },
     ] : []),
     {
       name: 'configure_agent',
@@ -201,6 +242,12 @@ export async function handleToolCall(
       return handleReply(args, client);
     case 'react':
       return handleReact(args, client);
+    case 'edit_message':
+      return handleEditMessage(args, client);
+    case 'fetch_messages':
+      return handleFetchMessages(args, client);
+    case 'download_attachment':
+      return handleDownloadAttachment(args, client);
     case 'configure_agent':
       return handleConfigureAgent(args);
     case 'remove_agent':
@@ -488,8 +535,13 @@ async function handleReply(
 
   try {
     const result = await client.reply(chatId, text, replyTo, files);
+    if (!result.ok) {
+      return { content: [{ type: 'text', text: `Reply failed: ${JSON.stringify(result)}` }] };
+    }
+    const ids = result.message_ids;
+    const idInfo = ids?.length ? ` (message_ids: ${ids.join(', ')})` : '';
     return {
-      content: [{ type: 'text', text: result.ok ? 'Reply sent.' : `Reply failed: ${JSON.stringify(result)}` }],
+      content: [{ type: 'text', text: `Reply sent.${idInfo}` }],
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -525,6 +577,110 @@ async function handleReact(
   }
 }
 
+async function handleEditMessage(
+  args: Record<string, unknown>,
+  client: BridgeyClient,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  if (!(client instanceof DaemonClient)) {
+    return {
+      content: [
+        { type: 'text', text: 'edit_message requires a running bridgey daemon. Channel features are not available in orchestrator mode.' },
+      ],
+      isError: true,
+    };
+  }
+
+  const chatId = args.chat_id as string;
+  const messageId = args.message_id as string;
+  const text = args.text as string;
+
+  try {
+    const result = await client.editMessage(chatId, messageId, text);
+    return {
+      content: [{ type: 'text', text: result.ok ? 'Message edited.' : `Edit failed: ${JSON.stringify(result)}` }],
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: 'text', text: `Edit failed: ${msg}` }], isError: true };
+  }
+}
+
+async function handleFetchMessages(
+  args: Record<string, unknown>,
+  client: BridgeyClient,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  if (!(client instanceof DaemonClient)) {
+    return {
+      content: [
+        { type: 'text', text: 'fetch_messages requires a running bridgey daemon. Channel features are not available in orchestrator mode.' },
+      ],
+      isError: true,
+    };
+  }
+
+  const chatId = args.chat_id as string;
+  const limit = args.limit as number | undefined;
+
+  try {
+    const result = await client.fetchMessages(chatId, limit);
+    const messages = result.messages as Array<{
+      id: string;
+      sender: string;
+      content: string;
+      ts: string;
+      attachment_count?: number;
+    }>;
+
+    if (!messages || messages.length === 0) {
+      return { content: [{ type: 'text', text: 'No messages found.' }] };
+    }
+
+    const lines = messages.map((m) => {
+      const content = m.content.replace(/[\r\n]+/g, ' ⏎ ');
+      const attSuffix = m.attachment_count ? ` +${m.attachment_count}att` : '';
+      return `[${m.ts}] ${m.sender}: ${content}  (id: ${m.id}${attSuffix})`;
+    });
+
+    return { content: [{ type: 'text', text: lines.join('\n') }] };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: 'text', text: `Fetch failed: ${msg}` }], isError: true };
+  }
+}
+
+async function handleDownloadAttachment(
+  args: Record<string, unknown>,
+  client: BridgeyClient,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  if (!(client instanceof DaemonClient)) {
+    return {
+      content: [
+        { type: 'text', text: 'download_attachment requires a running bridgey daemon. Channel features are not available in orchestrator mode.' },
+      ],
+      isError: true,
+    };
+  }
+
+  const chatId = args.chat_id as string;
+  const messageId = args.message_id as string;
+
+  try {
+    const result = await client.downloadAttachment(chatId, messageId);
+    const files = result.files as Array<{ path: string; name: string; type: string; size: number }>;
+
+    if (!files || files.length === 0) {
+      return { content: [{ type: 'text', text: 'No attachments found on that message.' }] };
+    }
+
+    const lines = files.map((f) => `  ${f.name} (${f.type}, ${f.size} bytes) → ${f.path}`);
+    return {
+      content: [{ type: 'text', text: `Downloaded ${files.length} file(s):\n${lines.join('\n')}` }],
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: 'text', text: `Download failed: ${msg}` }], isError: true };
+  }
+}
 
 async function handleConfigureAgent(
   args: Record<string, unknown>,

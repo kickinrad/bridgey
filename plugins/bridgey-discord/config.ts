@@ -16,6 +16,10 @@ export const DiscordConfigSchema = z.object({
   callback_host: z.string().default('127.0.0.1'),
   callback_url: z.string().url().optional(),
   dm_policy: z.enum(['pairing', 'allowlist', 'disabled']).default('pairing'),
+  ack_reaction: z.string().optional(),
+  text_chunk_limit: z.number().min(1).max(2000).default(2000),
+  chunk_mode: z.enum(['length', 'newline']).default('newline'),
+  reply_to_mode: z.enum(['first', 'all', 'off']).default('first'),
   guilds: z.record(z.string(), GuildConfigSchema).default({}),
 })
 

@@ -28,7 +28,10 @@ Use these tools naturally in conversation:
 | `configure_agent` | Add or update a remote agent's connection info (name, url, token). Use when someone shares their connection snippet. |
 | `remove_agent` | Remove a remote agent from the local config. |
 | `agent_info` | Fetch a remote agent's A2A card (capabilities, skills, description). |
-| `reply` | Reply to a channel message (daemon mode only). |
+| `reply` | Reply to a channel message (daemon mode only). Returns sent message IDs. |
+| `edit_message` | Edit a previously sent message. Useful for progress updates. Edits don't trigger push notifications. (daemon mode only) |
+| `fetch_messages` | Fetch recent channel history (up to 100, oldest-first). Each entry has a message ID. (daemon mode only) |
+| `download_attachment` | Download attachments from a message to `~/.bridgey/inbox/`. Returns file paths. (daemon mode only) |
 | `react` | Add emoji reaction to a channel message (daemon mode only). |
 | `tailscale_scan` | Scan Tailscale network for bridgey peers and register as agents. Pass optional `force` to re-probe. |
 

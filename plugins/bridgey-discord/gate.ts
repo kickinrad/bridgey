@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import type { DiscordConfig } from './config.js'
@@ -18,7 +18,11 @@ export function loadAccess(): AccessConfig {
   ensureStateDir()
   try {
     return JSON.parse(readFileSync(ACCESS_FILE, 'utf-8'))
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { allowed_senders: [] }
+    // Corrupt file — rename aside and start fresh
+    try { renameSync(ACCESS_FILE, `${ACCESS_FILE}.corrupt-${Date.now()}`) } catch {}
+    console.error('discord: access.json is corrupt, moved aside. Starting fresh.')
     return { allowed_senders: [] }
   }
 }
@@ -47,6 +51,29 @@ export function removeSender(userId: string): void {
 }
 
 export type GateResult = 'allowed' | 'pairing' | 'denied'
+
+/**
+ * Check if outbound messages are allowed to this chat_id.
+ * Tools can only target chats the inbound gate would deliver from.
+ */
+export function isAllowedOutbound(chatId: string, cfg: DiscordConfig): boolean {
+  const parts = chatId.split(':');
+  if (parts.length < 3 || parts[0] !== 'discord') return false;
+  const type = parts[1]; // 'dm' or 'ch'
+  const id = parts[2];
+
+  if (type === 'dm') {
+    return loadAccess().allowed_senders.includes(id);
+  }
+
+  if (type === 'ch') {
+    for (const guild of Object.values(cfg.guilds)) {
+      if (guild.channels.includes(id)) return true;
+    }
+  }
+
+  return false;
+}
 
 export function gateSender(
   userId: string,

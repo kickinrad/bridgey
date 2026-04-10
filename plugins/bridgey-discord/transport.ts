@@ -15,7 +15,7 @@ export class TransportClient {
       body: JSON.stringify({
         name: 'discord',
         callback_url: url,
-        capabilities: ['reply', 'react'],
+        capabilities: ['reply', 'react', 'edit_message', 'fetch_messages', 'download_attachment', 'permission'],
       }),
     })
     if (!res.ok) throw new Error(`Failed to register transport: ${res.status}`)
@@ -27,6 +27,14 @@ export class TransportClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'discord' }),
     }).catch(() => {})
+  }
+
+  async sendPermissionResponse(requestId: string, behavior: 'allow' | 'deny'): Promise<void> {
+    await fetch(`${this.daemonUrl}/messages/permission-response`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_id: requestId, behavior }),
+    }).catch((err) => console.error('Failed to send permission response:', err))
   }
 
   async sendInbound(msg: {

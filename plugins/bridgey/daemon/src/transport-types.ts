@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const TransportRegisterSchema = z.object({
   name: z.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
   callback_url: z.string().url(),
-  capabilities: z.array(z.enum(['reply', 'react', 'edit'])),
+  capabilities: z.array(z.enum(['reply', 'react', 'edit', 'edit_message', 'fetch_messages', 'download_attachment', 'permission'])),
 });
 
 export const TransportUnregisterSchema = z.object({
@@ -67,6 +67,44 @@ export type OutboundReact = z.infer<typeof OutboundReactSchema>;
 
 export const ChannelRegisterSchema = z.object({
   push_url: z.string().url(),
+});
+
+// --- Outbound Edits (Channel Server → Daemon → Transport) ---
+
+export const OutboundEditSchema = z.object({
+  chat_id: z.string().min(1),
+  message_id: z.string().min(1),
+  text: z.string().min(1),
+});
+
+export type OutboundEdit = z.infer<typeof OutboundEditSchema>;
+
+// --- Fetch Messages (Channel Server → Daemon → Transport) ---
+
+export const FetchMessagesSchema = z.object({
+  chat_id: z.string().min(1),
+  limit: z.number().min(1).max(100).default(20),
+});
+
+// --- Download Attachment (Channel Server → Daemon → Transport) ---
+
+export const DownloadAttachmentSchema = z.object({
+  chat_id: z.string().min(1),
+  message_id: z.string().min(1),
+});
+
+// --- Permission Relay ---
+
+export const PermissionRequestSchema = z.object({
+  request_id: z.string().min(1),
+  tool_name: z.string().min(1),
+  description: z.string(),
+  input_preview: z.string(),
+});
+
+export const PermissionResponseSchema = z.object({
+  request_id: z.string().regex(/^[a-km-z]{5}$/),
+  behavior: z.enum(['allow', 'deny']),
 });
 
 // --- Chat ID Parsing ---

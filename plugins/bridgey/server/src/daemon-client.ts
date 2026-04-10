@@ -96,14 +96,14 @@ export class DaemonClient implements BridgeyClient {
     }).catch(() => {});
   }
 
-  async reply(chatId: string, text: string, replyTo?: string, files?: string[]): Promise<{ ok: boolean }> {
+  async reply(chatId: string, text: string, replyTo?: string, files?: string[]): Promise<{ ok: boolean; message_ids?: string[] }> {
     const res = await fetch(`${this.baseUrl}/messages/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, reply_to: replyTo, files }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
-    return (await res.json()) as { ok: boolean };
+    return (await res.json()) as { ok: boolean; message_ids?: string[] };
   }
 
   async react(chatId: string, messageId: string, emoji: string): Promise<{ ok: boolean }> {
@@ -121,6 +121,50 @@ export class DaemonClient implements BridgeyClient {
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
     return (await res.json()) as Array<{ name: string; callback_url: string; capabilities: string[]; healthy: boolean }>;
+  }
+
+  async forwardPermissionRequest(params: {
+    request_id: string;
+    tool_name: string;
+    description: string;
+    input_preview: string;
+  }): Promise<void> {
+    await fetch(`${this.baseUrl}/channel/permission-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+  }
+
+  async editMessage(chatId: string, messageId: string, text: string): Promise<{ ok: boolean }> {
+    const res = await fetch(`${this.baseUrl}/messages/edit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    return (await res.json()) as { ok: boolean };
+  }
+
+  async fetchMessages(chatId: string, limit?: number): Promise<{ messages: Array<{ id: string; sender: string; content: string; ts: string; attachment_count?: number }> }> {
+    const res = await fetch(`${this.baseUrl}/messages/fetch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, limit }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    return (await res.json()) as { messages: Array<{ id: string; sender: string; content: string; ts: string; attachment_count?: number }> };
+  }
+
+  async downloadAttachment(chatId: string, messageId: string): Promise<{ files: Array<{ path: string; name: string; type: string; size: number }> }> {
+    const res = await fetch(`${this.baseUrl}/messages/download-attachment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    return (await res.json()) as { files: Array<{ path: string; name: string; type: string; size: number }> };
   }
 
   async approvePairing(chatId: string, userId: string): Promise<{ ok: boolean }> {

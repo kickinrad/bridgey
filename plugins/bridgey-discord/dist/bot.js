@@ -2,7 +2,7 @@
 import { createRequire } from 'module'; const require = createRequire(import.meta.url);
 
 // bot.ts
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, Partials } from "discord.js";
 
 // config.ts
 import { z } from "zod";
@@ -18,15 +18,18 @@ var DiscordConfigSchema = z.object({
   token_env: z.string().default("DISCORD_BOT_TOKEN"),
   daemon_url: z.string().url().default("http://localhost:8092"),
   port: z.number().default(8094),
+  callback_host: z.string().default("127.0.0.1"),
+  callback_url: z.string().url().optional(),
   dm_policy: z.enum(["pairing", "allowlist", "disabled"]).default("pairing"),
-  guilds: z.record(GuildConfigSchema).default({})
+  guilds: z.record(z.string(), GuildConfigSchema).default({})
 });
 function loadConfig() {
-  const configPath = join(homedir(), ".bridgey", "discord.config.json");
+  const configPath = process.env.DISCORD_CONFIG_PATH ?? join(homedir(), ".bridgey", "discord.config.json");
   try {
     const raw = readFileSync(configPath, "utf-8");
     return DiscordConfigSchema.parse(JSON.parse(raw));
-  } catch {
+  } catch (err) {
+    console.error(`Failed to load config from ${configPath}:`, err);
     return DiscordConfigSchema.parse({});
   }
 }
@@ -37,13 +40,14 @@ var TransportClient = class {
   constructor(config2) {
     this.daemonUrl = config2.daemon_url;
   }
-  async register(port) {
+  async register(port, callbackUrl) {
+    const url = callbackUrl ?? `http://localhost:${port}`;
     const res = await fetch(`${this.daemonUrl}/transports/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: "discord",
-        callback_url: `http://localhost:${port}`,
+        callback_url: url,
         capabilities: ["reply", "react"]
       })
     });
@@ -98,8 +102,14 @@ function addSender(userId) {
     saveAccess(access);
   }
 }
-function gateSender(userId, isDM, guildId, channelId, config2) {
-  if (isAllowed(userId)) return "allowed";
+function gateSender(userId, isDM, guildId, channelId, config2, isMentioned) {
+  if (isAllowed(userId)) {
+    if (!isDM && guildId && channelId) {
+      const guild = config2.guilds[guildId];
+      if (guild?.require_mention && !isMentioned) return "denied";
+    }
+    return "allowed";
+  }
   if (isDM) {
     switch (config2.dm_policy) {
       case "disabled":
@@ -114,6 +124,7 @@ function gateSender(userId, isDM, guildId, channelId, config2) {
     const guild = config2.guilds[guildId];
     if (!guild) return "denied";
     if (!guild.channels.includes(channelId)) return "denied";
+    if (guild.require_mention && !isMentioned) return "denied";
     if (guild.allow_from.length > 0 && !guild.allow_from.includes(userId)) return "denied";
     return "allowed";
   }
@@ -135,7 +146,8 @@ var client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages
-  ]
+  ],
+  partials: [Partials.Channel]
 });
 function chunkMessage(text, maxLength = 2e3) {
   if (text.length <= maxLength) return [text];
@@ -180,14 +192,48 @@ var callbackServer = createServer(async (req, res) => {
     res.writeHead(404).end();
   }
 });
-callbackServer.listen(config.port, "127.0.0.1", () => {
-  console.error(`Callback API listening on http://127.0.0.1:${config.port}`);
+callbackServer.listen(config.port, config.callback_host, () => {
+  console.error(`Callback API listening on http://${config.callback_host}:${config.port}`);
 });
+async function resolveMentions(text, channelId) {
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !("guild" in channel)) return text;
+    const guild = channel.guild;
+    const mentions = /* @__PURE__ */ new Set();
+    text.replace(/@(\w+)/g, (_, name) => {
+      mentions.add(name);
+      return _;
+    });
+    if (mentions.size === 0) return text;
+    const resolved = /* @__PURE__ */ new Map();
+    for (const name of mentions) {
+      try {
+        const results = await guild.members.search({ query: name, limit: 5 });
+        const match = results.find(
+          (m) => m.displayName.toLowerCase() === name.toLowerCase() || m.user.username.toLowerCase() === name.toLowerCase()
+        );
+        if (match) resolved.set(name.toLowerCase(), `<@${match.id}>`);
+      } catch {
+      }
+    }
+    if (resolved.size === 0) return text;
+    return text.replace(/@(\w+)/g, (match, name) => {
+      return resolved.get(name.toLowerCase()) ?? match;
+    });
+  } catch {
+    return text;
+  }
+}
 async function handleOutboundReply(body) {
-  const { chat_id, text, reply_to } = body;
+  const { chat_id, reply_to } = body;
+  let { text } = body;
   const parts = chat_id.split(":");
   const type = parts[1];
   const id = parts[2];
+  if (type === "ch") {
+    text = await resolveMentions(text, id);
+  }
   try {
     const channel = type === "dm" ? await client.users.fetch(id).then((u) => u.createDM()) : await client.channels.fetch(id);
     if (!channel?.isTextBased()) return;
@@ -256,8 +302,12 @@ async function handlePairingApproved(body) {
   }
 }
 client.on("messageCreate", async (msg) => {
-  if (msg.author.bot) return;
   const isDM = !msg.guild;
+  const isMentioned = !isDM && !!client.user && msg.mentions.has(client.user.id);
+  console.error(`[msg] from=${msg.author.username} bot=${msg.author.bot} isDM=${isDM} mentioned=${isMentioned} content="${msg.content.slice(0, 50)}"`);
+  if (msg.author.bot && isDM) return;
+  if (msg.author.bot && !isMentioned) return;
+  if (msg.author.id === client.user?.id) return;
   const guildId = msg.guild?.id ?? null;
   const channelId = msg.channelId;
   const gateResult = gateSender(
@@ -265,8 +315,10 @@ client.on("messageCreate", async (msg) => {
     isDM,
     guildId,
     channelId,
-    config
+    config,
+    isMentioned
   );
+  console.error(`[gate] user=${msg.author.id} guild=${guildId} channel=${channelId} mentioned=${isMentioned} result=${gateResult}`);
   if (gateResult === "denied") return;
   if (gateResult === "pairing") {
     const chatId2 = `discord:dm:${msg.author.id}`;
@@ -283,6 +335,10 @@ client.on("messageCreate", async (msg) => {
     return;
   }
   const chatId = isDM ? `discord:dm:${msg.author.id}` : `discord:ch:${channelId}`;
+  let content = msg.content;
+  if (isMentioned && client.user) {
+    content = content.replace(new RegExp(`<@!?${client.user.id}>\\s*`), "").trim();
+  }
   const meta = {
     message_id: msg.id,
     ts: msg.createdAt.toISOString()
@@ -292,6 +348,8 @@ client.on("messageCreate", async (msg) => {
     meta.guild_id = msg.guild.id;
     meta.channel = "name" in msg.channel ? msg.channel.name : channelId;
   }
+  if (isMentioned) meta.mentioned = "true";
+  if (msg.author.bot) meta.from_bot = "true";
   const attachments = msg.attachments.map((a) => ({
     id: a.id,
     name: a.name,
@@ -303,7 +361,7 @@ client.on("messageCreate", async (msg) => {
     await transport.sendInbound({
       chat_id: chatId,
       sender: msg.author.username,
-      content: msg.content,
+      content,
       meta,
       attachments: attachments.length > 0 ? attachments : void 0
     });
@@ -314,7 +372,7 @@ client.on("messageCreate", async (msg) => {
 client.once("ready", async () => {
   console.error(`Discord bot connected as ${client.user?.tag}`);
   try {
-    await transport.register(config.port);
+    await transport.register(config.port, config.callback_url);
     console.error(
       `Registered as transport with daemon at ${config.daemon_url}`
     );

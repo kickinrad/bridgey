@@ -61,8 +61,6 @@ plugins/
 │   │   ├── remote-status/ # Container + daemon health checks
 │   │   └── coolify/       # Coolify API integration
 │   └── hooks/             # sync-reminder (Stop hook snippet)
-dev/
-└── contracts/             # JSON schemas for cross-plugin contracts (generated via `npm run generate:contracts`, may not be committed)
 ```
 
 ## Tech Stack
@@ -116,9 +114,21 @@ The Channel Server uses the official Claude Code Channels API (`--channels` rese
 - **HTTP hooks** (v2.1.63) — `"type": "http"` in hooks.json POSTs event JSON to a URL. Useful for simple health checks. Shell hooks still needed for filesystem/process logic (watchdog startup, tailscale scan).
 - **MCP elicitation** (v2.1.76) — servers can request structured user input mid-task via `elicitation/create` (form fields or URL redirect). Used by Discord pairing flow — inline approve/decline dialog replaces the old manual code approval. Falls back to channel notification if elicitation unavailable.
 
+## Docker Deployment Gotchas
+
+**Local images + Coolify:** Coolify tries to `docker pull` all images on restart. Local-only images (bridgey-persona, bridgey-discord) must have `pull_policy: never` in compose. Coolify's restart API is unreliable for local images — run compose directly from `/data/coolify/services/{uuid}/`.
+
+**Transport callback URLs:** Discord bot registers its callback URL with the daemon for reply routing. In Docker, this MUST use the container hostname (`http://bridgey-discord-jgcko8w0o4gwoocs0cks8swo:8094`), not `localhost`. Configured via `callback_url` in discord config.
+
+**Executor fallback:** When no Channel Server (CC session) is connected, `/messages/inbound` falls back to `claude -p` execution and routes the response back through the transport callback. This is the default mode for headless persona containers.
+
+**Zod v4 + numeric string keys:** `z.record(Schema)` silently rejects keys that look like numbers (Discord guild/channel IDs). Always use `z.record(z.string(), Schema)` with explicit key type.
+
+**Volume ownership:** Docker volumes for Discord bot state mount as root. The process runs as `node`. Fix: `docker exec -u root chown -R node:node /path` after first create.
+
 ## Status
 
-Core plugin with Channels API integration, Tailscale discovery, and adaptive MCP server (daemon + orchestrator modes) complete. bridgey-discord transport adapter complete. bridgey-telegram planned.
+Core plugin with Channels API integration, Tailscale discovery, and adaptive MCP server (daemon + orchestrator modes) complete. bridgey-discord transport adapter with executor fallback complete. bridgey-telegram planned.
 
 ## Related Projects
 

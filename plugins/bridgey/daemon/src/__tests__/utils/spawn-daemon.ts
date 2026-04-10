@@ -8,7 +8,7 @@ import { waitForHealth } from './port.js';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DAEMON_SCRIPT = join(
   __dir,
-  '../../plugins/bridgey/dist/daemon.js',
+  '../../../../dist/daemon.js',
 );
 
 export interface TestDaemon {

@@ -34492,29 +34492,24 @@ function generateAgentCard(config2) {
 
 // daemon/src/executor.ts
 import { spawn } from "child_process";
+import { createHash } from "crypto";
 var MAX_MESSAGE_LENGTH = 1e4;
 var TIMEOUT_MS = 3e5;
+function chatIdToSessionId(chatId) {
+  const hash2 = createHash("sha256").update(chatId).digest("hex");
+  return [
+    hash2.slice(0, 8),
+    hash2.slice(8, 12),
+    "4" + hash2.slice(13, 16),
+    (parseInt(hash2[16], 16) & 3 | 8).toString(16) + hash2.slice(17, 20),
+    hash2.slice(20, 32)
+  ].join("-");
+}
 function sanitize(input) {
   return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
-function executePrompt(message, workspace, maxTurns) {
+function spawnClaude(args, workspace) {
   return new Promise((resolve) => {
-    let sanitizedMessage = sanitize(message);
-    if (sanitizedMessage.length > MAX_MESSAGE_LENGTH) {
-      sanitizedMessage = sanitizedMessage.slice(0, MAX_MESSAGE_LENGTH);
-    }
-    if (sanitizedMessage.trim().length === 0) {
-      resolve("[error] Empty message after sanitization");
-      return;
-    }
-    const args = [
-      "-p",
-      sanitizedMessage,
-      "--output-format",
-      "json",
-      "--max-turns",
-      String(maxTurns)
-    ];
     let stdout = "";
     let stderr = "";
     let killed = false;
@@ -34540,39 +34535,53 @@ function executePrompt(message, workspace, maxTurns) {
     }, TIMEOUT_MS);
     proc.on("error", (err) => {
       clearTimeout(timer);
-      resolve(`[error] Failed to spawn claude: ${err.message}`);
+      stderr += `Failed to spawn claude: ${err.message}`;
+      resolve({ stdout, stderr, code: -1, killed });
     });
     proc.on("close", (code) => {
       clearTimeout(timer);
-      if (killed) {
-        resolve("[error] claude process timed out after 5 minutes");
-        return;
-      }
-      if (code !== 0) {
-        resolve(`[error] claude exited with code ${code}: ${stderr.slice(0, 500)}`);
-        return;
-      }
-      try {
-        const parsed = JSON.parse(stdout);
-        const result = parsed.result ?? parsed.text ?? parsed.content;
-        if (typeof result === "string") {
-          resolve(result);
-        } else if (typeof result === "object" && result !== null) {
-          resolve(JSON.stringify(result));
-        } else {
-          resolve(stdout.trim());
-        }
-      } catch {
-        if (stdout.trim().length > 0) {
-          resolve(stdout.trim());
-        } else {
-          resolve(`[error] No output from claude. stderr: ${stderr.slice(0, 500)}`);
-        }
-      }
+      resolve({ stdout, stderr, code, killed });
     });
   });
 }
-async function* executePromptStreaming(message, workspace, maxTurns) {
+function parseClaudeOutput(stdout, stderr, code, killed) {
+  if (killed) return "[error] claude process timed out after 5 minutes";
+  if (code !== 0) return `[error] claude exited with code ${code}: ${stderr.slice(0, 500)}`;
+  try {
+    const parsed = JSON.parse(stdout);
+    const result = parsed.result ?? parsed.text ?? parsed.content;
+    if (typeof result === "string") return result;
+    if (typeof result === "object" && result !== null) return JSON.stringify(result);
+    return stdout.trim();
+  } catch {
+    if (stdout.trim().length > 0) return stdout.trim();
+    return `[error] No output from claude. stderr: ${stderr.slice(0, 500)}`;
+  }
+}
+async function executePrompt(message, workspace, maxTurns, sessionId) {
+  let sanitizedMessage = sanitize(message);
+  if (sanitizedMessage.length > MAX_MESSAGE_LENGTH) {
+    sanitizedMessage = sanitizedMessage.slice(0, MAX_MESSAGE_LENGTH);
+  }
+  if (sanitizedMessage.trim().length === 0) {
+    return "[error] Empty message after sanitization";
+  }
+  const baseArgs = ["-p", sanitizedMessage, "--output-format", "json", "--max-turns", String(maxTurns)];
+  if (sessionId) {
+    const resumeResult = await spawnClaude([...baseArgs, "--resume", sessionId], workspace);
+    if (resumeResult.code === 0) {
+      return parseClaudeOutput(resumeResult.stdout, resumeResult.stderr, resumeResult.code, resumeResult.killed);
+    }
+    if (resumeResult.stderr.includes("not found") || resumeResult.stderr.includes("No session") || resumeResult.stderr.includes("Could not find")) {
+      const createResult = await spawnClaude([...baseArgs, "--session-id", sessionId], workspace);
+      return parseClaudeOutput(createResult.stdout, createResult.stderr, createResult.code, createResult.killed);
+    }
+    return parseClaudeOutput(resumeResult.stdout, resumeResult.stderr, resumeResult.code, resumeResult.killed);
+  }
+  const result = await spawnClaude(baseArgs, workspace);
+  return parseClaudeOutput(result.stdout, result.stderr, result.code, result.killed);
+}
+async function* executePromptStreaming(message, workspace, maxTurns, sessionId) {
   let sanitizedMessage = sanitize(message);
   if (sanitizedMessage.length > MAX_MESSAGE_LENGTH) {
     sanitizedMessage = sanitizedMessage.slice(0, MAX_MESSAGE_LENGTH);
@@ -34582,6 +34591,9 @@ async function* executePromptStreaming(message, workspace, maxTurns) {
     return;
   }
   const args = ["-p", sanitizedMessage, "--output-format", "stream-json", "--max-turns", String(maxTurns)];
+  if (sessionId) {
+    args.push("--resume", sessionId);
+  }
   const env = { ...process.env };
   delete env.CLAUDECODE;
   const proc = spawn("claude", args, {
@@ -49103,7 +49115,7 @@ var ChannelPush = class {
 };
 
 // daemon/src/transport-routes.ts
-function registerTransportRoutes(app, registry2, channelPush) {
+function registerTransportRoutes(app, registry2, channelPush, config2) {
   app.post("/transports/register", async (req, reply) => {
     const parsed = TransportRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -49179,8 +49191,37 @@ function registerTransportRoutes(app, registry2, channelPush) {
       chat_id,
       sender
     };
-    const pushed = await channelPush.push({ content, meta: channelMeta });
-    return reply.send({ ok: true, queued: !pushed });
+    if (channelPush.isConnected()) {
+      const pushed = await channelPush.push({ content, meta: channelMeta });
+      return reply.send({ ok: true, queued: !pushed });
+    }
+    if (!config2?.workspace) {
+      channelPush.enqueue({ content, meta: channelMeta });
+      return reply.send({ ok: true, queued: true });
+    }
+    const transportEntry = registry2.resolveFromChatId(chat_id);
+    if (!transportEntry) {
+      channelPush.enqueue({ content, meta: channelMeta });
+      return reply.send({ ok: true, queued: true });
+    }
+    reply.send({ ok: true, queued: false, mode: "executor" });
+    const prompt = `[Message from ${sender} via ${transport}]
+${content}`;
+    const sessionId = chatIdToSessionId(chat_id);
+    executePrompt(prompt, config2.workspace, config2.max_turns ?? 5, sessionId).then(async (response) => {
+      try {
+        await fetch(`${transportEntry.callback_url}/callback/reply`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id, text: response }),
+          signal: AbortSignal.timeout(1e4)
+        });
+      } catch (err) {
+        console.error(`Failed to deliver executor reply to ${transport}:`, err);
+      }
+    }).catch((err) => {
+      console.error(`Executor failed for inbound from ${sender}:`, err);
+    });
   });
   app.post("/messages/reply", async (req, reply) => {
     const parsed = OutboundReplySchema.safeParse(req.body);
@@ -49382,7 +49423,7 @@ async function startDaemon(pidfile2, configPath2) {
   a2aRoutes(appInstance, config2, store);
   const transportRegistry = new TransportRegistry();
   const channelPush = new ChannelPush();
-  registerTransportRoutes(appInstance, transportRegistry, channelPush);
+  registerTransportRoutes(appInstance, transportRegistry, channelPush, config2);
   try {
     await fastify.listen({ port: config2.port, host: bindAddr });
   } catch (err) {

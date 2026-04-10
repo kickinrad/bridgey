@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { TransportRegistry } from './transport-registry.js';
 import type { ChannelPush } from './channel-push.js';
+import { executePrompt, chatIdToSessionId } from './executor.js';
+import type { BridgeyConfig } from './types.js';
 import {
   TransportRegisterSchema,
   TransportUnregisterSchema,
@@ -19,6 +21,7 @@ export function registerTransportRoutes(
   app: FastifyInstance,
   registry: TransportRegistry,
   channelPush: ChannelPush,
+  config?: BridgeyConfig,
 ): void {
   // ── Transport Management ────────────────────────────────────────────
 
@@ -120,8 +123,46 @@ export function registerTransportRoutes(
       sender,
     };
 
-    const pushed = await channelPush.push({ content, meta: channelMeta });
-    return reply.send({ ok: true, queued: !pushed });
+    // If Channel Server is connected, push through it
+    if (channelPush.isConnected()) {
+      const pushed = await channelPush.push({ content, meta: channelMeta });
+      return reply.send({ ok: true, queued: !pushed });
+    }
+
+    // Fallback: execute via claude -p and reply through the transport
+    if (!config?.workspace) {
+      channelPush.enqueue({ content, meta: channelMeta });
+      return reply.send({ ok: true, queued: true });
+    }
+
+    const transportEntry = registry.resolveFromChatId(chat_id);
+    if (!transportEntry) {
+      channelPush.enqueue({ content, meta: channelMeta });
+      return reply.send({ ok: true, queued: true });
+    }
+
+    // Respond immediately, execute async
+    reply.send({ ok: true, queued: false, mode: 'executor' });
+
+    // Fire-and-forget: execute and reply through transport callback
+    const prompt = `[Message from ${sender} via ${transport}]\n${content}`;
+    const sessionId = chatIdToSessionId(chat_id);
+    executePrompt(prompt, config.workspace, config.max_turns ?? 5, sessionId)
+      .then(async (response) => {
+        try {
+          await fetch(`${transportEntry.callback_url}/callback/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id, text: response }),
+            signal: AbortSignal.timeout(10_000),
+          });
+        } catch (err) {
+          console.error(`Failed to deliver executor reply to ${transport}:`, err);
+        }
+      })
+      .catch((err) => {
+        console.error(`Executor failed for inbound from ${sender}:`, err);
+      });
   });
 
   app.post('/messages/reply', async (req, reply) => {

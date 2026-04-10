@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineProject({
   resolve: {
     alias: {
-      '#test-utils': resolve(__dirname, '../../../dev/test-utils'),
+      '#test-utils': resolve(__dirname, 'src/__tests__/utils'),
     },
   },
   test: {

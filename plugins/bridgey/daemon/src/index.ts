@@ -199,7 +199,7 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   // Transport + channel routes
   const transportRegistry = new TransportRegistry();
   const channelPush = new ChannelPush();
-  registerTransportRoutes(appInstance, transportRegistry, channelPush);
+  registerTransportRoutes(appInstance, transportRegistry, channelPush, config);
 
   // Start listening
   try {

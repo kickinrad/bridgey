@@ -7,13 +7,14 @@ export class TransportClient {
     this.daemonUrl = config.daemon_url
   }
 
-  async register(port: number): Promise<void> {
+  async register(port: number, callbackUrl?: string): Promise<void> {
+    const url = callbackUrl ?? `http://localhost:${port}`
     const res = await fetch(`${this.daemonUrl}/transports/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'discord',
-        callback_url: `http://localhost:${port}`,
+        callback_url: url,
         capabilities: ['reply', 'react'],
       }),
     })

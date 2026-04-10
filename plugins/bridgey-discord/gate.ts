@@ -54,8 +54,16 @@ export function gateSender(
   guildId: string | null,
   channelId: string | null,
   config: DiscordConfig,
+  isMentioned?: boolean,
 ): GateResult {
-  if (isAllowed(userId)) return 'allowed'
+  if (isAllowed(userId)) {
+    // In guilds, still enforce require_mention even for allowed senders
+    if (!isDM && guildId && channelId) {
+      const guild = config.guilds[guildId]
+      if (guild?.require_mention && !isMentioned) return 'denied'
+    }
+    return 'allowed'
+  }
 
   if (isDM) {
     switch (config.dm_policy) {
@@ -69,6 +77,7 @@ export function gateSender(
     const guild = config.guilds[guildId]
     if (!guild) return 'denied'
     if (!guild.channels.includes(channelId)) return 'denied'
+    if (guild.require_mention && !isMentioned) return 'denied'
     if (guild.allow_from.length > 0 && !guild.allow_from.includes(userId)) return 'denied'
     return 'allowed'
   }

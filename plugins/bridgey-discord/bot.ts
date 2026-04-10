@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { Client, GatewayIntentBits, type Message } from "discord.js";
+import { Client, GatewayIntentBits, Partials, type Message } from "discord.js";
 import { loadConfig } from "./config.js";
 import { TransportClient } from "./transport.js";
 import { gateSender, addSender } from "./gate.js";
@@ -20,6 +20,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
   ],
+  partials: [Partials.Channel],
 });
 
 // --- Message chunking for Discord's 2000 char limit ---
@@ -77,9 +78,52 @@ const callbackServer = createServer(async (req, res) => {
   }
 });
 
-callbackServer.listen(config.port, "127.0.0.1", () => {
-  console.error(`Callback API listening on http://127.0.0.1:${config.port}`);
+callbackServer.listen(config.port, config.callback_host, () => {
+  console.error(`Callback API listening on http://${config.callback_host}:${config.port}`);
 });
+
+// --- Mention resolution for outbound messages ---
+
+/**
+ * Resolve @Name patterns in outbound text to Discord <@userId> mention syntax.
+ * Uses guild.members.search() (HTTP API, no privileged intent needed).
+ * Only applies to guild channels, not DMs.
+ */
+async function resolveMentions(text: string, channelId: string): Promise<string> {
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !('guild' in channel)) return text;
+
+    const guild = (channel as { guild: import("discord.js").Guild }).guild;
+
+    // Collect unique @Name tokens to resolve
+    const mentions = new Set<string>();
+    text.replace(/@(\w+)/g, (_, name) => { mentions.add(name); return _; });
+    if (mentions.size === 0) return text;
+
+    // Resolve each name via search (HTTP API, works without GuildMembers intent)
+    const resolved = new Map<string, string>(); // lowercase name → <@id>
+    for (const name of mentions) {
+      try {
+        const results = await guild.members.search({ query: name, limit: 5 });
+        const match = results.find(
+          (m) =>
+            m.displayName.toLowerCase() === name.toLowerCase() ||
+            m.user.username.toLowerCase() === name.toLowerCase(),
+        );
+        if (match) resolved.set(name.toLowerCase(), `<@${match.id}>`);
+      } catch { /* skip unresolvable names */ }
+    }
+
+    if (resolved.size === 0) return text;
+
+    return text.replace(/@(\w+)/g, (match, name) => {
+      return resolved.get(name.toLowerCase()) ?? match;
+    });
+  } catch {
+    return text; // fail open — send unresolved text rather than dropping the message
+  }
+}
 
 // --- Outbound handlers ---
 
@@ -89,10 +133,16 @@ async function handleOutboundReply(body: {
   reply_to?: string;
   files?: string[];
 }) {
-  const { chat_id, text, reply_to } = body;
+  const { chat_id, reply_to } = body;
+  let { text } = body;
   const parts = chat_id.split(":");
   const type = parts[1]; // "dm" or "ch"
   const id = parts[2];
+
+  // Resolve @Name → <@userId> for guild channels
+  if (type === "ch") {
+    text = await resolveMentions(text, id);
+  }
 
   try {
     const channel =
@@ -194,20 +244,31 @@ async function handlePairingApproved(body: { user_id: string }) {
 // --- Inbound message handling ---
 
 client.on("messageCreate", async (msg: Message) => {
-  if (msg.author.bot) return;
-
   const isDM = !msg.guild;
+  const isMentioned = !isDM && !!client.user && msg.mentions.has(client.user.id);
+
+  console.error(`[msg] from=${msg.author.username} bot=${msg.author.bot} isDM=${isDM} mentioned=${isMentioned} content="${msg.content.slice(0, 50)}"`);
+
+  // In DMs: ignore bots (unchanged). In guilds: only process if bot is @mentioned.
+  if (msg.author.bot && isDM) return;
+  if (msg.author.bot && !isMentioned) return;
+  // Also ignore our own messages to prevent loops
+  if (msg.author.id === client.user?.id) return;
+
   const guildId = msg.guild?.id ?? null;
   const channelId = msg.channelId;
 
-  // Sender gating
+  // Sender gating (now with mention awareness)
   const gateResult = gateSender(
     msg.author.id,
     isDM,
     guildId,
     channelId,
     config,
+    isMentioned,
   );
+
+  console.error(`[gate] user=${msg.author.id} guild=${guildId} channel=${channelId} mentioned=${isMentioned} result=${gateResult}`);
 
   if (gateResult === "denied") return; // silent drop
 
@@ -231,6 +292,12 @@ client.on("messageCreate", async (msg: Message) => {
     ? `discord:dm:${msg.author.id}`
     : `discord:ch:${channelId}`;
 
+  // Strip the @mention prefix so the persona gets clean text
+  let content = msg.content;
+  if (isMentioned && client.user) {
+    content = content.replace(new RegExp(`<@!?${client.user.id}>\\s*`), "").trim();
+  }
+
   const meta: Record<string, string> = {
     message_id: msg.id,
     ts: msg.createdAt.toISOString(),
@@ -240,6 +307,8 @@ client.on("messageCreate", async (msg: Message) => {
     meta.guild_id = msg.guild.id;
     meta.channel = 'name' in msg.channel ? (msg.channel as { name: string }).name : channelId;
   }
+  if (isMentioned) meta.mentioned = "true";
+  if (msg.author.bot) meta.from_bot = "true";
 
   const attachments = msg.attachments.map((a) => ({
     id: a.id,
@@ -253,7 +322,7 @@ client.on("messageCreate", async (msg: Message) => {
     await transport.sendInbound({
       chat_id: chatId,
       sender: msg.author.username,
-      content: msg.content,
+      content,
       meta,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
@@ -267,7 +336,7 @@ client.on("messageCreate", async (msg: Message) => {
 client.once("ready", async () => {
   console.error(`Discord bot connected as ${client.user?.tag}`);
   try {
-    await transport.register(config.port);
+    await transport.register(config.port, config.callback_url);
     console.error(
       `Registered as transport with daemon at ${config.daemon_url}`,
     );

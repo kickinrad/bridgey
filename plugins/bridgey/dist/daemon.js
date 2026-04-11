@@ -27895,45 +27895,46 @@ var require_safe_regex2 = __commonJS({
   "daemon/node_modules/safe-regex2/index.js"(exports, module) {
     "use strict";
     var parse3 = require_dist3();
-    var types = parse3.types;
-    function safeRegex(re, opts) {
-      if (!opts) opts = {};
-      const replimit = opts.limit === void 0 ? 25 : opts.limit;
+    var { types } = require_dist3();
+    function walk(node, opts, starHeight) {
+      let i;
+      let ok;
+      let len;
+      if (node.type === types.REPETITION) {
+        starHeight++;
+        opts.reps++;
+        if (starHeight > 1) return false;
+        if (opts.reps > opts.limit) return false;
+      }
+      if (node.options) {
+        for (i = 0, len = node.options.length; i < len; i++) {
+          ok = walk({ stack: node.options[i] }, opts, starHeight);
+          if (!ok) return false;
+        }
+      }
+      const stack = node.stack || node.value?.stack;
+      if (!stack) return true;
+      for (i = 0, len = stack.length; i < len; i++) {
+        ok = walk(stack[i], opts, starHeight);
+        if (!ok) return false;
+      }
+      return true;
+    }
+    function safeRegex(re, options) {
+      const opts = {
+        reps: 0,
+        limit: options?.limit ?? 25
+      };
       if (isRegExp(re)) re = re.source;
       else if (typeof re !== "string") re = String(re);
       try {
-        re = parse3(re);
+        return walk(parse3(re), opts, 0);
       } catch {
         return false;
       }
-      let reps = 0;
-      return (function walk(node, starHeight) {
-        let i;
-        let ok;
-        let len;
-        if (node.type === types.REPETITION) {
-          starHeight++;
-          reps++;
-          if (starHeight > 1) return false;
-          if (reps > replimit) return false;
-        }
-        if (node.options) {
-          for (i = 0, len = node.options.length; i < len; i++) {
-            ok = walk({ stack: node.options[i] }, starHeight);
-            if (!ok) return false;
-          }
-        }
-        const stack = node.stack || node.value?.stack;
-        if (!stack) return true;
-        for (i = 0; i < stack.length; i++) {
-          ok = walk(stack[i], starHeight);
-          if (!ok) return false;
-        }
-        return true;
-      })(re, 0);
     }
     function isRegExp(x) {
-      return {}.toString.call(x) === "[object RegExp]";
+      return Object.prototype.toString.call(x) === "[object RegExp]";
     }
     module.exports = safeRegex;
     module.exports.default = safeRegex;
@@ -48952,7 +48953,7 @@ function a2aRoutes(fastify, config2, store) {
 var TransportRegisterSchema = external_exports.object({
   name: external_exports.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
   callback_url: external_exports.string().url(),
-  capabilities: external_exports.array(external_exports.enum(["reply", "react", "edit"]))
+  capabilities: external_exports.array(external_exports.enum(["reply", "react", "edit", "edit_message", "fetch_messages", "download_attachment", "permission"]))
 });
 var TransportUnregisterSchema = external_exports.object({
   name: external_exports.string().min(1)
@@ -48988,6 +48989,29 @@ var OutboundReactSchema = external_exports.object({
 });
 var ChannelRegisterSchema = external_exports.object({
   push_url: external_exports.string().url()
+});
+var OutboundEditSchema = external_exports.object({
+  chat_id: external_exports.string().min(1),
+  message_id: external_exports.string().min(1),
+  text: external_exports.string().min(1)
+});
+var FetchMessagesSchema = external_exports.object({
+  chat_id: external_exports.string().min(1),
+  limit: external_exports.number().min(1).max(100).default(20)
+});
+var DownloadAttachmentSchema = external_exports.object({
+  chat_id: external_exports.string().min(1),
+  message_id: external_exports.string().min(1)
+});
+var PermissionRequestSchema = external_exports.object({
+  request_id: external_exports.string().min(1),
+  tool_name: external_exports.string().min(1),
+  description: external_exports.string(),
+  input_preview: external_exports.string()
+});
+var PermissionResponseSchema = external_exports.object({
+  request_id: external_exports.string().regex(/^[a-km-z]{5}$/),
+  behavior: external_exports.enum(["allow", "deny"])
 });
 function parseTransportFromChatId(chatId) {
   const colonIndex = chatId.indexOf(":");
@@ -49148,6 +49172,47 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
     channelPush.unregister();
     return reply.send({ ok: true });
   });
+  app.post("/channel/permission-request", async (req, reply) => {
+    const parsed = PermissionRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { request_id, tool_name, description, input_preview } = parsed.data;
+    const transports = registry2.list().filter(
+      (t) => t.healthy && t.capabilities.includes("permission")
+    );
+    if (transports.length === 0) {
+      return reply.code(404).send({ error: "No transports with permission capability registered" });
+    }
+    const results = await Promise.allSettled(
+      transports.map(
+        (t) => fetch(`${t.callback_url}/callback/permission-request`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ request_id, tool_name, description, input_preview }),
+          signal: AbortSignal.timeout(1e4)
+        })
+      )
+    );
+    const delivered = results.filter((r) => r.status === "fulfilled").length;
+    return reply.send({ ok: true, delivered, total: transports.length });
+  });
+  app.post("/messages/permission-response", async (req, reply) => {
+    const parsed = PermissionResponseSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { request_id, behavior } = parsed.data;
+    const pushed = await channelPush.push({
+      content: `[Permission ${behavior}: ${request_id}]`,
+      meta: {
+        permission_response: "true",
+        request_id,
+        behavior
+      }
+    });
+    return reply.send({ ok: true, delivered: pushed });
+  });
   app.post("/pairing/approve", async (req, reply) => {
     const schema = external_exports.object({
       chat_id: external_exports.string().min(1),
@@ -49246,7 +49311,8 @@ ${content}`;
       if (!res.ok) {
         return reply.code(502).send({ error: `Transport returned ${res.status}` });
       }
-      return reply.send({ ok: true, delivered: true });
+      const data = await res.json();
+      return reply.send({ ok: true, delivered: true, ...data });
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : "Failed to deliver reply"
@@ -49283,6 +49349,107 @@ ${content}`;
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : "Failed to deliver reaction"
+      });
+    }
+  });
+  app.post("/messages/edit", async (req, reply) => {
+    const parsed = OutboundEditSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { chat_id, message_id, text } = parsed.data;
+    const transport = registry2.resolveFromChatId(chat_id);
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+    if (!transport.capabilities.includes("edit_message")) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support message editing` });
+    }
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, message_id, text }),
+        signal: AbortSignal.timeout(1e4)
+      });
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+      return reply.send({ ok: true, delivered: true });
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "Failed to deliver edit"
+      });
+    }
+  });
+  app.post("/messages/fetch", async (req, reply) => {
+    const parsed = FetchMessagesSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { chat_id, limit } = parsed.data;
+    const transport = registry2.resolveFromChatId(chat_id);
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+    if (!transport.capabilities.includes("fetch_messages")) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support fetching messages` });
+    }
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/fetch-messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, limit }),
+        signal: AbortSignal.timeout(1e4)
+      });
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+      const data = await res.json();
+      return reply.send(data);
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "Failed to fetch messages"
+      });
+    }
+  });
+  app.post("/messages/download-attachment", async (req, reply) => {
+    const parsed = DownloadAttachmentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    const { chat_id, message_id } = parsed.data;
+    const transport = registry2.resolveFromChatId(chat_id);
+    if (!transport) {
+      return reply.code(404).send({ error: `No transport found for chat_id "${chat_id}"` });
+    }
+    if (!transport.capabilities.includes("download_attachment")) {
+      return reply.code(400).send({ error: `Transport "${transport.name}" does not support attachment downloads` });
+    }
+    if (!transport.healthy) {
+      return reply.code(503).send({ error: `Transport "${transport.name}" is unhealthy` });
+    }
+    try {
+      const res = await fetch(`${transport.callback_url}/callback/download-attachment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, message_id }),
+        signal: AbortSignal.timeout(3e4)
+      });
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Transport returned ${res.status}` });
+      }
+      const data = await res.json();
+      return reply.send(data);
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "Failed to download attachment"
       });
     }
   });

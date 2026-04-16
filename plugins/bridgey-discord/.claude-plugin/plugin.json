@@ -1,7 +1,7 @@
 {
   "name": "bridgey-discord",
   "description": "Discord transport adapter for bridgey — bridges Discord messages to the bridgey A2A mesh",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": { "name": "Wils", "email": "wils@bestfootforward.business" },
   "repository": "https://github.com/kickinrad/bridgey",
   "license": "MIT",

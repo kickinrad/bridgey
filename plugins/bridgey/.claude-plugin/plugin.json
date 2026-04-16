@@ -1,6 +1,6 @@
 {
   "name": "bridgey",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Inter-agent communication via A2A protocol with Tailscale mesh discovery. Each Claude Code instance becomes both an A2A client and server.",
   "author": {
     "name": "Wils",

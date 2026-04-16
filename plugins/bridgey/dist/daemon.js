@@ -3309,7 +3309,7 @@ var require_validation = __commonJS({
     }
     function getEssenceMediaType(header) {
       if (!header) return "";
-      return header.split(/[ ;]/, 1)[0].trim().toLowerCase();
+      return header.trimStart().split(/[ ;]/, 1)[0].trim().toLowerCase();
     }
     module.exports = {
       symbols: { bodySchema, querystringSchema, responseSchema, paramsSchema, headersSchema },
@@ -10748,20 +10748,14 @@ var require_request = __commonJS({
       }
       if (typeof tp === "number") {
         return function(a, i) {
-          return a != null && i < tp;
+          return i < tp;
         };
       }
       if (typeof tp === "string") {
         const values = tp.split(",").map((it) => it.trim());
-        const trust2 = proxyAddr.compile(values);
-        return function(a, i) {
-          return a != null && trust2(a, i);
-        };
+        return proxyAddr.compile(values);
       }
-      const trust = proxyAddr.compile(tp);
-      return function(a, i) {
-        return a != null && trust(a, i);
-      };
+      return proxyAddr.compile(tp);
     }
     function buildRequest(R, trustProxy) {
       if (trustProxy) {
@@ -10813,7 +10807,8 @@ var require_request = __commonJS({
         },
         host: {
           get() {
-            if (this.headers["x-forwarded-host"] && proxyFn(this.raw.socket?.remoteAddress, 0)) {
+            const socketAddr = this.raw.socket?.remoteAddress;
+            if (this.headers["x-forwarded-host"] && socketAddr !== null && proxyFn(socketAddr, 0)) {
               return getLastEntryInMultiHeaderValue(this.headers["x-forwarded-host"]);
             }
             return this.headers.host ?? this.headers[":authority"] ?? "";
@@ -10821,7 +10816,8 @@ var require_request = __commonJS({
         },
         protocol: {
           get() {
-            if (this.headers["x-forwarded-proto"] && proxyFn(this.raw.socket?.remoteAddress, 0)) {
+            const socketAddr = this.raw.socket?.remoteAddress;
+            if (this.headers["x-forwarded-proto"] && socketAddr !== null && proxyFn(socketAddr, 0)) {
               return getLastEntryInMultiHeaderValue(this.headers["x-forwarded-proto"]);
             }
             if (this.socket) {
@@ -10930,16 +10926,13 @@ var require_request = __commonJS({
       },
       port: {
         get() {
-          const portFromHost = parseInt(this.host.split(":").slice(-1)[0]);
-          if (!isNaN(portFromHost)) {
-            return portFromHost;
-          }
+          const portReg = /(?<port>:\d+)$/;
           const host = this.headers.host ?? this.headers[":authority"] ?? "";
-          const portFromHeader = parseInt(host.split(":").slice(-1)[0]);
-          if (!isNaN(portFromHeader)) {
-            return portFromHeader;
+          const matches = portReg.exec(host);
+          if (matches === null || matches[1] === void 0) {
+            return null;
           }
-          return null;
+          return parseInt(matches.groups.port.slice(1), 10);
         }
       },
       protocol: {
@@ -33412,7 +33405,7 @@ var require_light_my_request = __commonJS({
 var require_fastify = __commonJS({
   "daemon/node_modules/fastify/fastify.js"(exports, module) {
     "use strict";
-    var VERSION = "5.8.4";
+    var VERSION = "5.8.5";
     var Avvio = require_boot();
     var http = __require("node:http");
     var diagnostics = __require("node:diagnostics_channel");
@@ -48630,6 +48623,7 @@ var RateLimiter = class {
     this.config = config2;
     this.cleanupTimer = setInterval(() => this.cleanup(), config2.windowMs).unref();
   }
+  config;
   map = /* @__PURE__ */ new Map();
   cleanupTimer;
   /** Returns true if the request is allowed, false if rate-limited. */

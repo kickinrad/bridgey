@@ -12,10 +12,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.0",
-    "msw": "2.12.11",
+    "@vitest/coverage-v8": "^4.1.4",
+    "msw": "^2.13.3",
     "tsx": "4.21.0",
-    "vitest": "4.1.0",
+    "vitest": "^4.1.4",
     "zod": "4.3.6"
   }
 }

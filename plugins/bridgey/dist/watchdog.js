@@ -31,9 +31,10 @@ function shouldRestart(exitCode, restartCount, maxRestarts) {
   if (restartCount >= maxRestarts) return false;
   return true;
 }
+var DAEMON_SCRIPT_FILENAME = "daemon.js";
 function startWatchdog(args) {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const daemonScript = join(__dirname, "index.js");
+  const daemonScript = join(__dirname, DAEMON_SCRIPT_FILENAME);
   let restartCount = 0;
   function spawnDaemon() {
     const childArgs = ["start", "--config", args.config];
@@ -76,6 +77,7 @@ if (scriptPath.endsWith("watchdog.js") || scriptPath.endsWith("watchdog.ts")) {
   startWatchdog(args);
 }
 export {
+  DAEMON_SCRIPT_FILENAME,
   buildWatchdogArgs,
   shouldRestart,
   startWatchdog

@@ -22,8 +22,9 @@ export function getLocalIP(): string {
  * Returns null if no CLAUDE.md found.
  */
 export function enrichFromClaudeMd(
-  workspacePath: string,
+  workspacePath: string | undefined | null,
 ): { title: string | null; description: string } | null {
+  if (!workspacePath) return null;
   const claudeMdPath = join(workspacePath, 'CLAUDE.md');
   if (!existsSync(claudeMdPath)) return null;
 

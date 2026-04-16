@@ -34436,6 +34436,7 @@ function getLocalIP() {
   return "127.0.0.1";
 }
 function enrichFromClaudeMd(workspacePath) {
+  if (!workspacePath) return null;
   const claudeMdPath = join3(workspacePath, "CLAUDE.md");
   if (!existsSync2(claudeMdPath)) return null;
   try {

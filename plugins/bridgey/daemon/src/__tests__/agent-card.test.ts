@@ -54,4 +54,19 @@ describe('enrichFromClaudeMd', () => {
     expect(result!.title).toBeNull();
     expect(result!.description).toContain('Just some text');
   });
+
+  it('returns null when workspace path is undefined', () => {
+    expect(enrichFromClaudeMd(undefined)).toBeNull();
+    expect(enrichFromClaudeMd(null)).toBeNull();
+    expect(enrichFromClaudeMd('')).toBeNull();
+  });
+});
+
+describe('generateAgentCard with missing workspace', () => {
+  it('does not throw when config.workspace is undefined', () => {
+    const config = { ...testConfig, workspace: undefined as unknown as string };
+    expect(() => generateAgentCard(config)).not.toThrow();
+    const card = generateAgentCard(config);
+    expect(card.name).toBe('test-bot');
+  });
 });

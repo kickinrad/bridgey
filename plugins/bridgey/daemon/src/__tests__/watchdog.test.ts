@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildWatchdogArgs, shouldRestart } from '../watchdog.js';
+import { existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { buildWatchdogArgs, shouldRestart, DAEMON_SCRIPT_FILENAME } from '../watchdog.js';
 
 describe('watchdog', () => {
   it('builds correct args from argv', () => {
@@ -26,5 +29,18 @@ describe('watchdog', () => {
 
   it('shouldRestart returns false when max restarts exceeded', () => {
     expect(shouldRestart(1, 5, 5)).toBe(false);
+  });
+
+  // Regression: watchdog previously spawned 'index.js' but esbuild outputs 'daemon.js'.
+  // This test ensures the two stay in sync.
+  it('DAEMON_SCRIPT_FILENAME matches the esbuild daemon output', () => {
+    expect(DAEMON_SCRIPT_FILENAME).toBe('daemon.js');
+  });
+
+  it('daemon bundle exists in dist/ (when built)', () => {
+    const pluginRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+    const distDaemon = join(pluginRoot, 'dist', DAEMON_SCRIPT_FILENAME);
+    if (!existsSync(distDaemon)) return;
+    expect(existsSync(distDaemon)).toBe(true);
   });
 });

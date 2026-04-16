@@ -55,9 +55,14 @@ export function shouldRestart(
 
 // ── Watchdog loop ────────────────────────────────────────────────────
 
+// Must match the esbuild output filename in esbuild.config.ts.
+// Watchdog and daemon are bundled as siblings into dist/ — this constant
+// keeps the spawn target in sync with the build output.
+export const DAEMON_SCRIPT_FILENAME = 'daemon.js';
+
 export function startWatchdog(args: WatchdogArgs): void {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const daemonScript = join(__dirname, 'index.js');
+  const daemonScript = join(__dirname, DAEMON_SCRIPT_FILENAME);
   let restartCount = 0;
 
   function spawnDaemon(): void {

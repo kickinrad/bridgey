@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
 import { hostname } from 'os';
 import type { AgentConfig } from './types.js';
 
@@ -94,12 +94,18 @@ export function resolveToken(token: string | undefined): string | undefined {
 }
 
 /**
- * Resolve the agent name for orchestrator mode.
- * Priority: env override > config name > context-based default.
+ * Resolve the per-session agent name.
+ *
+ * Each attached CC session gets a unique auto-derived identity so multiple
+ * sessions on one host can register with the daemon as distinct A2A endpoints.
+ * `config.name` is intentionally NOT used — that field is the host identity
+ * (for mesh/tailnet discovery), not an addressable agent.
+ *
+ * Priority: BRIDGEY_AGENT_NAME env override > `${basename(cwd)}-${pid}`.
  */
-export function resolveAgentName(config: BridgeyConfigFile | null): string {
+export function resolveAgentName(_config: BridgeyConfigFile | null): string {
   if (process.env.BRIDGEY_AGENT_NAME) return process.env.BRIDGEY_AGENT_NAME;
-  if (config?.name) return config.name;
-  if (process.env.CLAUDE_PLUGIN_ROOT) return 'claude-code';
-  return 'claude-desktop';
+  const rawBase = basename(process.cwd() || '.').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeBase = rawBase && /^[a-zA-Z]/.test(rawBase) ? rawBase : `cc-${rawBase || 'session'}`;
+  return `${safeBase}-${process.pid}`;
 }

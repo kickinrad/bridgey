@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import path from 'node:path';
 import { resolveAgentName, resolveToken } from '../config.js';
 
 describe('resolveAgentName', () => {
@@ -13,20 +14,20 @@ describe('resolveAgentName', () => {
     expect(result).toBe('claude-ai');
   });
 
-  it('falls back to config name when env not set', () => {
-    const result = resolveAgentName({ name: 'my-agent', agents: [] });
-    expect(result).toBe('my-agent');
+  it('auto-derives from cwd basename + pid when env not set', () => {
+    const result = resolveAgentName({ name: 'config-host', agents: [] });
+    const expected = `${path.basename(process.cwd())}-${process.pid}`;
+    expect(result).toBe(expected);
   });
 
-  it('falls back to claude-code when CLAUDE_PLUGIN_ROOT is set', () => {
-    process.env.CLAUDE_PLUGIN_ROOT = '/some/path';
-    const result = resolveAgentName({ agents: [] });
-    expect(result).toBe('claude-code');
+  it('ignores config.name for agent identity (host field is separate concept)', () => {
+    const result = resolveAgentName({ name: 'Luna', agents: [] });
+    expect(result).not.toBe('Luna');
   });
 
-  it('defaults to claude-desktop when nothing else matches', () => {
+  it('produces a valid identifier shape: [letter][alnum/_/-]*-<pid>', () => {
     const result = resolveAgentName(null);
-    expect(result).toBe('claude-desktop');
+    expect(result).toMatch(/^[a-zA-Z][a-zA-Z0-9_-]*-\d+$/);
   });
 
   it('env var takes priority over everything', () => {

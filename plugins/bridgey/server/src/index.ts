@@ -125,6 +125,7 @@ async function createClient(): Promise<BridgeyClient> {
 ensureConfig();
 const client = await createClient();
 const serverMode: ServerMode = client instanceof DaemonClient ? 'daemon' : 'orchestrator';
+const agentName = resolveAgentName(loadConfig());
 let listener: ChannelListenerHandle | null = null;
 
 // ---------------------------------------------------------------------------
@@ -169,7 +170,7 @@ if (client instanceof DaemonClient) {
       },
     });
 
-    await client.registerChannel(`http://127.0.0.1:${listener.port}`);
+    await client.registerChannel(agentName, `http://127.0.0.1:${listener.port}`);
   } catch {
     // Channel push won't work, but tools still function
   }
@@ -224,7 +225,7 @@ async function handlePairingElicitation(
 process.on('beforeExit', () => {
   if (listener) listener.close();
   if (client instanceof DaemonClient) {
-    client.unregisterChannel().catch(() => {});
+    client.unregisterChannel(agentName).catch(() => {});
   }
 });
 

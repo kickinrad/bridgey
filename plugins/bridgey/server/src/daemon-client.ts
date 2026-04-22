@@ -80,20 +80,30 @@ export class DaemonClient implements BridgeyClient {
   // Channel / transport methods (used by channel server)
   // -----------------------------------------------------------------------
 
-  async registerChannel(pushUrl: string): Promise<void> {
+  async registerChannel(agentName: string, pushUrl: string): Promise<void> {
     await fetch(`${this.baseUrl}/channel/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ push_url: pushUrl }),
+      body: JSON.stringify({ agent_name: agentName, push_url: pushUrl }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
   }
 
-  async unregisterChannel(): Promise<void> {
+  async unregisterChannel(agentName: string): Promise<void> {
     await fetch(`${this.baseUrl}/channel/unregister`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent_name: agentName }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     }).catch(() => {});
+  }
+
+  async listChannelSessions(): Promise<Array<{ agentName: string; pushUrl: string; registeredAt: string }>> {
+    const res = await fetch(`${this.baseUrl}/channel/sessions`, {
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    const body = (await res.json()) as { sessions: Array<{ agentName: string; pushUrl: string; registeredAt: string }> };
+    return body.sessions ?? [];
   }
 
   async reply(chatId: string, text: string, replyTo?: string, files?: string[]): Promise<{ ok: boolean; message_ids?: string[] }> {

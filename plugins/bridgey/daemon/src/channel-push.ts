@@ -5,24 +5,54 @@ export interface ChannelMessage {
   meta: Record<string, string>
 }
 
+export interface ChannelEntry {
+  agentName: string
+  pushUrl: string
+  registeredAt: string
+}
+
+/**
+ * Per-agent channel registry.
+ *
+ * Each attached CC session registers under its own auto-derived agent name.
+ * Multiple sessions on one host are supported — `register()` adds; `unregister()`
+ * removes; targeting APIs take an optional agent name (default = first entry).
+ *
+ * Queuing is a single shared fallback: messages sent with no connected target
+ * accumulate (capped at MAX_QUEUE_SIZE) and drain to whichever session connects
+ * next. Per-agent queuing is intentionally not implemented yet.
+ */
 export class ChannelPush {
-  private pushUrl: string | null = null
+  private entries = new Map<string, ChannelEntry>()
   private queue: ChannelMessage[] = []
 
-  register(pushUrl: string): void {
-    this.pushUrl = pushUrl
+  register(agentName: string, pushUrl: string): void {
+    this.entries.set(agentName, {
+      agentName,
+      pushUrl,
+      registeredAt: new Date().toISOString(),
+    })
   }
 
-  unregister(): void {
-    this.pushUrl = null
+  unregister(agentName: string): void {
+    this.entries.delete(agentName)
   }
 
-  isConnected(): boolean {
-    return this.pushUrl !== null
+  isConnected(agentName?: string): boolean {
+    if (agentName === undefined) return this.entries.size > 0
+    return this.entries.has(agentName)
   }
 
-  getPushUrl(): string | null {
-    return this.pushUrl
+  get(agentName: string): ChannelEntry | undefined {
+    return this.entries.get(agentName)
+  }
+
+  defaultTarget(): ChannelEntry | undefined {
+    return this.entries.values().next().value
+  }
+
+  list(): ChannelEntry[] {
+    return Array.from(this.entries.values())
   }
 
   enqueue(message: ChannelMessage): void {
@@ -42,13 +72,14 @@ export class ChannelPush {
     return messages
   }
 
-  async push(message: ChannelMessage): Promise<boolean> {
-    if (!this.pushUrl) {
+  async push(message: ChannelMessage, agentName?: string): Promise<boolean> {
+    const target = agentName !== undefined ? this.entries.get(agentName) : this.defaultTarget()
+    if (!target) {
       this.enqueue(message)
       return false
     }
     try {
-      const res = await fetch(this.pushUrl, {
+      const res = await fetch(target.pushUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(message),
@@ -66,11 +97,12 @@ export class ChannelPush {
   }
 
   async pushPending(): Promise<number> {
-    if (!this.pushUrl || this.queue.length === 0) return 0
+    const target = this.defaultTarget()
+    if (!target || this.queue.length === 0) return 0
     const messages = this.drain()
     let pushed = 0
     for (const msg of messages) {
-      const ok = await this.push(msg)
+      const ok = await this.push(msg, target.agentName)
       if (ok) pushed++
     }
     return pushed

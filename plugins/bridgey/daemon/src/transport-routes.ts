@@ -8,6 +8,7 @@ import {
   TransportRegisterSchema,
   TransportUnregisterSchema,
   ChannelRegisterSchema,
+  ChannelUnregisterSchema,
   InboundMessageSchema,
   OutboundReplySchema,
   OutboundReactSchema,
@@ -59,14 +60,22 @@ export function registerTransportRoutes(
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
     }
-    channelPush.register(parsed.data.push_url);
-    const pushed = await channelPush.pushPending();
+    channelPush.register(parsed.data.agent_name, parsed.data.push_url);
+    await channelPush.pushPending();
     return reply.send({ ok: true, pending_count: channelPush.pendingCount() });
   });
 
-  app.post('/channel/unregister', async (_req, reply) => {
-    channelPush.unregister();
+  app.post('/channel/unregister', async (req, reply) => {
+    const parsed = ChannelUnregisterSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    channelPush.unregister(parsed.data.agent_name);
     return reply.send({ ok: true });
+  });
+
+  app.get('/channel/sessions', async (_req, reply) => {
+    return reply.send({ sessions: channelPush.list() });
   });
 
   // ── Permission Relay ────────────────────────────────────────────────

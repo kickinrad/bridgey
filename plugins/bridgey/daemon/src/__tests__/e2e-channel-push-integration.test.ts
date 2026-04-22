@@ -56,7 +56,7 @@ describe('e2e: channel push integration', () => {
     const regRes = await app.inject({
       method: 'POST',
       url: '/channel/register',
-      payload: { push_url: capture.url },
+      payload: { agent_name: 'test-session', push_url: capture.url },
     });
     expect(regRes.statusCode).toBe(200);
 
@@ -110,7 +110,11 @@ describe('e2e: channel push integration', () => {
 
   it('queues messages when no channel is registered', async () => {
     // Unregister channel first
-    await app.inject({ method: 'POST', url: '/channel/unregister' });
+    await app.inject({
+      method: 'POST',
+      url: '/channel/unregister',
+      payload: { agent_name: 'test-session' },
+    });
     expect(channelPush.isConnected()).toBe(false);
 
     // Send 3 messages — should queue
@@ -141,7 +145,7 @@ describe('e2e: channel push integration', () => {
     const regRes = await app.inject({
       method: 'POST',
       url: '/channel/register',
-      payload: { push_url: capture.url },
+      payload: { agent_name: 'test-session', push_url: capture.url },
     });
     expect(regRes.statusCode).toBe(200);
 
@@ -155,7 +159,11 @@ describe('e2e: channel push integration', () => {
 
   it('caps queue at 100 messages', async () => {
     // Unregister channel
-    await app.inject({ method: 'POST', url: '/channel/unregister' });
+    await app.inject({
+      method: 'POST',
+      url: '/channel/unregister',
+      payload: { agent_name: 'test-session' },
+    });
 
     // Send 110 messages
     for (let i = 0; i < 110; i++) {
@@ -179,7 +187,7 @@ describe('e2e: channel push integration', () => {
     await app.inject({
       method: 'POST',
       url: '/channel/register',
-      payload: { push_url: capture.url },
+      payload: { agent_name: 'test-session', push_url: capture.url },
     });
     await new Promise((r) => setTimeout(r, 1000));
   });

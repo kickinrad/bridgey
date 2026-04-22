@@ -66,7 +66,14 @@ export type OutboundReact = z.infer<typeof OutboundReactSchema>;
 // --- Channel Server Registration ---
 
 export const ChannelRegisterSchema = z.object({
+  agent_name: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/, {
+    message: 'agent_name must start with a letter and contain only letters, digits, underscores, or hyphens',
+  }),
   push_url: z.string().url(),
+});
+
+export const ChannelUnregisterSchema = z.object({
+  agent_name: z.string().min(1),
 });
 
 // --- Outbound Edits (Channel Server → Daemon → Transport) ---

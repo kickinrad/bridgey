@@ -133,19 +133,19 @@ describe('transport-routes', () => {
   // ── Channel Server ─────────────────────────────────────────────────
 
   describe('POST /channel/register', () => {
-    it('registers a push URL', async () => {
+    it('registers a push URL under an agent name', async () => {
       const mock = await createMockTransport();
       try {
         const res = await app.inject({
           method: 'POST',
           url: '/channel/register',
-          payload: { push_url: `${mock.url}/push` },
+          payload: { agent_name: 'session-a', push_url: `${mock.url}/push` },
         });
         expect(res.statusCode).toBe(200);
         const body = res.json();
         expect(body.ok).toBe(true);
         expect(typeof body.pending_count).toBe('number');
-        expect(channelPush.isConnected()).toBe(true);
+        expect(channelPush.isConnected('session-a')).toBe(true);
       } finally {
         await mock.close();
       }
@@ -155,19 +155,57 @@ describe('transport-routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/channel/register',
-        payload: { push_url: 'not-a-url' },
+        payload: { agent_name: 'session-a', push_url: 'not-a-url' },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 400 when agent_name is missing', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/channel/register',
+        payload: { push_url: 'http://127.0.0.1:9000' },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 400 when agent_name is malformed', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/channel/register',
+        payload: { agent_name: '123-starts-with-digit', push_url: 'http://127.0.0.1:9000' },
       });
       expect(res.statusCode).toBe(400);
     });
   });
 
   describe('POST /channel/unregister', () => {
-    it('unregisters the channel', async () => {
-      channelPush.register('http://localhost:7777/push');
-      const res = await app.inject({ method: 'POST', url: '/channel/unregister' });
+    it('unregisters a named channel', async () => {
+      channelPush.register('session-a', 'http://localhost:7777/push');
+      const res = await app.inject({
+        method: 'POST',
+        url: '/channel/unregister',
+        payload: { agent_name: 'session-a' },
+      });
       expect(res.statusCode).toBe(200);
       expect(res.json()).toEqual({ ok: true });
-      expect(channelPush.isConnected()).toBe(false);
+      expect(channelPush.isConnected('session-a')).toBe(false);
+    });
+
+    it('returns 400 when agent_name missing', async () => {
+      const res = await app.inject({ method: 'POST', url: '/channel/unregister', payload: {} });
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe('GET /channel/sessions', () => {
+    it('lists all attached session agents', async () => {
+      channelPush.register('session-a', 'http://127.0.0.1:7001');
+      channelPush.register('session-b', 'http://127.0.0.1:7002');
+      const res = await app.inject({ method: 'GET', url: '/channel/sessions' });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { sessions: Array<{ agentName: string }> };
+      expect(body.sessions.map((s) => s.agentName).sort()).toEqual(['session-a', 'session-b']);
     });
   });
 

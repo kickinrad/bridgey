@@ -371,13 +371,31 @@ async function handleStatus(
     const h = await client.health();
     healthOk = true;
     const uptime = formatUptime(h.uptime);
-    sections.push(`Daemon: ${h.status}`, `  Name:   ${h.name}`, `  Uptime: ${uptime}`);
+    sections.push(`Daemon: ${h.status}`, `  Host:   ${h.name}`, `  Uptime: ${uptime}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     sections.push(`Daemon: UNREACHABLE`, `  ${msg}`);
   }
 
-  // Agent summary
+  // Attached session agents (local CC sessions connected via channel server)
+  if (healthOk && client instanceof DaemonClient) {
+    try {
+      const sessions = await client.listChannelSessions();
+      sections.push('');
+      if (sessions.length === 0) {
+        sections.push('Sessions: 0 attached');
+      } else {
+        sections.push(`Sessions: ${sessions.length} attached`);
+        for (const s of sessions) {
+          sections.push(`  • ${s.agentName} → ${s.pushUrl}`);
+        }
+      }
+    } catch {
+      // sessions endpoint unavailable — skip silently
+    }
+  }
+
+  // Peer agent summary
   if (healthOk) {
     try {
       const agents = await client.listAgents();

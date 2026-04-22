@@ -10,7 +10,7 @@ import { ChannelPush } from './channel-push.js';
 import { registerTransportRoutes } from './transport-routes.js';
 import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
-import { register, unregister, isProcessAlive } from './registry.js';
+import { isProcessAlive } from './registry.js';
 import type { BridgeyConfig } from './types.js';
 
 const HOME = homedir();
@@ -212,15 +212,15 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   // Write pidfile
   writePid(pidfile);
 
-  // Register in local agent registry
-  const protocol = config.tls ? 'https' : 'http';
-  const agentUrl = `${protocol}://${bindAddr === '0.0.0.0' ? '127.0.0.1' : bindAddr}:${config.port}`;
-  register({ name: config.name, url: agentUrl, pid: process.pid });
+  // Note: the daemon is *not* an A2A agent — it's a router. Per-session agent
+  // identities are registered by each attached CC session via /channel/register.
+  // `config.name` is the host/mesh identity (surfaced in the A2A card and used
+  // by remote peers), not an addressable agent in the local registry.
 
   // Print startup info before redirecting to log
   console.log(JSON.stringify({
     status: 'started',
-    name: config.name,
+    host: config.name,
     pid: process.pid,
     address: `${bindAddr}:${config.port}`,
   }));
@@ -233,12 +233,11 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   // Redirect output to log file
   redirectToLog();
 
-  console.log(`[${new Date().toISOString()}] Bridgey daemon started: ${config.name} on ${bindAddr}:${config.port} (pid ${process.pid})`);
+  console.log(`[${new Date().toISOString()}] Bridgey daemon started on ${bindAddr}:${config.port} (host="${config.name}", pid ${process.pid})`);
 
   // Signal handlers for graceful shutdown
   const cleanup = async () => {
     console.log(`[${new Date().toISOString()}] Shutting down...`);
-    unregister(config.name);
     removePid(pidfile);
     await fastify.close();
     process.exit(0);

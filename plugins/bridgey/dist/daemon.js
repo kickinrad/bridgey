@@ -5333,13 +5333,13 @@ var require_on_exit_leak_free = __commonJS({
       registry2.register(obj, ref);
       refs[event].push(ref);
     }
-    function register2(obj, fn) {
+    function register(obj, fn) {
       _register("exit", obj, fn);
     }
     function registerBeforeExit(obj, fn) {
       _register("beforeExit", obj, fn);
     }
-    function unregister2(obj) {
+    function unregister(obj) {
       if (registry2 === void 0) {
         return;
       }
@@ -5353,9 +5353,9 @@ var require_on_exit_leak_free = __commonJS({
       }
     }
     module.exports = {
-      register: register2,
+      register,
       registerBeforeExit,
-      unregister: unregister2
+      unregister
     };
   }
 });
@@ -34776,18 +34776,6 @@ var REGISTRY_DIR2 = join4(homedir3(), ".bridgey", "agents");
 function ensureDir() {
   mkdirSync2(REGISTRY_DIR2, { recursive: true });
 }
-function register(agent) {
-  ensureDir();
-  const filePath = join4(REGISTRY_DIR2, `${agent.name}.json`);
-  writeFileSync2(filePath, JSON.stringify(agent, null, 2), "utf-8");
-}
-function unregister(name) {
-  const filePath = join4(REGISTRY_DIR2, `${name}.json`);
-  try {
-    unlinkSync(filePath);
-  } catch {
-  }
-}
 function isProcessAlive(pid) {
   try {
     process.kill(pid, 0);
@@ -48983,7 +48971,13 @@ var OutboundReactSchema = external_exports.object({
   emoji: external_exports.string().min(1)
 });
 var ChannelRegisterSchema = external_exports.object({
+  agent_name: external_exports.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/, {
+    message: "agent_name must start with a letter and contain only letters, digits, underscores, or hyphens"
+  }),
   push_url: external_exports.string().url()
+});
+var ChannelUnregisterSchema = external_exports.object({
+  agent_name: external_exports.string().min(1)
 });
 var OutboundEditSchema = external_exports.object({
   chat_id: external_exports.string().min(1),
@@ -49071,19 +49065,30 @@ var TransportRegistry = class {
 // daemon/src/channel-push.ts
 var MAX_QUEUE_SIZE = 100;
 var ChannelPush = class {
-  pushUrl = null;
+  entries = /* @__PURE__ */ new Map();
   queue = [];
-  register(pushUrl) {
-    this.pushUrl = pushUrl;
+  register(agentName, pushUrl) {
+    this.entries.set(agentName, {
+      agentName,
+      pushUrl,
+      registeredAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
   }
-  unregister() {
-    this.pushUrl = null;
+  unregister(agentName) {
+    this.entries.delete(agentName);
   }
-  isConnected() {
-    return this.pushUrl !== null;
+  isConnected(agentName) {
+    if (agentName === void 0) return this.entries.size > 0;
+    return this.entries.has(agentName);
   }
-  getPushUrl() {
-    return this.pushUrl;
+  get(agentName) {
+    return this.entries.get(agentName);
+  }
+  defaultTarget() {
+    return this.entries.values().next().value;
+  }
+  list() {
+    return Array.from(this.entries.values());
   }
   enqueue(message) {
     this.queue.push(message);
@@ -49099,13 +49104,14 @@ var ChannelPush = class {
     this.queue = [];
     return messages;
   }
-  async push(message) {
-    if (!this.pushUrl) {
+  async push(message, agentName) {
+    const target = agentName !== void 0 ? this.entries.get(agentName) : this.defaultTarget();
+    if (!target) {
       this.enqueue(message);
       return false;
     }
     try {
-      const res = await fetch(this.pushUrl, {
+      const res = await fetch(target.pushUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(message),
@@ -49122,11 +49128,12 @@ var ChannelPush = class {
     }
   }
   async pushPending() {
-    if (!this.pushUrl || this.queue.length === 0) return 0;
+    const target = this.defaultTarget();
+    if (!target || this.queue.length === 0) return 0;
     const messages = this.drain();
     let pushed = 0;
     for (const msg of messages) {
-      const ok = await this.push(msg);
+      const ok = await this.push(msg, target.agentName);
       if (ok) pushed++;
     }
     return pushed;
@@ -49159,13 +49166,20 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
     }
-    channelPush.register(parsed.data.push_url);
-    const pushed = await channelPush.pushPending();
+    channelPush.register(parsed.data.agent_name, parsed.data.push_url);
+    await channelPush.pushPending();
     return reply.send({ ok: true, pending_count: channelPush.pendingCount() });
   });
-  app.post("/channel/unregister", async (_req, reply) => {
-    channelPush.unregister();
+  app.post("/channel/unregister", async (req, reply) => {
+    const parsed = ChannelUnregisterSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.issues[0].message });
+    }
+    channelPush.unregister(parsed.data.agent_name);
     return reply.send({ ok: true });
+  });
+  app.get("/channel/sessions", async (_req, reply) => {
+    return reply.send({ sessions: channelPush.list() });
   });
   app.post("/channel/permission-request", async (req, reply) => {
     const parsed = PermissionRequestSchema.safeParse(req.body);
@@ -49593,12 +49607,9 @@ async function startDaemon(pidfile2, configPath2) {
     process.exit(1);
   }
   writePid(pidfile2);
-  const protocol = config2.tls ? "https" : "http";
-  const agentUrl = `${protocol}://${bindAddr === "0.0.0.0" ? "127.0.0.1" : bindAddr}:${config2.port}`;
-  register({ name: config2.name, url: agentUrl, pid: process.pid });
   console.log(JSON.stringify({
     status: "started",
-    name: config2.name,
+    host: config2.name,
     pid: process.pid,
     address: `${bindAddr}:${config2.port}`
   }));
@@ -49606,10 +49617,9 @@ async function startDaemon(pidfile2, configPath2) {
     process.disconnect();
   }
   redirectToLog();
-  console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Bridgey daemon started: ${config2.name} on ${bindAddr}:${config2.port} (pid ${process.pid})`);
+  console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Bridgey daemon started on ${bindAddr}:${config2.port} (host="${config2.name}", pid ${process.pid})`);
   const cleanup = async () => {
     console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Shutting down...`);
-    unregister(config2.name);
     removePid(pidfile2);
     await fastify.close();
     process.exit(0);

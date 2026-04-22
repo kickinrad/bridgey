@@ -27860,20 +27860,29 @@ var DaemonClient = class {
   // -----------------------------------------------------------------------
   // Channel / transport methods (used by channel server)
   // -----------------------------------------------------------------------
-  async registerChannel(pushUrl) {
+  async registerChannel(agentName2, pushUrl) {
     await fetch(`${this.baseUrl}/channel/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ push_url: pushUrl }),
+      body: JSON.stringify({ agent_name: agentName2, push_url: pushUrl }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
   }
-  async unregisterChannel() {
+  async unregisterChannel(agentName2) {
     await fetch(`${this.baseUrl}/channel/unregister`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agent_name: agentName2 }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     }).catch(() => {
     });
+  }
+  async listChannelSessions() {
+    const res = await fetch(`${this.baseUrl}/channel/sessions`, {
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+    });
+    const body = await res.json();
+    return body.sessions ?? [];
   }
   async reply(chatId, text, replyTo, files) {
     const res = await fetch(`${this.baseUrl}/messages/reply`, {
@@ -27969,8 +27978,8 @@ var OrchestratorClient = class {
   agentName;
   messages = [];
   startTime = Date.now();
-  constructor(agentName, agents) {
-    this.agentName = agentName;
+  constructor(agentName2, agents) {
+    this.agentName = agentName2;
     this.agents = agents;
   }
   async send(agent, message, contextId) {
@@ -28050,11 +28059,11 @@ var OrchestratorClient = class {
       uptime: (Date.now() - this.startTime) / 1e3
     };
   }
-  logMessage(direction, agentName, message, response, contextId) {
+  logMessage(direction, agentName2, message, response, contextId) {
     this.messages.push({
       id: randomUUID(),
       direction,
-      agent_name: agentName,
+      agent_name: agentName2,
       message,
       response,
       context_id: contextId,
@@ -28080,7 +28089,7 @@ var OrchestratorClient = class {
 
 // server/src/config.ts
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, basename } from "path";
 import { hostname as hostname3 } from "os";
 function getConfigPath() {
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
@@ -28140,11 +28149,11 @@ function resolveToken(token) {
   }
   return token;
 }
-function resolveAgentName(config2) {
+function resolveAgentName(_config) {
   if (process.env.BRIDGEY_AGENT_NAME) return process.env.BRIDGEY_AGENT_NAME;
-  if (config2?.name) return config2.name;
-  if (process.env.CLAUDE_PLUGIN_ROOT) return "claude-code";
-  return "claude-desktop";
+  const rawBase = basename(process.cwd() || ".").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeBase = rawBase && /^[a-zA-Z]/.test(rawBase) ? rawBase : `cc-${rawBase || "session"}`;
+  return `${safeBase}-${process.pid}`;
 }
 
 // server/src/tools.ts
@@ -28205,10 +28214,10 @@ async function scanTailnet(config2) {
   );
   for (const { peer, result } of results) {
     if (!result.healthy) continue;
-    const agentName = result.agentCard?.name ?? `${peer.hostname}-agent`;
+    const agentName2 = result.agentCard?.name ?? `${peer.hostname}-agent`;
     discovered.push({
       ...peer,
-      name: agentName,
+      name: agentName2,
       url: `http://${peer.tailscale_ip}:${config2.bridgey_port}`,
       agent_card: result.agentCard
     });
@@ -28590,10 +28599,25 @@ async function handleStatus(client2) {
     const h = await client2.health();
     healthOk = true;
     const uptime = formatUptime(h.uptime);
-    sections.push(`Daemon: ${h.status}`, `  Name:   ${h.name}`, `  Uptime: ${uptime}`);
+    sections.push(`Daemon: ${h.status}`, `  Host:   ${h.name}`, `  Uptime: ${uptime}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     sections.push(`Daemon: UNREACHABLE`, `  ${msg}`);
+  }
+  if (healthOk && client2 instanceof DaemonClient) {
+    try {
+      const sessions = await client2.listChannelSessions();
+      sections.push("");
+      if (sessions.length === 0) {
+        sections.push("Sessions: 0 attached");
+      } else {
+        sections.push(`Sessions: ${sessions.length} attached`);
+        for (const s of sessions) {
+          sections.push(`  \u2022 ${s.agentName} \u2192 ${s.pushUrl}`);
+        }
+      }
+    } catch {
+    }
   }
   if (healthOk) {
     try {
@@ -28888,16 +28912,16 @@ async function handleRemoveAgent(args) {
   };
 }
 async function handleAgentInfo(args, client2) {
-  const agentName = args.agent;
-  if (!agentName) {
+  const agentName2 = args.agent;
+  if (!agentName2) {
     return { content: [{ type: "text", text: "Missing required field: agent." }], isError: true };
   }
   try {
     const agents = await client2.listAgents();
-    const agent = agents.find((a) => a.name === agentName);
+    const agent = agents.find((a) => a.name === agentName2);
     if (!agent) {
       return {
-        content: [{ type: "text", text: `Unknown agent "${agentName}". Use list_agents to see available agents.` }],
+        content: [{ type: "text", text: `Unknown agent "${agentName2}". Use list_agents to see available agents.` }],
         isError: true
       };
     }
@@ -28911,7 +28935,7 @@ async function handleAgentInfo(args, client2) {
     }
     const card = await res.json();
     const lines = [
-      `Agent: ${card.name ?? agentName}`,
+      `Agent: ${card.name ?? agentName2}`,
       card.description ? `Description: ${card.description}` : null,
       card.url ? `URL: ${card.url}` : null,
       card.version ? `Version: ${card.version}` : null
@@ -29063,12 +29087,13 @@ async function createClient() {
   if (!config2?.agents?.length) {
     return daemon;
   }
-  const agentName = resolveAgentName(config2);
-  return new OrchestratorClient(agentName, config2.agents);
+  const agentName2 = resolveAgentName(config2);
+  return new OrchestratorClient(agentName2, config2.agents);
 }
 ensureConfig();
 var client = await createClient();
 var serverMode = client instanceof DaemonClient ? "daemon" : "orchestrator";
+var agentName = resolveAgentName(loadConfig());
 var listener = null;
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: getToolDefinitions(serverMode)
@@ -29099,7 +29124,7 @@ if (client instanceof DaemonClient) {
         });
       }
     });
-    await client.registerChannel(`http://127.0.0.1:${listener.port}`);
+    await client.registerChannel(agentName, `http://127.0.0.1:${listener.port}`);
   } catch {
   }
 }
@@ -29140,7 +29165,7 @@ async function handlePairingElicitation(meta3, daemon) {
 process.on("beforeExit", () => {
   if (listener) listener.close();
   if (client instanceof DaemonClient) {
-    client.unregisterChannel().catch(() => {
+    client.unregisterChannel(agentName).catch(() => {
     });
   }
 });

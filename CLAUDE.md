@@ -23,8 +23,8 @@ npm test              # Run all tests
 The daemon maintains a **transport registry** where adapters (Discord, Telegram, etc.) register on startup. Inbound messages from transports are pushed to Claude Code via the Channel Server.
 
 **Two-process design per instance:**
-- **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage, transport registry
-- **Channel Server** (stdio, Channels API) — pushes messages to CC, lives with the session
+- **Daemon** (Fastify HTTP) — long-running, persists across CC sessions, JSON file storage, transport registry. The daemon is infrastructure, not an A2A agent — `config.name` is the host identity used by peers and mesh discovery.
+- **Channel Server** (stdio, Channels API) — pushes messages to CC, lives with the session. Each session derives its own agent name as `${basename(cwd)}-${pid}` and registers with the daemon under that name (`POST /channel/register`). Multiple concurrent sessions per host are supported; the daemon's channel registry is keyed by agent name.
 
 ```
 Claude Code <-stdio-> Channel Server <-HTTP-> Daemon <-A2A/HTTP-> Remote Daemons

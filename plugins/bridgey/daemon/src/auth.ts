@@ -1,11 +1,6 @@
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
 import type { FastifyRequest } from 'fastify';
 import type { BridgeyConfig } from './types.js';
-
-const REGISTRY_DIR = join(homedir(), '.bridgey', 'agents');
 
 /**
  * Validate that the request carries a valid Bearer token matching config.token.
@@ -24,24 +19,16 @@ export function validateToken(req: FastifyRequest, config: BridgeyConfig): boole
 }
 
 /**
- * Check if the request came from a locally-registered agent (same host).
- * Local agents skip token auth.
+ * Check if the request came from the same host (loopback address).
+ * Same-host callers skip token auth — the loopback interface already
+ * implies physical access to the machine.
  */
-export function isLocalAgent(req: FastifyRequest, registryDir: string = REGISTRY_DIR): boolean {
+export function isLocalAgent(req: FastifyRequest): boolean {
   const remoteAddr = req.ip;
   if (!remoteAddr) return false;
 
-  // Only consider loopback addresses as local
   const localAddrs = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
-  if (!localAddrs.includes(remoteAddr)) return false;
-
-  // Verify there are registered local agents
-  try {
-    const files = readdirSync(registryDir).filter((f) => f.endsWith('.json'));
-    return files.length > 0;
-  } catch {
-    return false;
-  }
+  return localAddrs.includes(remoteAddr);
 }
 
 /**

@@ -5491,7 +5491,7 @@ var require_thread_stream = __commonJS({
     var { version: version2 } = require_package();
     var { EventEmitter } = __require("events");
     var { Worker } = __require("worker_threads");
-    var { join: join6 } = __require("path");
+    var { join: join5 } = __require("path");
     var { pathToFileURL } = __require("url");
     var { wait } = require_wait();
     var {
@@ -5527,7 +5527,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join6(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join5(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -5918,7 +5918,7 @@ var require_transport = __commonJS({
     var { createRequire } = __require("module");
     var { existsSync: existsSync4 } = __require("node:fs");
     var getCallers = require_caller();
-    var { join: join6, isAbsolute, sep } = __require("node:path");
+    var { join: join5, isAbsolute, sep } = __require("node:path");
     var { fileURLToPath } = __require("node:url");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
@@ -6071,7 +6071,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -6089,7 +6089,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -6112,7 +6112,7 @@ var require_transport = __commonJS({
           return origin;
         }
         if (origin === "pino/file") {
-          return join6(__dirname, "..", "file.js");
+          return join5(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
@@ -7092,7 +7092,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join6 = ",";
+            let join5 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -7106,7 +7106,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join6 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -7114,13 +7114,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join6;
+                res += join5;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -7141,7 +7141,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join6 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -7155,13 +7155,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join6;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join6;
+              separator = join5;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -7202,7 +7202,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join6 = ",";
+            let join5 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -7215,7 +7215,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join6 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -7223,13 +7223,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join6;
+                res += join5;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -7242,7 +7242,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join6 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -7251,7 +7251,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join6;
+                separator = join5;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -7309,20 +7309,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join7 = `,
+              const join6 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join7;
+                res2 += join6;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join7}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -7338,16 +7338,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join6 = `,
+            const join5 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join6, maximumBreadth);
+              res += stringifyTypedArray(value, join5, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join6;
+              separator = join5;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -7358,13 +7358,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join6;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join6;
+              separator = join5;
             }
             if (separator !== "") {
               res = `
@@ -34206,9 +34206,9 @@ ${body}`);
 
 // daemon/src/index.ts
 var import_fastify = __toESM(require_fastify(), 1);
-import { readFileSync as readFileSync5, writeFileSync as writeFileSync3, unlinkSync as unlinkSync2, existsSync as existsSync3, createWriteStream } from "fs";
-import { join as join5 } from "path";
-import { homedir as homedir4 } from "os";
+import { readFileSync as readFileSync4, writeFileSync as writeFileSync3, unlinkSync as unlinkSync2, existsSync as existsSync3, createWriteStream } from "fs";
+import { join as join4 } from "path";
+import { homedir as homedir3 } from "os";
 
 // daemon/src/store.ts
 import { mkdirSync, readFileSync, writeFileSync, appendFileSync, existsSync } from "fs";
@@ -34365,10 +34365,6 @@ var Store = class {
 
 // daemon/src/auth.ts
 import { randomBytes, timingSafeEqual } from "crypto";
-import { readdirSync } from "fs";
-import { join as join2 } from "path";
-import { homedir as homedir2 } from "os";
-var REGISTRY_DIR = join2(homedir2(), ".bridgey", "agents");
 function validateToken(req, config2) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return false;
@@ -34379,17 +34375,11 @@ function validateToken(req, config2) {
   if (supplied.length !== expected.length) return false;
   return timingSafeEqual(supplied, expected);
 }
-function isLocalAgent(req, registryDir = REGISTRY_DIR) {
+function isLocalAgent(req) {
   const remoteAddr = req.ip;
   if (!remoteAddr) return false;
   const localAddrs = ["127.0.0.1", "::1", "::ffff:127.0.0.1"];
-  if (!localAddrs.includes(remoteAddr)) return false;
-  try {
-    const files = readdirSync(registryDir).filter((f) => f.endsWith(".json"));
-    return files.length > 0;
-  } catch {
-    return false;
-  }
+  return localAddrs.includes(remoteAddr);
 }
 function ipToLong(ip) {
   const v4 = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
@@ -34413,8 +34403,8 @@ function isAuthorized(req, config2) {
 
 // daemon/src/agent-card.ts
 import { networkInterfaces } from "os";
-import { readFileSync as readFileSync3, existsSync as existsSync2 } from "fs";
-import { join as join3 } from "path";
+import { readFileSync as readFileSync2, existsSync as existsSync2 } from "fs";
+import { join as join2 } from "path";
 function getLocalIP() {
   const nets = networkInterfaces();
   for (const name of Object.keys(nets)) {
@@ -34430,10 +34420,10 @@ function getLocalIP() {
 }
 function enrichFromClaudeMd(workspacePath) {
   if (!workspacePath) return null;
-  const claudeMdPath = join3(workspacePath, "CLAUDE.md");
+  const claudeMdPath = join2(workspacePath, "CLAUDE.md");
   if (!existsSync2(claudeMdPath)) return null;
   try {
-    const content = readFileSync3(claudeMdPath, "utf-8");
+    const content = readFileSync2(claudeMdPath, "utf-8");
     const lines = content.split("\n");
     let title = null;
     const headingLine = lines.find((l) => l.startsWith("# "));
@@ -34769,12 +34759,12 @@ async function sendA2AMessage(agentUrl, token, message, contextId) {
 }
 
 // daemon/src/registry.ts
-import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, unlinkSync, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "fs";
-import { join as join4 } from "path";
-import { homedir as homedir3 } from "os";
-var REGISTRY_DIR2 = join4(homedir3(), ".bridgey", "agents");
+import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, unlinkSync, readdirSync, readFileSync as readFileSync3 } from "fs";
+import { join as join3 } from "path";
+import { homedir as homedir2 } from "os";
+var REGISTRY_DIR = join3(homedir2(), ".bridgey", "agents");
 function ensureDir() {
-  mkdirSync2(REGISTRY_DIR2, { recursive: true });
+  mkdirSync2(REGISTRY_DIR, { recursive: true });
 }
 function isProcessAlive(pid) {
   try {
@@ -34789,14 +34779,14 @@ function listLocal() {
   const agents = [];
   let files;
   try {
-    files = readdirSync2(REGISTRY_DIR2).filter((f) => f.endsWith(".json"));
+    files = readdirSync(REGISTRY_DIR).filter((f) => f.endsWith(".json"));
   } catch {
     return agents;
   }
   for (const file2 of files) {
-    const filePath = join4(REGISTRY_DIR2, file2);
+    const filePath = join3(REGISTRY_DIR, file2);
     try {
-      const content = readFileSync4(filePath, "utf-8");
+      const content = readFileSync3(filePath, "utf-8");
       const agent = JSON.parse(content);
       if (!isProcessAlive(agent.pid)) {
         try {
@@ -49465,9 +49455,9 @@ ${content}`;
 }
 
 // daemon/src/index.ts
-var HOME = homedir4();
-var BRIDGEY_DIR = join5(HOME, ".bridgey");
-var LOG_PATH = join5(BRIDGEY_DIR, "daemon.log");
+var HOME = homedir3();
+var BRIDGEY_DIR = join4(HOME, ".bridgey");
+var LOG_PATH = join4(BRIDGEY_DIR, "daemon.log");
 var DEFAULT_USER = process.env.USER || process.env.USERNAME || "unknown";
 function parseArgs(argv) {
   const args = argv.slice(2);
@@ -49488,7 +49478,7 @@ function parseArgs(argv) {
 }
 function readPid(pidfile2) {
   try {
-    const content = readFileSync5(pidfile2, "utf-8").trim();
+    const content = readFileSync4(pidfile2, "utf-8").trim();
     const pid = parseInt(content, 10);
     return isNaN(pid) ? null : pid;
   } catch {
@@ -49506,13 +49496,13 @@ function removePid(pidfile2) {
 }
 function findConfig(explicitPath) {
   const candidates = explicitPath ? [explicitPath] : [
-    join5(BRIDGEY_DIR, "bridgey.config.json"),
-    join5(process.cwd(), "bridgey.config.json")
+    join4(BRIDGEY_DIR, "bridgey.config.json"),
+    join4(process.cwd(), "bridgey.config.json")
   ];
   for (const candidate of candidates) {
     if (existsSync3(candidate)) {
       try {
-        const raw = readFileSync5(candidate, "utf-8");
+        const raw = readFileSync4(candidate, "utf-8");
         return JSON.parse(raw);
       } catch (err) {
         console.error(`Failed to parse config at ${candidate}: ${err}`);
@@ -49567,11 +49557,11 @@ async function startDaemon(pidfile2, configPath2) {
   if (config2.tls) {
     try {
       const httpsOpts = {
-        cert: readFileSync5(config2.tls.cert),
-        key: readFileSync5(config2.tls.key)
+        cert: readFileSync4(config2.tls.cert),
+        key: readFileSync4(config2.tls.key)
       };
       if (config2.tls.ca) {
-        httpsOpts.ca = readFileSync5(config2.tls.ca);
+        httpsOpts.ca = readFileSync4(config2.tls.ca);
         httpsOpts.requestCert = true;
         httpsOpts.rejectUnauthorized = true;
       }

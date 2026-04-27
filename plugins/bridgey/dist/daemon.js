@@ -34529,19 +34529,40 @@ function spawnClaude(args, workspace) {
     });
   });
 }
-function parseClaudeOutput(stdout, stderr, code, killed) {
-  if (killed) return "[error] claude process timed out after 5 minutes";
-  if (code !== 0) return `[error] claude exited with code ${code}: ${stderr.slice(0, 500)}`;
+function tryParseClaudeJson(stdout) {
   try {
     const parsed = JSON.parse(stdout);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function formatClaudeError(parsed, code) {
+  const subtype = parsed.subtype ?? parsed.terminal_reason ?? `code ${code ?? "?"}`;
+  const detail = parsed.errors?.join("; ") ?? parsed.terminal_reason ?? "";
+  const turns = typeof parsed.num_turns === "number" ? ` (turns=${parsed.num_turns})` : "";
+  const partial2 = typeof parsed.result === "string" && parsed.result.length > 0 ? `
+${parsed.result}` : "";
+  return `[error: ${subtype}] ${detail}${turns}${partial2}`.trim();
+}
+function parseClaudeOutput(stdout, stderr, code, killed) {
+  if (killed) return "[error] claude process timed out after 5 minutes";
+  const parsed = tryParseClaudeJson(stdout);
+  if (parsed?.is_error === true) {
+    console.warn("[executor] claude reported is_error:", JSON.stringify(parsed).slice(0, 1e3));
+    return formatClaudeError(parsed, code);
+  }
+  if (code !== 0) {
+    return `[error] claude exited with code ${code}: ${stderr.slice(0, 500) || stdout.slice(0, 500)}`;
+  }
+  if (parsed) {
     const result = parsed.result ?? parsed.text ?? parsed.content;
     if (typeof result === "string") return result;
     if (typeof result === "object" && result !== null) return JSON.stringify(result);
     return stdout.trim();
-  } catch {
-    if (stdout.trim().length > 0) return stdout.trim();
-    return `[error] No output from claude. stderr: ${stderr.slice(0, 500)}`;
   }
+  if (stdout.trim().length > 0) return stdout.trim();
+  return `[error] No output from claude. stderr: ${stderr.slice(0, 500)}`;
 }
 async function executePrompt(message, workspace, maxTurns, sessionId) {
   let sanitizedMessage = sanitize(message);

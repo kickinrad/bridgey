@@ -11,7 +11,7 @@
       "name": "bridgey",
       "source": "./plugins/bridgey",
       "description": "Inter-agent communication via A2A protocol with Tailscale mesh discovery — send messages, discover agents, manage inbox",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "category": "productivity"
     },
     {

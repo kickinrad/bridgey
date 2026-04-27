@@ -64,23 +64,68 @@ function spawnClaude(
   });
 }
 
+type ClaudeJsonOutput = {
+  is_error?: boolean;
+  subtype?: string;
+  errors?: string[];
+  terminal_reason?: string;
+  num_turns?: number;
+  result?: unknown;
+  text?: unknown;
+  content?: unknown;
+};
+
+function tryParseClaudeJson(stdout: string): ClaudeJsonOutput | null {
+  try {
+    const parsed = JSON.parse(stdout) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as ClaudeJsonOutput) : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatClaudeError(parsed: ClaudeJsonOutput, code: number | null): string {
+  const subtype = parsed.subtype ?? parsed.terminal_reason ?? `code ${code ?? '?'}`;
+  const detail = parsed.errors?.join('; ') ?? parsed.terminal_reason ?? '';
+  const turns = typeof parsed.num_turns === 'number' ? ` (turns=${parsed.num_turns})` : '';
+  const partial = typeof parsed.result === 'string' && parsed.result.length > 0
+    ? `\n${parsed.result}`
+    : '';
+  return `[error: ${subtype}] ${detail}${turns}${partial}`.trim();
+}
+
 /**
- * Parse claude JSON output into a result string.
+ * Parse claude output into a result string.
+ *
+ * `claude -p --output-format json` emits a JSON envelope on stdout for BOTH
+ * success and failure (max_turns, permission denied, api errors, etc.). The
+ * exit code can still be non-zero for those JSON-formatted errors, so we must
+ * inspect stdout BEFORE falling back to stderr — otherwise structured errors
+ * get masked and the daemon log shows only an empty `code N: ` colon.
  */
 function parseClaudeOutput(stdout: string, stderr: string, code: number | null, killed: boolean): string {
   if (killed) return '[error] claude process timed out after 5 minutes';
-  if (code !== 0) return `[error] claude exited with code ${code}: ${stderr.slice(0, 500)}`;
 
-  try {
-    const parsed = JSON.parse(stdout);
+  const parsed = tryParseClaudeJson(stdout);
+
+  if (parsed?.is_error === true) {
+    console.warn('[executor] claude reported is_error:', JSON.stringify(parsed).slice(0, 1000));
+    return formatClaudeError(parsed, code);
+  }
+
+  if (code !== 0) {
+    return `[error] claude exited with code ${code}: ${stderr.slice(0, 500) || stdout.slice(0, 500)}`;
+  }
+
+  if (parsed) {
     const result = parsed.result ?? parsed.text ?? parsed.content;
     if (typeof result === 'string') return result;
     if (typeof result === 'object' && result !== null) return JSON.stringify(result);
     return stdout.trim();
-  } catch {
-    if (stdout.trim().length > 0) return stdout.trim();
-    return `[error] No output from claude. stderr: ${stderr.slice(0, 500)}`;
   }
+
+  if (stdout.trim().length > 0) return stdout.trim();
+  return `[error] No output from claude. stderr: ${stderr.slice(0, 500)}`;
 }
 
 /**

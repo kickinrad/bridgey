@@ -134,6 +134,55 @@ describe('executor — executePrompt', () => {
     expect(result).toContain('Something went wrong');
   });
 
+  it('surfaces is_error JSON from stdout on non-zero exit (max_turns case)', async () => {
+    const errorJson = JSON.stringify({
+      is_error: true,
+      subtype: 'error_max_turns',
+      errors: ['Reached maximum number of turns (5)'],
+      num_turns: 6,
+      terminal_reason: 'max_turns',
+    });
+    const mock = createMockProcess({ exitCode: 1, stdout: errorJson, stderr: '' });
+    mockSpawn.mockReturnValue(mock);
+
+    const result = await executePrompt('Hi', '/tmp', 3);
+    expect(result).toContain('error_max_turns');
+    expect(result).toContain('Reached maximum number of turns');
+    expect(result).toContain('turns=6');
+    expect(result).not.toMatch(/exited with code \d:\s*$/);
+  });
+
+  it('surfaces is_error JSON even when exit code is 0', async () => {
+    const errorJson = JSON.stringify({
+      is_error: true,
+      subtype: 'permission_denied',
+      errors: ['Tool use blocked'],
+      num_turns: 2,
+    });
+    const mock = createMockProcess({ exitCode: 0, stdout: errorJson });
+    mockSpawn.mockReturnValue(mock);
+
+    const result = await executePrompt('Hi', '/tmp', 3);
+    expect(result).toContain('permission_denied');
+    expect(result).toContain('Tool use blocked');
+  });
+
+  it('appends partial result string when is_error includes one', async () => {
+    const errorJson = JSON.stringify({
+      is_error: true,
+      subtype: 'error_max_turns',
+      errors: ['Reached maximum number of turns (5)'],
+      num_turns: 6,
+      result: 'I was about to fetch the recipe when…',
+    });
+    const mock = createMockProcess({ exitCode: 1, stdout: errorJson });
+    mockSpawn.mockReturnValue(mock);
+
+    const result = await executePrompt('Hi', '/tmp', 3);
+    expect(result).toContain('error_max_turns');
+    expect(result).toContain('about to fetch the recipe');
+  });
+
   it('returns error string on spawn failure (ENOENT)', async () => {
     const err = new Error('spawn claude ENOENT') as NodeJS.ErrnoException;
     err.code = 'ENOENT';

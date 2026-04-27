@@ -24,6 +24,12 @@ Key sub-areas: the `bridgey` core plugin (add-agent, setup, status, tailscale-sc
 - [[Resources/Repos/personal/bridgey/CLAUDE|CLAUDE]] — harness rules and conventions
 - [[Resources/Repos/personal/bridgey/README|README]] — public overview
 
+## Plugins
+
+- [[Resources/Repos/personal/bridgey/plugins/bridgey/bridgey|bridgey]]
+- [[Resources/Repos/personal/bridgey/plugins/bridgey-deploy/bridgey-deploy|bridgey-deploy]]
+- [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/bridgey-discord|bridgey-discord]]
+
 ## Knowledge map
 
 ```folder-overview

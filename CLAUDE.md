@@ -1,3 +1,7 @@
+---
+title: bridgey
+---
+
 # bridgey
 
 Inter-agent communication marketplace for Claude Code via A2A protocol.

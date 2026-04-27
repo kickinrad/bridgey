@@ -477,7 +477,7 @@ export async function agentgatewayHealthLine(): Promise<string | null> {
   try {
     const parsed = new URL(gwUrl);
     parsed.port = '15021';
-    parsed.pathname = '/healthz/ready';
+    parsed.pathname = '/healthz/ready'; // drops /mcp path — readiness is on a separate admin port
     healthUrl = parsed.toString();
   } catch {
     return `[--] agentgateway (bad URL: ${gwUrl})`;

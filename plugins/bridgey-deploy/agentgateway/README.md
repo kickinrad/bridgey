@@ -6,9 +6,10 @@ Agentgateway v1.1.0 sits in the Coolify service network and exposes a single MCP
 
 1. Copy `config.yaml` to `/data/coolify/services/jgcko8w0o4gwoocs0cks8swo/agentgateway/config.yaml`
 2. Build `mealie-mcp:latest` locally on cloud (Front A's Dockerfile)
-3. Apply `compose.snippet.yaml` into the existing Coolify compose
+3. Merge `compose.snippet.yaml` (2 new services: mealie-mcp + agentgateway) into the existing Coolify compose
 4. `docker compose up -d agentgateway mealie-mcp`
-5. Restart all 5 persona containers to pick up the new env vars
+5. Merge `compose.persona-patch.yaml` (volumes + env additions for all 5 personas) into the existing Coolify compose — this file is NOT standalone-runnable, it's a merge target
+6. Restart all 5 persona containers to pick up the new env vars
 
 ## Health check
 

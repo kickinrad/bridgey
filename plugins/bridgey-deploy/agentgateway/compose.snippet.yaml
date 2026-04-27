@@ -1,18 +1,16 @@
-# compose.snippet.yaml — agentgateway integration diff for Coolify
+# compose.snippet.yaml — NEW SERVICES for the agentgateway integration
 #
-# HOW X1 APPLIES THIS:
-#   - Section "NEW SERVICES" → add these service blocks to the existing compose
-#     at /data/coolify/services/jgcko8w0o4gwoocs0cks8swo/
-#   - Section "MODIFIED PERSONA SERVICES" → for each of the 5 persona services
-#     (julia, mila, archer, bob, kai), merge the shown volumes + environment
-#     entries into the existing service definition. Do not replace the whole
-#     service — append these keys to the existing volumes/environment blocks.
-#   - mealie-mcp image must be built on cloud first:
-#       cd /data/coolify/services/jgcko8w0o4gwoocs0cks8swo
-#       docker build -t mealie-mcp:latest -f mealie-mcp/Dockerfile ./mealie-mcp
-#     (Front A pushes the Dockerfile; X1 runs the build before applying this)
-
-# ─── NEW SERVICES ─────────────────────────────────────────────────────────────
+# STANDALONE-RUNNABLE as a compose fragment.
+#
+# X1 STEP 1: Merge these 2 service definitions into the existing Coolify compose
+#   at /data/coolify/services/jgcko8w0o4gwoocs0cks8swo/docker-compose.yml
+#
+# X1 STEP 2: Apply persona modifications from compose.persona-patch.yaml (separate file)
+#
+# PRE-REQUISITE: mealie-mcp:latest must be built on cloud before applying:
+#   cd /data/coolify/services/jgcko8w0o4gwoocs0cks8swo
+#   docker build -t mealie-mcp:latest -f mealie-mcp/Dockerfile ./mealie-mcp
+#   (Front A pushes the Dockerfile; X1 runs the build before applying this)
 
 services:
   mealie-mcp:
@@ -40,48 +38,3 @@ services:
     tty: false
     # No public port — reachable from tailnet via tailscale serve, or
     # internally by persona containers at http://agentgateway:8090/mcp
-
-# ─── MODIFIED PERSONA SERVICES ────────────────────────────────────────────────
-# For each persona below, MERGE (append) these entries into the existing
-# service's volumes: and environment: blocks. Container names follow the
-# pattern bridgey-<name>-jgcko8w0o4gwoocs0cks8swo (existing Coolify naming).
-
-  # julia
-  bridgey-julia-jgcko8w0o4gwoocs0cks8swo:
-    volumes:
-      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
-    environment:
-      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
-      - BRIDGEY_IDENTITY_MODE=tailscale
-
-  # mila
-  bridgey-mila-jgcko8w0o4gwoocs0cks8swo:
-    volumes:
-      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
-    environment:
-      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
-      - BRIDGEY_IDENTITY_MODE=tailscale
-
-  # archer
-  bridgey-archer-jgcko8w0o4gwoocs0cks8swo:
-    volumes:
-      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
-    environment:
-      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
-      - BRIDGEY_IDENTITY_MODE=tailscale
-
-  # bob
-  bridgey-bob-jgcko8w0o4gwoocs0cks8swo:
-    volumes:
-      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
-    environment:
-      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
-      - BRIDGEY_IDENTITY_MODE=tailscale
-
-  # kai
-  bridgey-kai-jgcko8w0o4gwoocs0cks8swo:
-    volumes:
-      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
-    environment:
-      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
-      - BRIDGEY_IDENTITY_MODE=tailscale

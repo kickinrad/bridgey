@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+#
+# Agentgateway config — single MCP fan-out endpoint for the bridgey persona mesh.
+#
+# Auth model (two layers):
+#   1. agentgateway (coarse): extAuthz whois over tailscaled.sock — asserts caller
+#      is on our tailnet at all. Non-tailnet requests get no match and are rejected.
+#   2. bridgey daemon (fine): identity_allowlist checks tailscale_users /
+#      tailscale_nodes on inbound agent messages. Agentgateway doesn't need to
+#      replicate that per-user logic.
+#
+# Tool namespace: upstream target name "mealie" produces tool IDs like "mealie_search_recipes".
+
+frontendPolicies:
+  accessLog:
+    add:
+      tailscale.node: extauthz.tailscaleNode
+      tailscale.email: extauthz.tailscaleEmail
+
+binds:
+  - port: 8090
+    address: 0.0.0.0
+    listeners:
+      - name: mcp
+        protocol: HTTP
+        routes:
+          - name: mcp-fleet
+            backends:
+              - mcp:
+                  targets:
+                    - name: mealie
+                      mcp:
+                        host: http://mealie-mcp:8000/sse
+                policies:
+                  extAuthz:
+                    host: unix:/run/tailscale/tailscaled.sock
+                    protocol:
+                      http:
+                        path: |
+                          "/localapi/v0/whois?addr=" + source.address
+                        addRequestHeaders:
+                          :authority: '"local-tailscaled.sock"'
+                        metadata:
+                          tailscaleNode: json(response.body).Node.Name
+                          tailscaleEmail: json(response.body).UserProfile.LoginName

@@ -4,6 +4,7 @@ import type { TransportRegistry } from './transport-registry.js';
 import type { ChannelPush } from './channel-push.js';
 import { executePrompt, chatIdToSessionId } from './executor.js';
 import type { BridgeyConfig } from './types.js';
+import { isAuthorized } from './auth.js';
 import {
   TransportRegisterSchema,
   TransportUnregisterSchema,
@@ -32,6 +33,9 @@ export function registerTransportRoutes(
   // ── Transport Management ────────────────────────────────────────────
 
   app.post('/transports/register', async (req, reply) => {
+    if (config && !(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = TransportRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -41,6 +45,9 @@ export function registerTransportRoutes(
   });
 
   app.post('/transports/unregister', async (req, reply) => {
+    if (config && !(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = TransportUnregisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -56,6 +63,9 @@ export function registerTransportRoutes(
   // ── Channel Server ─────────────────────────────────────────────────
 
   app.post('/channel/register', async (req, reply) => {
+    if (config && !(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = ChannelRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -176,6 +186,9 @@ export function registerTransportRoutes(
   // ── Messages ────────────────────────────────────────────────────────
 
   app.post('/messages/inbound', async (req, reply) => {
+    if (config && !(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = InboundMessageSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });

@@ -17,6 +17,12 @@ export interface BridgeyConfig {
     ca?: string;       // path to CA cert PEM (for mTLS client verification)
   };
   trusted_networks?: string[];  // CIDR ranges to trust (e.g. ["100.64.0.0/10"])
+  identity_mode?: 'bearer' | 'tailscale' | 'both';
+  identity_allowlist?: {
+    tailscale_users?: string[];  // e.g. ["wils@github"]
+    tailscale_nodes?: string[];  // e.g. ["bridgey-julia", "bridgey-mila"]
+  };
+  tailscale_sock?: string;  // default "/run/tailscale/tailscaled.sock"
 }
 
 export interface RemoteAgent {

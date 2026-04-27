@@ -34,7 +34,7 @@ export function ensureConfig(): void {
   mkdirSync(dir, { recursive: true });
 
   const defaults: BridgeyConfigFile = {
-    name: hostname().split('.')[0],
+    name: 'bridgey',
     agents: [],
   };
   writeFileSync(configPath, JSON.stringify(defaults, null, 2) + '\n', 'utf-8');

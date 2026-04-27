@@ -28090,7 +28090,6 @@ var OrchestratorClient = class {
 // server/src/config.ts
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join, basename } from "path";
-import { hostname as hostname3 } from "os";
 function getConfigPath() {
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
   if (pluginRoot) {
@@ -28106,7 +28105,7 @@ function ensureConfig() {
   const dir = join(configPath, "..");
   mkdirSync(dir, { recursive: true });
   const defaults = {
-    name: hostname3().split(".")[0],
+    name: "bridgey",
     agents: []
   };
   writeFileSync(configPath, JSON.stringify(defaults, null, 2) + "\n", "utf-8");

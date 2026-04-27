@@ -19,7 +19,7 @@ The daemon starts automatically via SessionStart hook and manages itself via pid
 
 Each attached CC session derives its own agent name as `${basename(cwd)}-${pid}` (override with `BRIDGEY_AGENT_NAME` env var). On startup the session's channel server registers with the daemon under that name via `POST /channel/register {agent_name, push_url}`; on shutdown it unregisters. Multiple sessions per host are supported — the daemon's channel registry is a map keyed by agent name, not a singleton.
 
-The **daemon itself is not an A2A agent** — it's a router. `config.name` (e.g. "Luna") is the **host** identity used for mesh/tailnet discovery and for remote peers addressing this machine; it is not an addressable agent in the local `~/.bridgey/agents/` registry. That directory is exclusively for *remote peers* (tailnet-discovered or manually added), never for the daemon's own process.
+The **daemon itself is not an A2A agent** — it's a router. `config.name` is a display label shown in `status` output and connection-info JSON; it is not used for routing and is not an addressable agent in the local `~/.bridgey/agents/` registry. That directory is exclusively for *remote peers* (tailnet-discovered or manually added), never for the daemon's own process.
 
 Inbound routing today uses `channelPush.defaultTarget()` — the first attached session gets the push. Named per-session routing from remote peers is a follow-up (requires A2A protocol metadata).
 

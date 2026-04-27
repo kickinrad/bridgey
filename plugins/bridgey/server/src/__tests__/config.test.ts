@@ -21,8 +21,8 @@ describe('resolveAgentName', () => {
   });
 
   it('ignores config.name for agent identity (host field is separate concept)', () => {
-    const result = resolveAgentName({ name: 'Luna', agents: [] });
-    expect(result).not.toBe('Luna');
+    const result = resolveAgentName({ name: 'some-host', agents: [] });
+    expect(result).not.toBe('some-host');
   });
 
   it('produces a valid identifier shape: [letter][alnum/_/-]*-<pid>', () => {

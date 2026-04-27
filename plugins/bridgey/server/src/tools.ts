@@ -458,7 +458,41 @@ async function handleStatus(
     }
   }
 
+  // Agentgateway fleet health
+  const gwLine = await agentgatewayHealthLine();
+  if (gwLine !== null) {
+    sections.push('');
+    sections.push(gwLine);
+  }
+
   return { content: [{ type: 'text', text: sections.join('\n') }] };
+}
+
+// Exported for testing. Returns a status line or null if not configured.
+export async function agentgatewayHealthLine(): Promise<string | null> {
+  const gwUrl = process.env.BRIDGEY_AGENTGATEWAY_URL;
+  if (!gwUrl) return null;
+
+  let healthUrl: string;
+  try {
+    const parsed = new URL(gwUrl);
+    parsed.port = '15021';
+    parsed.pathname = '/healthz/ready'; // drops /mcp path — readiness is on a separate admin port
+    healthUrl = parsed.toString();
+  } catch {
+    return `[--] agentgateway (bad URL: ${gwUrl})`;
+  }
+
+  try {
+    const res = await fetch(healthUrl, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      return `[ok] agentgateway fleet — ${gwUrl}`;
+    }
+    return `[--] agentgateway fleet — HTTP ${res.status} (${gwUrl})`;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `[--] agentgateway fleet — unreachable: ${msg}`;
+  }
 }
 
 async function handleTailscaleScan(

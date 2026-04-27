@@ -1,0 +1,53 @@
+# compose.persona-patch.yaml — PERSONA SERVICE MODIFICATIONS for agentgateway integration
+#
+# THIS IS NOT A STANDALONE RUNNABLE COMPOSE FILE.
+# Running `docker compose up` against this file directly will fail — these service
+# definitions are intentionally partial (volumes + environment additions only).
+#
+# X1 STEP 2: For each of the 5 persona services below, MERGE (append) the listed
+#   volumes and environment entries into the existing service definition in the
+#   Coolify compose at /data/coolify/services/jgcko8w0o4gwoocs0cks8swo/docker-compose.yml
+#   Do NOT replace the whole service block — append to the existing volumes:/environment: lists.
+#
+# After applying, restart all 5 persona containers:
+#   docker compose restart bridgey-julia-jgcko8w0o4gwoocs0cks8swo \
+#     bridgey-mila-jgcko8w0o4gwoocs0cks8swo \
+#     bridgey-archer-jgcko8w0o4gwoocs0cks8swo \
+#     bridgey-bob-jgcko8w0o4gwoocs0cks8swo \
+#     bridgey-kai-jgcko8w0o4gwoocs0cks8swo
+
+services:
+  bridgey-julia-jgcko8w0o4gwoocs0cks8swo:
+    volumes:
+      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
+    environment:
+      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
+      - BRIDGEY_IDENTITY_MODE=tailscale
+
+  bridgey-mila-jgcko8w0o4gwoocs0cks8swo:
+    volumes:
+      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
+    environment:
+      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
+      - BRIDGEY_IDENTITY_MODE=tailscale
+
+  bridgey-archer-jgcko8w0o4gwoocs0cks8swo:
+    volumes:
+      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
+    environment:
+      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
+      - BRIDGEY_IDENTITY_MODE=tailscale
+
+  bridgey-bob-jgcko8w0o4gwoocs0cks8swo:
+    volumes:
+      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
+    environment:
+      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
+      - BRIDGEY_IDENTITY_MODE=tailscale
+
+  bridgey-kai-jgcko8w0o4gwoocs0cks8swo:
+    volumes:
+      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
+    environment:
+      - BRIDGEY_AGENTGATEWAY_URL=http://agentgateway:8090/mcp
+      - BRIDGEY_IDENTITY_MODE=tailscale

@@ -1,0 +1,40 @@
+# compose.snippet.yaml — NEW SERVICES for the agentgateway integration
+#
+# STANDALONE-RUNNABLE as a compose fragment.
+#
+# X1 STEP 1: Merge these 2 service definitions into the existing Coolify compose
+#   at /data/coolify/services/jgcko8w0o4gwoocs0cks8swo/docker-compose.yml
+#
+# X1 STEP 2: Apply persona modifications from compose.persona-patch.yaml (separate file)
+#
+# PRE-REQUISITE: mealie-mcp:latest must be built on cloud before applying:
+#   cd /data/coolify/services/jgcko8w0o4gwoocs0cks8swo
+#   docker build -t mealie-mcp:latest -f mealie-mcp/Dockerfile ./mealie-mcp
+#   (Front A pushes the Dockerfile; X1 runs the build before applying this)
+
+services:
+  mealie-mcp:
+    image: mealie-mcp:latest
+    pull_policy: never
+    container_name: mealie-mcp-jgcko8w0o4gwoocs0cks8swo
+    environment:
+      - MCP_TRANSPORT=sse
+      - MEALIE_BASE_URL=https://mealie.pleco-discus.ts.net
+      - MEALIE_API_KEY=${MEALIE_API_KEY}
+    restart: unless-stopped
+    stdin_open: false
+    tty: false
+    # No public port — reachable only by agentgateway on the service network
+
+  agentgateway:
+    image: ghcr.io/agentgateway/agentgateway:1.1.0
+    container_name: agentgateway-jgcko8w0o4gwoocs0cks8swo
+    command: ["--config", "/config.yaml"]
+    volumes:
+      - ./agentgateway/config.yaml:/config.yaml:ro
+      - /run/tailscale/tailscaled.sock:/run/tailscale/tailscaled.sock:ro
+    restart: unless-stopped
+    stdin_open: false
+    tty: false
+    # No public port — reachable from tailnet via tailscale serve, or
+    # internally by persona containers at http://agentgateway:8090/mcp

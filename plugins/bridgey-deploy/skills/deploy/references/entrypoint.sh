@@ -26,6 +26,12 @@ CONF
   echo "Generated bridgey config at ${BRIDGEY_CONFIG}"
 fi
 
+# Register agentgateway MCP fleet endpoint if configured
+if [ -n "${BRIDGEY_AGENTGATEWAY_URL:-}" ]; then
+  claude mcp add --transport http --scope user mcp-fleet "$BRIDGEY_AGENTGATEWAY_URL" || \
+    echo "[entrypoint] WARN: failed to register mcp-fleet" >&2
+fi
+
 # If a bundled daemon exists, run it as PID 1
 if [ -f "/opt/bridgey/daemon.js" ]; then
   exec node /opt/bridgey/daemon.js --config "${BRIDGEY_CONFIG}"

@@ -1,8 +1,39 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Fastify from 'fastify';
 import { TransportRegistry } from '../transport-registry.js';
 import { ChannelPush } from '../channel-push.js';
 import { registerTransportRoutes } from '../transport-routes.js';
+import type { BridgeyConfig } from '../types.js';
+
+vi.mock('../tailscale/whois.js');
+import { whoisFromSocket } from '../tailscale/whois.js';
+
+const bearerConfig: BridgeyConfig = {
+  name: 'test',
+  description: '',
+  port: 7700,
+  bind: 'localhost',
+  token: 'brg_testtoken',
+  workspace: '',
+  max_turns: 5,
+  agents: [],
+  identity_mode: 'bearer',
+  tailscale_sock: '/run/tailscale/tailscaled.sock',
+};
+
+const tailscaleOnlyConfig: BridgeyConfig = {
+  name: 'test',
+  description: '',
+  port: 7700,
+  bind: 'localhost',
+  token: 'brg_testtoken',
+  workspace: '',
+  max_turns: 5,
+  agents: [],
+  identity_mode: 'tailscale',
+  identity_allowlist: { tailscale_users: ['wils@github'] },
+  tailscale_sock: '/run/tailscale/tailscaled.sock',
+};
 
 /**
  * Spin up a tiny Fastify server to act as a mock transport callback target.
@@ -36,7 +67,7 @@ describe('transport-routes', () => {
     registry = new TransportRegistry();
     channelPush = new ChannelPush();
     app = Fastify({ logger: false });
-    registerTransportRoutes(app, registry, channelPush);
+    registerTransportRoutes(app, registry, channelPush, bearerConfig);
     await app.ready();
   });
 
@@ -385,5 +416,113 @@ describe('transport-routes', () => {
       });
       expect(res.statusCode).toBe(400);
     });
+  });
+});
+
+describe('transport-routes identity_mode=tailscale auth', () => {
+  let app: ReturnType<typeof Fastify>;
+  let registry: TransportRegistry;
+  let channelPush: ChannelPush;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.mocked(whoisFromSocket).mockResolvedValue(null); // non-tailnet caller by default
+    registry = new TransportRegistry();
+    channelPush = new ChannelPush();
+    app = Fastify({ logger: false, trustProxy: true });
+    registerTransportRoutes(app, registry, channelPush, tailscaleOnlyConfig);
+    await app.ready();
+  });
+
+  afterEach(async () => {
+    await app?.close();
+  });
+
+  // Inject from a non-local IP to bypass loopback trust
+  const remoteHeaders = { 'x-forwarded-for': '100.64.0.50' };
+
+  it('POST /transports/register denies non-tailnet remote caller', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transports/register',
+      headers: remoteHeaders,
+      payload: { name: 'discord', callback_url: 'http://localhost:9090', capabilities: ['reply'] },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('POST /transports/unregister denies non-tailnet remote caller', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transports/unregister',
+      headers: remoteHeaders,
+      payload: { name: 'discord' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('POST /channel/register denies non-tailnet remote caller', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/channel/register',
+      headers: remoteHeaders,
+      payload: { agent_name: 'myagent', push_url: 'http://localhost:9999' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('POST /messages/inbound denies non-tailnet remote caller', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/messages/inbound',
+      headers: remoteHeaders,
+      payload: { transport: 'discord', chat_id: 'discord:123', sender: 'alice', content: 'hello', meta: {} },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('POST /transports/register allows allowlisted tailscale remote caller', async () => {
+    vi.mocked(whoisFromSocket).mockResolvedValue({ node: 'some-host', user: 'wils@github' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transports/register',
+      headers: remoteHeaders,
+      payload: { name: 'discord', callback_url: 'http://localhost:9090', capabilities: ['reply'] },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('POST /messages/inbound allows allowlisted tailscale remote caller', async () => {
+    vi.mocked(whoisFromSocket).mockResolvedValue({ node: 'some-host', user: 'wils@github' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/messages/inbound',
+      headers: remoteHeaders,
+      payload: { transport: 'discord', chat_id: 'discord:123', sender: 'alice', content: 'hello', meta: {} },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('POST /transports/unregister allows allowlisted tailscale remote caller', async () => {
+    vi.mocked(whoisFromSocket).mockResolvedValue({ node: 'some-host', user: 'wils@github' });
+    registry.register({ name: 'discord', callback_url: 'http://localhost:9090', capabilities: ['reply'] });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transports/unregister',
+      headers: remoteHeaders,
+      payload: { name: 'discord' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('POST /channel/register allows allowlisted tailscale remote caller', async () => {
+    vi.mocked(whoisFromSocket).mockResolvedValue({ node: 'some-host', user: 'wils@github' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/channel/register',
+      headers: remoteHeaders,
+      payload: { agent_name: 'myagent', push_url: 'http://localhost:9999' },
+    });
+    expect(res.statusCode).toBe(200);
   });
 });

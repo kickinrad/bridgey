@@ -114,7 +114,7 @@ export function a2aRoutes(
 
   // List all known agents (DB + local registry) with live health probes
   fastify.get('/agents', async (req, reply) => {
-    if (!isAuthorized(req, config)) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -171,7 +171,7 @@ export function a2aRoutes(
 
   // Recent messages
   fastify.get('/messages', async (req, reply) => {
-    if (!isAuthorized(req, config)) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -183,7 +183,7 @@ export function a2aRoutes(
 
   // Audit log endpoint
   fastify.get('/audit', async (req, reply) => {
-    if (!isAuthorized(req, config)) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const query = req.query as { limit?: string };
@@ -193,7 +193,7 @@ export function a2aRoutes(
 
   // Internal send endpoint (used by MCP server)
   fastify.post('/send', async (req, reply) => {
-    if (!isAuthorized(req, config)) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
 
@@ -254,7 +254,7 @@ export function a2aRoutes(
   // A2A JSON-RPC endpoint
   fastify.post('/', async (req, reply) => {
     // Auth check: skip for local agents and trusted networks
-    if (!isAuthorized(req, config)) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send(jsonRpcError('0', -32000, 'Unauthorized'));
     }
 

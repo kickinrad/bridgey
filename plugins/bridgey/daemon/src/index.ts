@@ -12,6 +12,7 @@ import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
 import { isProcessAlive } from './registry.js';
 import type { BridgeyConfig } from './types.js';
+import { BridgeyConfigSchema } from './schemas.js';
 
 const HOME = homedir();
 const BRIDGEY_DIR = join(HOME, '.bridgey');
@@ -82,7 +83,12 @@ function findConfig(explicitPath?: string): BridgeyConfig | null {
     if (existsSync(candidate)) {
       try {
         const raw = readFileSync(candidate, 'utf-8');
-        return JSON.parse(raw) as BridgeyConfig;
+        const parsed = BridgeyConfigSchema.safeParse(JSON.parse(raw));
+        if (!parsed.success) {
+          console.error(`Invalid config at ${candidate}: ${parsed.error.message}`);
+          return null;
+        }
+        return parsed.data as BridgeyConfig;
       } catch (err) {
         console.error(`Failed to parse config at ${candidate}: ${err}`);
         return null;

@@ -1,5 +1,36 @@
 import { z } from 'zod';
 
+export const BridgeyConfigSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().default(''),
+  port: z.number().int().min(1).max(65535),
+  bind: z.string().default('localhost'),
+  token: z.string().min(1),
+  workspace: z.string().default(''),
+  max_turns: z.number().int().min(1).default(5),
+  agents: z.array(z.object({
+    name: z.string().min(1),
+    url: z.string().url(),
+    token: z.string().min(1),
+  })).default([]),
+  rate_limit: z.object({
+    max_requests: z.number().int().min(1),
+    window_ms: z.number().int().min(1),
+  }).optional(),
+  tls: z.object({
+    cert: z.string().min(1),
+    key: z.string().min(1),
+    ca: z.string().optional(),
+  }).optional(),
+  trusted_networks: z.array(z.string()).optional(),
+  identity_mode: z.enum(['bearer', 'tailscale', 'both']).default('bearer'),
+  identity_allowlist: z.object({
+    tailscale_users: z.array(z.string()).optional(),
+    tailscale_nodes: z.array(z.string()).optional(),
+  }).optional(),
+  tailscale_sock: z.string().default('/run/tailscale/tailscaled.sock'),
+});
+
 // POST /send body validation
 export const SendBodySchema = z.object({
   agent: z.string().min(1, 'agent is required').max(100),

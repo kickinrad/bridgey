@@ -28,12 +28,12 @@ export function registerTransportRoutes(
   app: FastifyInstance,
   registry: TransportRegistry,
   channelPush: ChannelPush,
-  config?: BridgeyConfig,
+  config: BridgeyConfig,
 ): void {
   // ── Transport Management ────────────────────────────────────────────
 
   app.post('/transports/register', async (req, reply) => {
-    if (config && !(await isAuthorized(req, config))) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const parsed = TransportRegisterSchema.safeParse(req.body);
@@ -45,7 +45,7 @@ export function registerTransportRoutes(
   });
 
   app.post('/transports/unregister', async (req, reply) => {
-    if (config && !(await isAuthorized(req, config))) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const parsed = TransportUnregisterSchema.safeParse(req.body);
@@ -63,7 +63,7 @@ export function registerTransportRoutes(
   // ── Channel Server ─────────────────────────────────────────────────
 
   app.post('/channel/register', async (req, reply) => {
-    if (config && !(await isAuthorized(req, config))) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const parsed = ChannelRegisterSchema.safeParse(req.body);
@@ -186,7 +186,7 @@ export function registerTransportRoutes(
   // ── Messages ────────────────────────────────────────────────────────
 
   app.post('/messages/inbound', async (req, reply) => {
-    if (config && !(await isAuthorized(req, config))) {
+    if (!(await isAuthorized(req, config))) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
     const parsed = InboundMessageSchema.safeParse(req.body);

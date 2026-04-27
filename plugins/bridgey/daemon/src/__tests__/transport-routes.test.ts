@@ -8,6 +8,19 @@ import type { BridgeyConfig } from '../types.js';
 vi.mock('../tailscale/whois.js');
 import { whoisFromSocket } from '../tailscale/whois.js';
 
+const bearerConfig: BridgeyConfig = {
+  name: 'test',
+  description: '',
+  port: 7700,
+  bind: 'localhost',
+  token: 'brg_testtoken',
+  workspace: '',
+  max_turns: 5,
+  agents: [],
+  identity_mode: 'bearer',
+  tailscale_sock: '/run/tailscale/tailscaled.sock',
+};
+
 const tailscaleOnlyConfig: BridgeyConfig = {
   name: 'test',
   description: '',
@@ -54,7 +67,7 @@ describe('transport-routes', () => {
     registry = new TransportRegistry();
     channelPush = new ChannelPush();
     app = Fastify({ logger: false });
-    registerTransportRoutes(app, registry, channelPush);
+    registerTransportRoutes(app, registry, channelPush, bearerConfig);
     await app.ready();
   });
 
@@ -486,6 +499,29 @@ describe('transport-routes identity_mode=tailscale auth', () => {
       url: '/messages/inbound',
       headers: remoteHeaders,
       payload: { transport: 'discord', chat_id: 'discord:123', sender: 'alice', content: 'hello', meta: {} },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('POST /transports/unregister allows allowlisted tailscale remote caller', async () => {
+    vi.mocked(whoisFromSocket).mockResolvedValue({ node: 'some-host', user: 'wils@github' });
+    registry.register({ name: 'discord', callback_url: 'http://localhost:9090', capabilities: ['reply'] });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transports/unregister',
+      headers: remoteHeaders,
+      payload: { name: 'discord' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('POST /channel/register allows allowlisted tailscale remote caller', async () => {
+    vi.mocked(whoisFromSocket).mockResolvedValue({ node: 'some-host', user: 'wils@github' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/channel/register',
+      headers: remoteHeaders,
+      payload: { agent_name: 'myagent', push_url: 'http://localhost:9999' },
     });
     expect(res.statusCode).toBe(200);
   });

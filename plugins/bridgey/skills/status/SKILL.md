@@ -72,6 +72,22 @@ If agents return 429:
 - Rate limited (10 req/min per source IP by default)
 - Wait and retry, or adjust rate limit config if needed
 
+### 5. Agentgateway Fleet Health
+
+If `BRIDGEY_AGENTGATEWAY_URL` is set, the `status` tool automatically probes the agentgateway readiness endpoint and includes a fleet health line:
+
+```
+[ok] agentgateway fleet — http://agentgateway:8090/mcp
+```
+
+To check manually:
+```bash
+curl -s http://agentgateway:15021/healthz/ready
+# → "ready" on success
+```
+
+The readiness port is always 15021 regardless of the MCP listener port (8090).
+
 ## Quick Status
 
 For a quick one-liner check, run:

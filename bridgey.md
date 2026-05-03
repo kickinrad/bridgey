@@ -15,20 +15,20 @@ tags:
 > [!abstract] What this is
 > Inter-agent communication for Claude Code via the A2A protocol — each instance becomes both an A2A client and server, forming a mesh for multi-agent collaboration.
 
-Lives at `~/projects/markets/bridgey/` and surfaces into the vault via Folder Bridge at `Resources/Repos/personal/bridgey`. The core plugin handles agent registration and message routing; companion plugins add Discord integration and Coolify-based deployment.
+Lives at `~/projects/markets/bridgey/` and surfaces into the vault via Folder Bridge at `Resources/Repos/markets/bridgey`. The core plugin handles agent registration and message routing; companion plugins add Discord integration and Coolify-based deployment.
 
 Key sub-areas: the `bridgey` core plugin (add-agent, setup, status, tailscale-scan, tailscale-setup skills), `bridgey-discord` (access + configure), and `bridgey-deploy` (coolify, deploy, remote-status, sync).
 
 ## Quick start
 
-- [[Resources/Repos/personal/bridgey/CLAUDE|CLAUDE]] — harness rules and conventions
-- [[Resources/Repos/personal/bridgey/README|README]] — public overview
+- [[Resources/Repos/markets/bridgey/CLAUDE|CLAUDE]] — harness rules and conventions
+- [[Resources/Repos/markets/bridgey/README|README]] — public overview
 
 ## Plugins
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/bridgey|bridgey]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-deploy/bridgey-deploy|bridgey-deploy]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/bridgey-discord|bridgey-discord]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey/bridgey|bridgey]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-deploy/bridgey-deploy|bridgey-deploy]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-discord/bridgey-discord|bridgey-discord]]
 
 ## Knowledge map
 

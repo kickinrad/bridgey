@@ -14,8 +14,8 @@ fi
 
 # Check if bundle exists
 if [ ! -f "$PLUGIN_ROOT/dist/watchdog.js" ]; then
-  echo "bridgey: build not found. Run 'npm run build' in the plugin directory."
-  exit 0
+  echo "bridgey: dist/watchdog.js not found — daemon will not start. Run 'npm run build' in bridgey plugin directory." >&2
+  exit 1
 fi
 
 # Start watchdog (idempotent — exits if daemon already running)

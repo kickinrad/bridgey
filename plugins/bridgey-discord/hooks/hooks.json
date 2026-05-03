@@ -6,12 +6,12 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
-            "timeout": 30000
+            "timeout": 30
           },
           {
             "type": "http",
             "url": "http://127.0.0.1:8094/health",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       }

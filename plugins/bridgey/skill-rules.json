@@ -1,0 +1,28 @@
+{
+  "description": "Activation rules for bridgey A2A communication daemon",
+  "rules": {
+    "bridgey": {
+      "kind": "skill",
+      "type": "domain",
+      "enforcement": "must",
+      "priority": "high",
+      "activationHint": "Skill('bridgey:bridgey')",
+      "promptTriggers": {
+        "keywords": [
+          "bridgey", "a2a", "agent mesh", "agent-to-agent",
+          "tailnet", "tailscale mesh", "daemon",
+          "bridgey setup", "bridgey status", "bridgey config",
+          "remote agent", "register agent", "add agent",
+          "agent discovery", "peer discovery", "channel server"
+        ],
+        "intentPatterns": [
+          "(setup|configure|initialize|install).*?bridgey",
+          "(check|show|status).*?bridgey",
+          "(add|register|connect).*?(remote|a2a|bridgey).*?agent",
+          "(scan|discover).*?(tailnet|tailscale|agents|peers)",
+          "(bridgey|a2a).*?(daemon|server|peer|agent)"
+        ]
+      }
+    }
+  }
+}

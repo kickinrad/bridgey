@@ -4,6 +4,7 @@ type: moc
 area: "[[bridgey]]"
 author: wils
 created: 2026-04-27
+updated: 2026-05-06
 tags:
   - claude-code
   - plugin
@@ -23,10 +24,6 @@ tags:
 
 ### Skills
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/add-agent/SKILL|add-agent]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/setup/SKILL|setup]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/status/SKILL|status]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/tailscale-scan/SKILL|tailscale-scan]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/tailscale-setup/SKILL|tailscale-setup]]
+- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/bridgey/SKILL|bridgey]] — single lifecycle skill (setup, status, agents, tailscale)
 
 See [[Resources/Repos/personal/bridgey/bridgey|bridgey]] for the parent repo overview.

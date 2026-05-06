@@ -15,9 +15,15 @@ tags:
 > [!abstract] What this is
 > Discord transport adapter for bridgey — bridges Discord messages to the bridgey A2A mesh
 
+## Files
+
+- [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/CLAUDE|CLAUDE]] — plugin harness instructions
+
 ## Components
 
 ### Skills
 
 - [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/skills/access/SKILL|access]]
 - [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/skills/configure/SKILL|configure]]
+
+See [[Resources/Repos/personal/bridgey/bridgey|bridgey]] for the parent repo overview.

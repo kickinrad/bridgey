@@ -1,3 +1,7 @@
+---
+title: bridgey-discord
+---
+
 # bridgey-discord
 
 Discord transport adapter for bridgey. Bridges Discord messages into the bridgey A2A mesh via the Channels API.

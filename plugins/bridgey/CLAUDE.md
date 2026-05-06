@@ -1,3 +1,7 @@
+---
+title: bridgey
+---
+
 # bridgey 🌉
 
 Inter-agent communication for Claude Code via Google's A2A protocol. Each CC instance with bridgey becomes both an A2A client and server.

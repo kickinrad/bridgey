@@ -146,4 +146,4 @@ Core plugin with Channels API integration, Tailscale discovery, and adaptive MCP
 - All inbound payloads validated with Zod schemas
 - Tests live in `daemon/src/__tests__/`
 - Config changes go through skills, not manual edits
-- Tokens managed via `pass` — never hardcode secrets
+- Credentials via `pass` — never hardcode secrets. Full doctrine: [[Credential Management]]

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Inter-agent communication for Claude Code via A2A protocol",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "pluginRoot": "./plugins"
   },
   "plugins": [

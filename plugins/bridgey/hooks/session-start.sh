@@ -18,8 +18,17 @@ if [ ! -f "$PLUGIN_ROOT/dist/watchdog.js" ]; then
   exit 1
 fi
 
-# Start watchdog (idempotent — exits if daemon already running)
-node "$PLUGIN_ROOT/dist/watchdog.js" --config "$CONFIG" --pidfile "$PIDFILE"
+# Start watchdog DETACHED. The SessionStart hook has a 10s timeout; running the
+# watchdog in the foreground means Claude Code kills the hook's process group at
+# the 10s mark, reaping the long-running daemon (clean "Shutting down..." ~10s
+# after every start). setsid escapes the hook's process group; nohup + background
+# + closing stdin fully detach it so the daemon persists across sessions as
+# intended. Idempotent: skip if a daemon is already alive per the pidfile.
+if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+  setsid nohup node "$PLUGIN_ROOT/dist/watchdog.js" --config "$CONFIG" --pidfile "$PIDFILE" \
+    >>"${HOME}/.bridgey/watchdog.log" 2>&1 < /dev/null &
+  disown 2>/dev/null || true
+fi
 
 # Optional: scan tailnet for agents (silent if tailscale not installed)
 if command -v tailscale &>/dev/null && [ -f "$PLUGIN_ROOT/dist/scan-cli.js" ]; then

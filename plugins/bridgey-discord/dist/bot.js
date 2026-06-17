@@ -24,9 +24,19 @@ var GuildConfigSchema = z.object({
   require_mention: z.boolean().default(true),
   allow_from: z.array(z.string()).default([])
 });
+var RouteSchema = z.object({
+  daemon_url: z.string().url(),
+  persona: z.string()
+});
 var DiscordConfigSchema = z.object({
   token_env: z.string().default("DISCORD_BOT_TOKEN"),
+  // Default/fallback daemon for any message that matches no route.
   daemon_url: z.string().url().default("http://localhost:8092"),
+  // Multi-persona routing. Keys are either a Discord channel ID (e.g. "123…")
+  // or a persona name used as the message's leading token (e.g. "mila").
+  // Channel match wins over name match; both win over the fallback daemon_url.
+  // An empty map preserves single-daemon behavior (everything → daemon_url).
+  routes: z.record(z.string(), RouteSchema).default({}),
   port: z.number().default(8094),
   callback_host: z.string().default("127.0.0.1"),
   callback_url: z.string().url().optional(),
@@ -51,8 +61,11 @@ function loadConfig() {
 // transport.ts
 var TransportClient = class {
   daemonUrl;
-  constructor(config2) {
-    this.daemonUrl = config2.daemon_url;
+  constructor(daemonUrl) {
+    this.daemonUrl = daemonUrl;
+  }
+  get url() {
+    return this.daemonUrl;
   }
   async register(port, callbackUrl) {
     const url = callbackUrl ?? `http://localhost:${port}`;
@@ -91,6 +104,39 @@ var TransportClient = class {
     if (!res.ok) throw new Error(`Failed to send inbound message: ${res.status}`);
   }
 };
+
+// routing.ts
+function leadingToken(content) {
+  const m = /^\s*@?([a-z0-9_-]+)/i.exec(content);
+  return m ? m[1].toLowerCase() : null;
+}
+function resolveRoute(config2, channelId, content) {
+  const routes = config2.routes ?? {};
+  const byChannel = routes[channelId];
+  if (byChannel) return { daemon_url: byChannel.daemon_url, persona: byChannel.persona };
+  const token2 = leadingToken(content);
+  if (token2) {
+    for (const [key, route] of Object.entries(routes)) {
+      if (key.toLowerCase() === token2) {
+        return { daemon_url: route.daemon_url, persona: route.persona };
+      }
+    }
+  }
+  return { daemon_url: config2.daemon_url };
+}
+function distinctDaemonUrls(config2) {
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  const push = (url) => {
+    if (!seen.has(url)) {
+      seen.add(url);
+      out.push(url);
+    }
+  };
+  push(config2.daemon_url);
+  for (const route of Object.values(config2.routes ?? {})) push(route.daemon_url);
+  return out;
+}
 
 // gate.ts
 import { readFileSync as readFileSync2, writeFileSync, mkdirSync, renameSync } from "node:fs";
@@ -201,7 +247,16 @@ if (!token) {
   console.error(`Missing env var: ${config.token_env}`);
   process.exit(1);
 }
-var transport = new TransportClient(config);
+var clients = /* @__PURE__ */ new Map();
+for (const url of distinctDaemonUrls(config)) clients.set(url, new TransportClient(url));
+var defaultClient = clients.get(config.daemon_url);
+function allClients() {
+  return [...clients.values()];
+}
+function clientFor(channelId, content) {
+  const route = resolveRoute(config, channelId, content);
+  return { client: clients.get(route.daemon_url) ?? defaultClient, persona: route.persona };
+}
 var PERMISSION_REPLY_RE = /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i;
 var PERMISSION_EXPIRY_MS = 10 * 60 * 1e3;
 var pendingPermissions = /* @__PURE__ */ new Map();
@@ -486,7 +541,7 @@ async function sendPairingRequest(chatId, userId, username) {
     expiresAt: Date.now() + PAIRING_EXPIRY_MS
   });
   try {
-    await transport.sendInbound({
+    await defaultClient.sendInbound({
       chat_id: chatId,
       sender: username,
       content: `[Pairing request from ${username}]`,
@@ -575,7 +630,7 @@ ${inputPreview}`;
       content: `${emoji} **Permission ${label}** [\`${requestId}\`] by ${interaction.user.username}`,
       components: []
     });
-    await transport.sendPermissionResponse(requestId, behavior);
+    for (const c of allClients()) await c.sendPermissionResponse(requestId, behavior);
     pendingPermissions.delete(requestId);
     return;
   }
@@ -583,17 +638,15 @@ ${inputPreview}`;
 client.on("messageCreate", async (msg) => {
   const isDM = !msg.guild;
   const isReplyToBot = !isDM && msg.reference?.messageId ? recentSentIds.has(msg.reference.messageId) : false;
-  const isMentioned = !isDM && !!client.user && msg.mentions.has(client.user.id) || isReplyToBot;
+  const isMentioned = !isDM && !!client2.user && msg.mentions.has(client2.user.id) || isReplyToBot;
   console.error(`[msg] from=${msg.author.username} bot=${msg.author.bot} isDM=${isDM} mentioned=${isMentioned} content="${msg.content.slice(0, 50)}"`);
   if (msg.author.bot && isDM) return;
   if (msg.author.bot && !isMentioned) return;
-  if (msg.author.id === client.user?.id) return;
+  if (msg.author.id === client2.user?.id) return;
   const permMatch = PERMISSION_REPLY_RE.exec(msg.content);
   if (permMatch && isAllowed(msg.author.id)) {
-    await transport.sendPermissionResponse(
-      permMatch[2].toLowerCase(),
-      permMatch[1].toLowerCase().startsWith("y") ? "allow" : "deny"
-    );
+    const behavior = permMatch[1].toLowerCase().startsWith("y") ? "allow" : "deny";
+    for (const c of allClients()) await c.sendPermissionResponse(permMatch[2].toLowerCase(), behavior);
     void msg.react(permMatch[1].toLowerCase().startsWith("y") ? "\u2705" : "\u274C").catch(() => {
     });
     return;
@@ -630,8 +683,8 @@ client.on("messageCreate", async (msg) => {
   }
   const chatId = isDM ? `discord:dm:${msg.author.id}` : `discord:ch:${channelId}`;
   let content = msg.content;
-  if (isMentioned && client.user) {
-    content = content.replace(new RegExp(`<@!?${client.user.id}>\\s*`), "").trim();
+  if (isMentioned && client2.user) {
+    content = content.replace(new RegExp(`<@!?${client2.user.id}>\\s*`), "").trim();
   }
   const meta = {
     message_id: msg.id,
@@ -644,6 +697,8 @@ client.on("messageCreate", async (msg) => {
   }
   if (isMentioned) meta.mentioned = "true";
   if (msg.author.bot) meta.from_bot = "true";
+  const { client: client2, persona } = clientFor(channelId, content);
+  if (persona) meta.persona = persona;
   const attachments = msg.attachments.map((a) => ({
     id: a.id,
     name: a.name,
@@ -652,7 +707,7 @@ client.on("messageCreate", async (msg) => {
     url: a.url
   }));
   try {
-    await transport.sendInbound({
+    await client2.sendInbound({
       chat_id: chatId,
       sender: msg.author.username,
       content,
@@ -660,19 +715,19 @@ client.on("messageCreate", async (msg) => {
       attachments: attachments.length > 0 ? attachments : void 0
     });
   } catch (err) {
-    console.error("Failed to forward message to daemon:", err);
+    console.error(`Failed to forward message to daemon ${client2.url}:`, err);
   }
 });
 client.once("ready", async () => {
   console.error(`Discord bot connected as ${client.user?.tag}`);
-  try {
-    await transport.register(config.port, config.callback_url);
-    console.error(
-      `Registered as transport with daemon at ${config.daemon_url}`
-    );
-  } catch (err) {
-    console.error("Failed to register with daemon:", err);
-    console.error("Bot will still run but messages won't reach Claude Code");
+  for (const c of allClients()) {
+    try {
+      await c.register(config.port, config.callback_url);
+      console.error(`Registered as transport with daemon at ${c.url}`);
+    } catch (err) {
+      console.error(`Failed to register with daemon ${c.url}:`, err);
+      console.error("Messages routed to this daemon won't reach Claude Code");
+    }
   }
 });
 var shuttingDown = false;
@@ -680,9 +735,11 @@ async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
   console.error("discord: shutting down");
-  try {
-    await transport.unregister();
-  } catch {
+  for (const c of allClients()) {
+    try {
+      await c.unregister();
+    } catch {
+    }
   }
   const destroyPromise = Promise.resolve(client.destroy());
   const timeout = new Promise((r) => setTimeout(r, 2e3));

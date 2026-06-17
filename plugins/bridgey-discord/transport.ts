@@ -1,10 +1,12 @@
-import type { DiscordConfig } from './config.js'
-
 export class TransportClient {
   private daemonUrl: string
 
-  constructor(config: DiscordConfig) {
-    this.daemonUrl = config.daemon_url
+  constructor(daemonUrl: string) {
+    this.daemonUrl = daemonUrl
+  }
+
+  get url(): string {
+    return this.daemonUrl
   }
 
   async register(port: number, callbackUrl?: string): Promise<void> {

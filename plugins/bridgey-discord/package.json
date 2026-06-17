@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "tsx esbuild.config.ts",
-    "start": "node dist/bot.js"
+    "start": "node dist/bot.js",
+    "test": "node --import tsx --test routing.test.ts"
   },
   "dependencies": {
     "discord.js": "^14.26.3",

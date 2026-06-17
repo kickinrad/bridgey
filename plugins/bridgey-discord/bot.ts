@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { loadConfig } from "./config.js";
 import { TransportClient } from "./transport.js";
+import { resolveRoute, distinctDaemonUrls } from "./routing.js";
 import { gateSender, addSender, isAllowed, loadAccess, isAllowedOutbound } from "./gate.js";
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
@@ -49,7 +50,22 @@ if (!token) {
   process.exit(1);
 }
 
-const transport = new TransportClient(config);
+// One TransportClient per distinct daemon URL (all routes + the fallback).
+// A config with no routes collapses to a single client → identical to the old
+// single-daemon behavior.
+const clients = new Map<string, TransportClient>();
+for (const url of distinctDaemonUrls(config)) clients.set(url, new TransportClient(url));
+const defaultClient = clients.get(config.daemon_url)!;
+
+function allClients(): TransportClient[] {
+  return [...clients.values()];
+}
+
+/** Resolve the daemon client an inbound message routes to. */
+function clientFor(channelId: string, content: string): { client: TransportClient; persona?: string } {
+  const route = resolveRoute(config, channelId, content);
+  return { client: clients.get(route.daemon_url) ?? defaultClient, persona: route.persona };
+}
 
 // --- Permission relay constants ---
 
@@ -468,7 +484,8 @@ async function sendPairingRequest(
   });
 
   try {
-    await transport.sendInbound({
+    // Pairing arrives via DM — no channel route — so it goes to the fallback daemon.
+    await defaultClient.sendInbound({
       chat_id: chatId,
       sender: username,
       content: `[Pairing request from ${username}]`,
@@ -598,7 +615,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       components: [],
     });
 
-    await transport.sendPermissionResponse(requestId, behavior);
+    // Broadcast — only the originating daemon has this request_id pending; the
+    // rest no-op. (The bot doesn't track which daemon raised a given request.)
+    for (const c of allClients()) await c.sendPermissionResponse(requestId, behavior);
     pendingPermissions.delete(requestId);
     return;
   }
@@ -624,10 +643,8 @@ client.on("messageCreate", async (msg: Message) => {
   // Text-based permission reply (e.g. "yes abcde" or "no fghij")
   const permMatch = PERMISSION_REPLY_RE.exec(msg.content);
   if (permMatch && isAllowed(msg.author.id)) {
-    await transport.sendPermissionResponse(
-      permMatch[2]!.toLowerCase(),
-      permMatch[1]!.toLowerCase().startsWith("y") ? "allow" : "deny",
-    );
+    const behavior = permMatch[1]!.toLowerCase().startsWith("y") ? "allow" : "deny";
+    for (const c of allClients()) await c.sendPermissionResponse(permMatch[2]!.toLowerCase(), behavior);
     void msg.react(permMatch[1]!.toLowerCase().startsWith("y") ? "\u2705" : "\u274C").catch(() => {});
     return;
   }
@@ -694,6 +711,10 @@ client.on("messageCreate", async (msg: Message) => {
   if (isMentioned) meta.mentioned = "true";
   if (msg.author.bot) meta.from_bot = "true";
 
+  // Route to the persona daemon that owns this channel (or named in the message).
+  const { client, persona } = clientFor(channelId, content);
+  if (persona) meta.persona = persona;
+
   const attachments = msg.attachments.map((a) => ({
     id: a.id,
     name: a.name,
@@ -703,7 +724,7 @@ client.on("messageCreate", async (msg: Message) => {
   }));
 
   try {
-    await transport.sendInbound({
+    await client.sendInbound({
       chat_id: chatId,
       sender: msg.author.username,
       content,
@@ -711,7 +732,7 @@ client.on("messageCreate", async (msg: Message) => {
       attachments: attachments.length > 0 ? attachments : undefined,
     });
   } catch (err) {
-    console.error("Failed to forward message to daemon:", err);
+    console.error(`Failed to forward message to daemon ${client.url}:`, err);
   }
 });
 
@@ -719,14 +740,16 @@ client.on("messageCreate", async (msg: Message) => {
 
 client.once("ready", async () => {
   console.error(`Discord bot connected as ${client.user?.tag}`);
-  try {
-    await transport.register(config.port, config.callback_url);
-    console.error(
-      `Registered as transport with daemon at ${config.daemon_url}`,
-    );
-  } catch (err) {
-    console.error("Failed to register with daemon:", err);
-    console.error("Bot will still run but messages won't reach Claude Code");
+  // Register the callback with every daemon we route to, so each can reach the
+  // bot for replies. One failure doesn't block the others.
+  for (const c of allClients()) {
+    try {
+      await c.register(config.port, config.callback_url);
+      console.error(`Registered as transport with daemon at ${c.url}`);
+    } catch (err) {
+      console.error(`Failed to register with daemon ${c.url}:`, err);
+      console.error("Messages routed to this daemon won't reach Claude Code");
+    }
   }
 });
 
@@ -738,7 +761,7 @@ async function shutdown(): Promise<void> {
   shuttingDown = true;
   console.error('discord: shutting down');
 
-  try { await transport.unregister(); } catch {}
+  for (const c of allClients()) { try { await c.unregister(); } catch {} }
 
   const destroyPromise = Promise.resolve(client.destroy());
   const timeout = new Promise<void>(r => setTimeout(r, 2000));

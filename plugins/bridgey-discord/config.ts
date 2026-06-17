@@ -9,9 +9,21 @@ const GuildConfigSchema = z.object({
   allow_from: z.array(z.string()).default([]),
 })
 
+// A routing target: which persona daemon an inbound message is delivered to.
+const RouteSchema = z.object({
+  daemon_url: z.string().url(),
+  persona: z.string(),
+})
+
 export const DiscordConfigSchema = z.object({
   token_env: z.string().default('DISCORD_BOT_TOKEN'),
+  // Default/fallback daemon for any message that matches no route.
   daemon_url: z.string().url().default('http://localhost:8092'),
+  // Multi-persona routing. Keys are either a Discord channel ID (e.g. "123…")
+  // or a persona name used as the message's leading token (e.g. "mila").
+  // Channel match wins over name match; both win over the fallback daemon_url.
+  // An empty map preserves single-daemon behavior (everything → daemon_url).
+  routes: z.record(z.string(), RouteSchema).default({}),
   port: z.number().default(8094),
   callback_host: z.string().default('127.0.0.1'),
   callback_url: z.string().url().optional(),
@@ -24,6 +36,7 @@ export const DiscordConfigSchema = z.object({
 })
 
 export type DiscordConfig = z.infer<typeof DiscordConfigSchema>
+export type Route = z.infer<typeof RouteSchema>
 
 export function loadConfig(): DiscordConfig {
   const configPath = process.env.DISCORD_CONFIG_PATH

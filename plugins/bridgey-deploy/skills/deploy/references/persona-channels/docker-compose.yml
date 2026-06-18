@@ -1,0 +1,24 @@
+# Tier-A persona — native Discord Channels container. Placeholder: {name}.
+# Secrets come from Coolify env / pass — never baked into the image.
+services:
+  {name}-channels:
+    image: persona-channels
+    container_name: {name}-channels
+    environment:
+      - IS_SANDBOX=1
+      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID:-}
+      - DISCORD_REQUIRE_MENTION=${DISCORD_REQUIRE_MENTION:-true}
+    volumes:
+      # Persona identity (CLAUDE.md, skills, .mcp.json) — read-only.
+      - /srv/personas-work/{name}:/workspace:ro
+      # Per-persona Claude state (plugin cache + channel config) — writable.
+      - {name}-channels-claude:/home/node/.claude
+    stdin_open: true   # keep stdin open ...
+    tty: true          # ... with a TTY, so the interactive --channels listener stays alive
+    restart: unless-stopped
+    pull_policy: never  # local-only image (Coolify pulls otherwise)
+
+volumes:
+  {name}-channels-claude:

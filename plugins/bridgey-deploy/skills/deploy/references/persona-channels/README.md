@@ -37,6 +37,9 @@ docker build -t persona-channels .
    acceptance config key), so the autonomous persona never blocks on a tool
    permission. The discord `reply` tool is a channel tool (not `mcp__`-namespaced),
    so an allowlist can't target it cleanly — bypass is the right lever here.
+8. **Volume ownership** — the image pre-creates a node-owned `/home/node/.claude`
+   so the writable named volume initializes as `node`, not root; otherwise the
+   entrypoint's `mkdir` under `~/.claude` fails and the container crash-loops.
 
 ## Discord setup
 

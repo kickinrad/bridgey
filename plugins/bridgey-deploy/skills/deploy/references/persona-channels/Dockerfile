@@ -15,7 +15,8 @@ RUN npm install -g @anthropic-ai/claude-code@latest bun
 COPY claude.json /home/node/.claude.json
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh && chown node:node /home/node/.claude.json
+RUN chmod +x /usr/local/bin/entrypoint.sh && chown node:node /home/node/.claude.json \
+    && mkdir -p /home/node/.claude && chown -R node:node /home/node/.claude
 
 USER node
 WORKDIR /workspace

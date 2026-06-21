@@ -13,7 +13,7 @@ triggers:
 
 # Remote Sync
 
-Bidirectional rsync between local agent and remote deployment. Connection details are read from `bridgey-deploy.config.json` in the agent's root directory.
+Bidirectional rsync between local agent and remote deployment. Connection details are read from `bridgey-deploy.config.json` in the agent's root directory. This applies to both deployment models — it syncs the persona workspace files regardless of whether the container runs a Tier-A Channels session or a Tier-B daemon.
 
 ## Setup
 

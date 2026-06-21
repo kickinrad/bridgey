@@ -17,6 +17,18 @@ triggers:
 
 Deploy an agent to a remote server as a Docker container, accessible via Tailscale SSH with bidirectional sync and optional Coolify integration. This walkthrough is adaptive — it detects what's already done and skips completed steps.
 
+## Deployment models
+
+A persona deploys under one of two container models. Pick before starting.
+
+**Tier-A — warm / native (persistent Channels session).** For personas that should be always-on and reachable in real time over **native Discord Channels**. A live `claude --channels` session runs as PID-1 in the container — no bridgey daemon, no bridgey-discord bot. Container artifacts live in `references/persona-channels/` (Dockerfile, entrypoint.sh, docker-compose.yml, claude.json, README); see that README for the full recipe — bun, runtime plugin install, `IS_SANDBOX=1` + `--dangerously-skip-permissions`, `tty:true`, onboarding pre-seed. Auth via `CLAUDE_CODE_OAUTH_TOKEN`.
+
+**Tier-B — dormant / daemon (cold-spawn).** A bridgey daemon container that cold-spawns `claude -p` per inbound message, fronted by a bridgey-discord bot. Container artifacts are `references/{Dockerfile,docker-compose.yml,entrypoint.sh}`.
+
+**Choosing:** a warm, interactive persona that needs native real-time Discord → Tier-A. An occasional or low-traffic persona → Tier-B (cheaper, scales to many).
+
+The walkthrough below deploys the **Tier-B** path.
+
 ## Prerequisites
 
 This skill needs access to `~/.personas/{name}/` (or the agent's local directory) to sync files to the remote server.

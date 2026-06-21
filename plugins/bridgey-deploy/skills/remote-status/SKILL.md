@@ -12,7 +12,7 @@ triggers:
 
 # Remote Status
 
-Check the health of the remote agent deployment. Connection details are read from `bridgey-deploy.config.json` in the agent's root directory.
+Check the health of the remote agent deployment. Connection details are read from `bridgey-deploy.config.json` in the agent's root directory. The container check applies to both deployment models; the daemon-health check is Tier-B only — for a Tier-A deployment the live Channels session is the health signal, so treat the daemon probe as skippable.
 
 ## Setup
 

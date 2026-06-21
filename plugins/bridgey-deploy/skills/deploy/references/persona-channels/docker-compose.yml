@@ -10,6 +10,9 @@ services:
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID:-}
       - DISCORD_REQUIRE_MENTION=${DISCORD_REQUIRE_MENTION:-true}
+      # Optional MCP fleet (mealie/recipes etc.) via agentgateway — set only for
+      # personas that use MCP tools; leave unset and the entrypoint skips it.
+      - BRIDGEY_AGENTGATEWAY_URL=${BRIDGEY_AGENTGATEWAY_URL:-}
     volumes:
       # Persona identity (CLAUDE.md, skills, .mcp.json) — read-only.
       - /srv/personas-work/{name}:/workspace:ro
@@ -19,6 +22,16 @@ services:
     tty: true          # ... with a TTY, so the interactive --channels listener stays alive
     restart: unless-stopped
     pull_policy: never  # local-only image (Coolify pulls otherwise)
+    networks:
+      - stack
 
 volumes:
   {name}-channels-claude:
+
+networks:
+  # The Coolify stack network — lets {name}-channels resolve sibling services
+  # (agentgateway, mealie-mcp) by hostname. The deploy sets STACK_NETWORK to the
+  # live stack network name (e.g. the Coolify service UUID).
+  stack:
+    external: true
+    name: ${STACK_NETWORK}

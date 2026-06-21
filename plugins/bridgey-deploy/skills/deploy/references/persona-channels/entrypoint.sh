@@ -34,6 +34,13 @@ claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null || 
 claude plugin marketplace update claude-plugins-official 2>/dev/null || true
 claude plugin install discord@claude-plugins-official 2>/dev/null || true
 
+# Optional MCP fleet (recipes etc.) via agentgateway — registered at runtime in
+# local (project) scope, mirroring the Tier-B daemon's mcp-fleet registration.
+# Only when a gateway URL is provided; personas without MCP tools skip this.
+if [ -n "${BRIDGEY_AGENTGATEWAY_URL:-}" ]; then
+  claude mcp add --transport http mcp-fleet "$BRIDGEY_AGENTGATEWAY_URL" 2>/dev/null || true
+fi
+
 # Launch the live Channels listener as PID 1. IS_SANDBOX=1 skips the
 # bypass-permissions acceptance gate so the autonomous persona never prompts
 # (verified: there is no persisted-acceptance config key). The container itself

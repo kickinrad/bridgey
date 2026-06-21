@@ -47,3 +47,15 @@ docker build -t persona-channels .
   seed one; `DISCORD_REQUIRE_MENTION=false` to answer every message in it.
 - DMs default to `pairing`: the first DM from an unknown sender gets a code;
   approve by adding their user snowflake to `allowFrom` in `access.json`.
+
+## MCP tools (recipes etc.)
+
+Personas that use MCP tools (e.g. julia → mealie recipes) reach them through the
+bridgey agentgateway, exactly as the Tier-B daemon does:
+
+- Set `BRIDGEY_AGENTGATEWAY_URL` (e.g. `http://agentgateway:8090/mcp`). The
+  entrypoint registers it at runtime as the `mcp-fleet` MCP server (local scope).
+  Leave it unset for personas with no MCP tools — the step is skipped.
+- The container must join the stack's Docker network so `agentgateway` (and the
+  `mealie-mcp` it proxies) resolve by hostname. Set `STACK_NETWORK` to the live
+  network name; the compose declares it as an external network.

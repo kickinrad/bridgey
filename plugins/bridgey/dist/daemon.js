@@ -4760,7 +4760,7 @@ var require_sonic_boom = __commonJS({
       if (!(this instanceof SonicBoom)) {
         return new SonicBoom(opts);
       }
-      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir, retryEAGAIN, fsync, contentMode, mode } = opts || {};
+      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir2, retryEAGAIN, fsync, contentMode, mode } = opts || {};
       fd = fd || dest;
       this._len = 0;
       this.fd = -1;
@@ -4785,7 +4785,7 @@ var require_sonic_boom = __commonJS({
       this.append = append || false;
       this.mode = mode;
       this.retryEAGAIN = retryEAGAIN || (() => true);
-      this.mkdir = mkdir || false;
+      this.mkdir = mkdir2 || false;
       let fsWriteSync;
       let fsWrite;
       if (contentMode === kContentModeBuffer) {
@@ -5491,7 +5491,7 @@ var require_thread_stream = __commonJS({
     var { version: version2 } = require_package();
     var { EventEmitter } = __require("events");
     var { Worker } = __require("worker_threads");
-    var { join: join5 } = __require("path");
+    var { join: join6 } = __require("path");
     var { pathToFileURL } = __require("url");
     var { wait } = require_wait();
     var {
@@ -5527,7 +5527,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join5(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join6(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -5918,7 +5918,7 @@ var require_transport = __commonJS({
     var { createRequire } = __require("module");
     var { existsSync: existsSync4 } = __require("node:fs");
     var getCallers = require_caller();
-    var { join: join5, isAbsolute, sep } = __require("node:path");
+    var { join: join6, isAbsolute, sep } = __require("node:path");
     var { fileURLToPath } = __require("node:url");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
@@ -6071,7 +6071,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -6089,7 +6089,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -6112,7 +6112,7 @@ var require_transport = __commonJS({
           return origin;
         }
         if (origin === "pino/file") {
-          return join5(__dirname, "..", "file.js");
+          return join6(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
@@ -7092,7 +7092,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join5 = ",";
+            let join6 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -7106,7 +7106,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join5 = `,
+                join6 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -7114,13 +7114,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join5;
+                res += join6;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -7141,7 +7141,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join5 = `,
+              join6 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -7155,13 +7155,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join5;
+                separator = join6;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join5;
+              separator = join6;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -7202,7 +7202,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join5 = ",";
+            let join6 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -7215,7 +7215,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join5 = `,
+                join6 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -7223,13 +7223,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join5;
+                res += join6;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -7242,7 +7242,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join5 = `,
+              join6 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -7251,7 +7251,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join5;
+                separator = join6;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -7309,20 +7309,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join6 = `,
+              const join7 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join6;
+                res2 += join7;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join7}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -7338,16 +7338,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join5 = `,
+            const join6 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join5, maximumBreadth);
+              res += stringifyTypedArray(value, join6, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join5;
+              separator = join6;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -7358,13 +7358,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join5;
+                separator = join6;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join5;
+              separator = join6;
             }
             if (separator !== "") {
               res = `
@@ -27673,19 +27673,19 @@ var require_sets_lookup = __commonJS({
     var Sets = __importStar(require_sets());
     var types_1 = require_types4();
     function setToLookup(tokens) {
-      let lookup = {};
+      let lookup2 = {};
       let len = 0;
       for (const token of tokens) {
         if (token.type === types_1.types.CHAR) {
-          lookup[token.value] = true;
+          lookup2[token.value] = true;
         }
         if (token.type === types_1.types.RANGE) {
-          lookup[`${token.from}-${token.to}`] = true;
+          lookup2[`${token.from}-${token.to}`] = true;
         }
         len += 1;
       }
       return {
-        lookup: () => Object.assign({}, lookup),
+        lookup: () => Object.assign({}, lookup2),
         len
       };
     }
@@ -27731,11 +27731,11 @@ var require_write_set_tokens = __commonJS({
       return charCode === 94 ? "\\^" : charCode === 92 ? "\\\\" : charCode === 93 ? "\\]" : charCode === 45 ? "\\-" : String.fromCharCode(charCode);
     }
     exports.setChar = setChar;
-    function isSameSet(set2, { lookup, len }) {
+    function isSameSet(set2, { lookup: lookup2, len }) {
       if (len !== set2.length) {
         return false;
       }
-      const map2 = lookup();
+      const map2 = lookup2();
       for (const elem of set2) {
         if (elem.type === types_1.types.SET) {
           return false;
@@ -29207,7 +29207,7 @@ var require_find_my_way = __commonJS({
       const newRoutes = this.routes.filter(predicate);
       this._rebuild(newRoutes);
     };
-    Router.prototype.lookup = function lookup(req, res, ctx, done) {
+    Router.prototype.lookup = function lookup2(req, res, ctx, done) {
       if (typeof ctx === "function") {
         done = ctx;
         ctx = void 0;
@@ -34207,7 +34207,7 @@ ${body}`);
 // daemon/src/index.ts
 var import_fastify = __toESM(require_fastify(), 1);
 import { readFileSync as readFileSync4, writeFileSync as writeFileSync3, unlinkSync as unlinkSync2, existsSync as existsSync3, createWriteStream } from "fs";
-import { join as join4 } from "path";
+import { join as join5 } from "path";
 import { homedir as homedir3 } from "os";
 
 // daemon/src/store.ts
@@ -49151,6 +49151,98 @@ var ChannelPush = class {
   }
 };
 
+// daemon/src/attachments.ts
+import { mkdir, writeFile } from "node:fs/promises";
+import { join as join4 } from "node:path";
+import { lookup } from "node:dns/promises";
+var INBOX_DIRNAME = ".inbox";
+var DEFAULT_MAX_BYTES = 25e6;
+var defaultLookup = (host) => lookup(host, { all: true });
+function safeAttachmentName(name) {
+  const base = name.split(/[/\\]/).pop() ?? name;
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/\.\.+/g, "_");
+  return cleaned.length > 0 ? cleaned : "attachment";
+}
+function isPrivateOrReservedIp(ip) {
+  const mapped = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  if (mapped) ip = mapped[1];
+  if (ip.includes(":")) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::") return true;
+    if (lower.startsWith("fe80")) return true;
+    if (/^f[cd]/.test(lower)) return true;
+    return false;
+  }
+  const parts = ip.split(".").map((p) => Number(p));
+  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+    return true;
+  }
+  const [a, b] = parts;
+  if (a === 0) return true;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  return false;
+}
+async function assertPublicHttpsUrl(rawUrl, opts = {}) {
+  const url2 = new URL(rawUrl);
+  if (url2.protocol !== "https:") {
+    throw new Error(`attachment url must be https, got ${url2.protocol}`);
+  }
+  const lookupFn = opts.lookupFn ?? defaultLookup;
+  const results = await lookupFn(url2.hostname);
+  if (results.length === 0) {
+    throw new Error(`attachment host ${url2.hostname} did not resolve`);
+  }
+  for (const r of results) {
+    if (isPrivateOrReservedIp(r.address)) {
+      throw new Error(`attachment host ${url2.hostname} resolves to non-public address ${r.address}`);
+    }
+  }
+  return url2;
+}
+function buildInboundPrompt(sender, transport, content, attachmentPaths) {
+  const base = `[Message from ${sender} via ${transport}]
+${content}`;
+  if (attachmentPaths.length === 0) return base;
+  const list = attachmentPaths.map((p) => `- ${p}`).join("\n");
+  return `${base}
+
+[Attachments downloaded to this workspace \u2014 open them to view:]
+${list}`;
+}
+async function downloadInboundAttachments(attachments, workspace, opts = {}) {
+  const fetchFn = opts.fetchFn ?? fetch;
+  const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
+  const inbox = join4(workspace, INBOX_DIRNAME);
+  const saved = [];
+  for (const att of attachments) {
+    if (att.size > maxBytes) continue;
+    let safeUrl;
+    try {
+      safeUrl = await assertPublicHttpsUrl(att.url, { lookupFn: opts.lookupFn });
+    } catch {
+      continue;
+    }
+    try {
+      const res = await fetchFn(safeUrl.toString(), { redirect: "manual" });
+      if (!res.ok) continue;
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > maxBytes) continue;
+      await mkdir(inbox, { recursive: true });
+      const dest = join4(inbox, safeAttachmentName(att.name));
+      await writeFile(dest, buf);
+      saved.push(dest);
+    } catch {
+      continue;
+    }
+  }
+  return saved;
+}
+
 // daemon/src/transport-routes.ts
 function registerTransportRoutes(app, registry2, channelPush, config2) {
   app.post("/transports/register", async (req, reply) => {
@@ -49290,11 +49382,14 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
       return reply.send({ ok: true, queued: true });
     }
     reply.send({ ok: true, queued: false, mode: "executor" });
-    const prompt = `[Message from ${sender} via ${transport}]
-${content}`;
+    const workspace = config2.workspace;
+    const maxTurns = config2.max_turns ?? 5;
     const sessionId = chatIdToSessionId(chat_id);
-    executePrompt(prompt, config2.workspace, config2.max_turns ?? 5, sessionId).then(async (response) => {
+    void (async () => {
       try {
+        const attachmentPaths = attachments && attachments.length > 0 ? await downloadInboundAttachments(attachments, workspace) : [];
+        const prompt = buildInboundPrompt(sender, transport, content, attachmentPaths);
+        const response = await executePrompt(prompt, workspace, maxTurns, sessionId);
         await fetch(`${transportEntry.callback_url}/callback/reply`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -49302,11 +49397,9 @@ ${content}`;
           signal: AbortSignal.timeout(1e4)
         });
       } catch (err) {
-        console.error(`Failed to deliver executor reply to ${transport}:`, err);
+        console.error(`Executor failed for inbound from ${sender}:`, err);
       }
-    }).catch((err) => {
-      console.error(`Executor failed for inbound from ${sender}:`, err);
-    });
+    })();
   });
   app.post("/messages/reply", async (req, reply) => {
     const parsed = OutboundReplySchema.safeParse(req.body);
@@ -49477,8 +49570,8 @@ ${content}`;
 
 // daemon/src/index.ts
 var HOME = homedir3();
-var BRIDGEY_DIR = join4(HOME, ".bridgey");
-var LOG_PATH = join4(BRIDGEY_DIR, "daemon.log");
+var BRIDGEY_DIR = join5(HOME, ".bridgey");
+var LOG_PATH = join5(BRIDGEY_DIR, "daemon.log");
 var DEFAULT_USER = process.env.USER || process.env.USERNAME || "unknown";
 function parseArgs(argv) {
   const args = argv.slice(2);
@@ -49517,8 +49610,8 @@ function removePid(pidfile2) {
 }
 function findConfig(explicitPath) {
   const candidates = explicitPath ? [explicitPath] : [
-    join4(BRIDGEY_DIR, "bridgey.config.json"),
-    join4(process.cwd(), "bridgey.config.json")
+    join5(BRIDGEY_DIR, "bridgey.config.json"),
+    join5(process.cwd(), "bridgey.config.json")
   ];
   for (const candidate of candidates) {
     if (existsSync3(candidate)) {

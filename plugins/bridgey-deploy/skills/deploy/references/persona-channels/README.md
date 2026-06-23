@@ -37,6 +37,11 @@ docker build -t persona-channels .
    acceptance config key), so the autonomous persona never blocks on a tool
    permission. The discord `reply` tool is a channel tool (not `mcp__`-namespaced),
    so an allowlist can't target it cleanly — bypass is the right lever here.
+
+   > ⚠️ **Blocked in Claude CLI 2.1.185+ (GH #52501):** `IS_SANDBOX=1` no longer
+   > suppresses the bypass-permissions acceptance prompt. Native-channels Tier-A
+   > is blocked on current CLI; use the daemon+bot path (Tier-B) as the stable
+   > fallback until upstream fixes it.
 8. **Volume ownership** — the image pre-creates a node-owned `/home/node/.claude`
    so the writable named volume initializes as `node`, not root; otherwise the
    entrypoint's `mkdir` under `~/.claude` fails and the container crash-loops.

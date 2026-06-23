@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Inter-agent communication for Claude Code via A2A protocol",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -27,7 +27,7 @@
       "source": "./plugins/bridgey-deploy",
       "description": "Deploy agents to remote servers as Docker containers with Tailscale SSH, Coolify integration, and bidirectional sync",
       "category": "infrastructure",
-      "version": "0.2.3"
+      "version": "0.2.4"
     }
   ]
 }

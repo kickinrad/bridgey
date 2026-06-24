@@ -11,6 +11,7 @@ import { registerTransportRoutes } from './transport-routes.js';
 import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
 import { isProcessAlive } from './registry.js';
+import { parseConfig } from './config.js';
 import type { BridgeyConfig } from './types.js';
 
 const HOME = homedir();
@@ -80,13 +81,12 @@ function findConfig(explicitPath?: string): BridgeyConfig | null {
 
   for (const candidate of candidates) {
     if (existsSync(candidate)) {
-      try {
-        const raw = readFileSync(candidate, 'utf-8');
-        return JSON.parse(raw) as BridgeyConfig;
-      } catch (err) {
-        console.error(`Failed to parse config at ${candidate}: ${err}`);
-        return null;
+      const raw = readFileSync(candidate, 'utf-8');
+      const config = parseConfig(raw);
+      if (!config) {
+        console.error(`Failed to parse config at ${candidate}`);
       }
+      return config;
     }
   }
 
@@ -130,7 +130,9 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   // Initialize store
   const store = new Store();
 
-  // Sync configured remote agents to store
+  // Sync configured remote agents to store. `config.agents` is guaranteed to be
+  // an array by parseConfig() — a minimal entrypoint-generated config that omits
+  // it is normalized to [] at load, so this loop can't crash-loop the daemon.
   for (const agent of config.agents) {
     store.saveAgent(agent.name, agent.url, agent.token, null, 'configured');
   }

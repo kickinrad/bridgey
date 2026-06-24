@@ -49568,6 +49568,24 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
   });
 }
 
+// daemon/src/config.ts
+function parseConfig(raw) {
+  let obj;
+  try {
+    obj = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
+    return null;
+  }
+  const c = obj;
+  return {
+    ...c,
+    agents: Array.isArray(c.agents) ? c.agents : []
+  };
+}
+
 // daemon/src/index.ts
 var HOME = homedir3();
 var BRIDGEY_DIR = join5(HOME, ".bridgey");
@@ -49615,13 +49633,12 @@ function findConfig(explicitPath) {
   ];
   for (const candidate of candidates) {
     if (existsSync3(candidate)) {
-      try {
-        const raw = readFileSync4(candidate, "utf-8");
-        return JSON.parse(raw);
-      } catch (err) {
-        console.error(`Failed to parse config at ${candidate}: ${err}`);
-        return null;
+      const raw = readFileSync4(candidate, "utf-8");
+      const config2 = parseConfig(raw);
+      if (!config2) {
+        console.error(`Failed to parse config at ${candidate}`);
       }
+      return config2;
     }
   }
   return null;

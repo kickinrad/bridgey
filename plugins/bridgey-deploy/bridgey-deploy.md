@@ -19,7 +19,10 @@ tags:
 
 ### Skills
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-deploy/skills/coolify/SKILL|coolify]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-deploy/skills/deploy/SKILL|deploy]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-deploy/skills/remote-status/SKILL|remote-status]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-deploy/skills/sync/SKILL|sync]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-deploy/skills/deploy/SKILL|deploy]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-deploy/skills/remote-status/SKILL|remote-status]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-deploy/skills/sync/SKILL|sync]]
+
+The `coolify` skill relocated to `core/infra` — see [[Areas/Claude Ecosystem/Marketplaces/core/plugins/infra/skills/coolify/SKILL|coolify]].
+
+See [[Resources/Repos/markets/bridgey/bridgey|bridgey]] for the parent repo overview.

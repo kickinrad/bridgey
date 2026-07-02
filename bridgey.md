@@ -5,6 +5,7 @@ parent: "[[Repos]]"
 aliases: [bridgey]
 author: wils
 created: 2026-04-27
+updated: 2026-07-02
 tags:
   - repo
   - claude-code
@@ -17,7 +18,7 @@ tags:
 
 Lives at `~/projects/markets/bridgey/` and surfaces into the vault via Folder Bridge at `Resources/Repos/markets/bridgey`. The core plugin handles agent registration and message routing; companion plugins add Discord integration and Coolify-based deployment.
 
-Key sub-areas: the `bridgey` core plugin (add-agent, setup, status, tailscale-scan, tailscale-setup skills), `bridgey-discord` (access + configure), and `bridgey-deploy` (coolify, deploy, remote-status, sync).
+Key sub-areas: the `bridgey` core plugin (a single consolidated `bridgey` lifecycle skill — setup, status, add-agent, tailscale — with per-topic reference files, replacing the five separate skills it started as), `bridgey-discord` (access + configure), and `bridgey-deploy` (deploy, remote-status, sync — the `coolify` skill has relocated to `core/infra`).
 
 ## Quick start
 
@@ -69,6 +70,17 @@ The bridgey ecosystem ships as three coordinated plugins rather than one. The sp
 - If the deploy lifecycle gets coupled to daemon startup → reconsider
 - Otherwise: keep the split. The seams are load-bearing.
 
+## Current deployment (2026-07-02)
+
+Personas run **local-first on [[Areas/Infrastructure/Devices/Desktops/luna/luna|luna]]**. The bridgey hub (`localhost:8091`) and all 11 mesh personas — archer, bob, flora, julia, kai, mila, nara, reed, urza, warren, zana — run there as `systemd --user` units (`bridgey-persona@<name>.service`), ports 8092–8102, each with an isolated store via `BRIDGEY_DATA_DIR=~/.bridgey/d/<name>`. The hub knows all 11 as configured A2A agents at `http://localhost:809X`; every persona daemon binds localhost. See [[Areas/Personas/Personas|Personas]] for the roster.
+
+Cloud ([[Areas/Infrastructure/Devices/Remote/cloud/cloud|cloud]], Hetzner + Coolify) keeps only what needs 24/7 uptime independent of luna: the `bridgey-julia` and `bridgey-bob` persona daemons plus their `bridgey-discord-julia` / `bridgey-discord-bob` bots. These coexist with julia's and bob's luna daemons on different transports — cloud serves Discord, luna serves hub A2A. Everything else that used to run on cloud (`bridgey-flora`, `bridgey-warren`, `bridgey-mila`, `bridgey-nara`, the shared `bridgey-discord` bot, and `agentgateway`) is stopped and renamed `-retired-20260702`, not deleted.
+
+**agentgateway retired.** The HTTP-MCP gateway that fronted `mealie-mcp` for cloud personas is gone. Personas that use recipe tools now register `mealie-mcp` directly (julia: MCP server `mealie`, SSE transport, `http://mealie-mcp:8000/sse`) instead of routing through a gateway. Tailscale identity-auth hardening for the daemon transport + channel routes — originally paired with the agentgateway integration branch — shipped to `main` independently (`feat/daemon-identity-auth`); the gateway itself did not ship.
+
+**Discord transport hardened.** `bridgey-discord` 0.4.1 adds transport-registration retry (survives the daemon-startup race) and background re-registration if the daemon restarts, deployed to both cloud bots.
+
 ## See also
 
 - [[Repos]]
+- [[Areas/Personas/Personas|Personas]]

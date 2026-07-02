@@ -17,13 +17,13 @@ tags:
 
 ## Files
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/CLAUDE|CLAUDE]] — plugin harness instructions
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-discord/CLAUDE|CLAUDE]] — plugin harness instructions
 
 ## Components
 
 ### Skills
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/skills/access/SKILL|access]]
-- [[Resources/Repos/personal/bridgey/plugins/bridgey-discord/skills/configure/SKILL|configure]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-discord/skills/access/SKILL|access]]
+- [[Resources/Repos/markets/bridgey/plugins/bridgey-discord/skills/configure/SKILL|configure]]
 
-See [[Resources/Repos/personal/bridgey/bridgey|bridgey]] for the parent repo overview.
+See [[Resources/Repos/markets/bridgey/bridgey|bridgey]] for the parent repo overview.

@@ -18,12 +18,12 @@ tags:
 
 ## Files
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/CLAUDE|CLAUDE]] — plugin harness instructions
+- [[Resources/Repos/markets/bridgey/plugins/bridgey/CLAUDE|CLAUDE]] — plugin harness instructions
 
 ## Components
 
 ### Skills
 
-- [[Resources/Repos/personal/bridgey/plugins/bridgey/skills/bridgey/SKILL|bridgey]] — single lifecycle skill (setup, status, agents, tailscale)
+- [[Resources/Repos/markets/bridgey/plugins/bridgey/skills/bridgey/SKILL|bridgey]] — single lifecycle skill (setup, status, agents, tailscale)
 
-See [[Resources/Repos/personal/bridgey/bridgey|bridgey]] for the parent repo overview.
+See [[Resources/Repos/markets/bridgey/bridgey|bridgey]] for the parent repo overview.

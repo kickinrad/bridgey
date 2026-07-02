@@ -59,8 +59,16 @@ function loadConfig() {
 }
 
 // transport.ts
+var REGISTER_RETRY_BASE_MS = 2e3;
+var REGISTER_RETRY_MAX_MS = 3e4;
+var REGISTER_RETRY_MAX_ATTEMPTS = 60;
 var TransportClient = class {
   daemonUrl;
+  // Remembered from the first registerWithRetry() call so a later reregister()
+  // (triggered by a sendInbound connection failure) doesn't need them re-passed.
+  registerPort;
+  registerCallbackUrl;
+  reregistering = false;
   constructor(daemonUrl) {
     this.daemonUrl = daemonUrl;
   }
@@ -80,6 +88,51 @@ var TransportClient = class {
     });
     if (!res.ok) throw new Error(`Failed to register transport: ${res.status}`);
   }
+  /**
+   * Register with the daemon, retrying with backoff on failure (connection
+   * refused, timeout, non-2xx). Survives the daemon-startup race where the
+   * bot's discord.js 'ready' event can fire before the daemon has finished
+   * binding its HTTP port — without this, a single failed registration left
+   * the bot permanently unregistered (no retry), so the daemon never knew
+   * about the 'discord' transport and replies silently queued forever.
+   *
+   * Also remembers port/callbackUrl so a later reregister() call (see below)
+   * can re-run this same retry loop without needing them passed again.
+   */
+  async registerWithRetry(port, callbackUrl) {
+    this.registerPort = port;
+    this.registerCallbackUrl = callbackUrl;
+    for (let attempt = 1; attempt <= REGISTER_RETRY_MAX_ATTEMPTS; attempt++) {
+      try {
+        await this.register(port, callbackUrl);
+        return;
+      } catch (err) {
+        if (attempt === REGISTER_RETRY_MAX_ATTEMPTS) {
+          throw err;
+        }
+        const delay = Math.min(REGISTER_RETRY_BASE_MS * 2 ** (attempt - 1), REGISTER_RETRY_MAX_MS);
+        console.error(
+          `Registration with daemon ${this.daemonUrl} failed (attempt ${attempt}/${REGISTER_RETRY_MAX_ATTEMPTS}), retrying in ${delay}ms:`,
+          err
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  /**
+   * Fire-and-forget re-registration. Called when an inbound-forward hits a
+   * connection error, which signals the daemon may have restarted (and lost
+   * our in-memory transport registration) rather than just rejected the
+   * request. No-op if a reregistration is already in flight, or if we've
+   * never successfully started a registration (nothing to repeat yet).
+   */
+  reregister() {
+    if (this.reregistering || this.registerPort === void 0) return;
+    this.reregistering = true;
+    this.registerWithRetry(this.registerPort, this.registerCallbackUrl).then(() => console.error(`Re-registered as transport with daemon at ${this.daemonUrl}`)).catch((err) => console.error(`Re-registration with daemon ${this.daemonUrl} ultimately failed:`, err)).finally(() => {
+      this.reregistering = false;
+    });
+  }
   async unregister() {
     await fetch(`${this.daemonUrl}/transports/unregister`, {
       method: "POST",
@@ -96,11 +149,17 @@ var TransportClient = class {
     }).catch((err) => console.error("Failed to send permission response:", err));
   }
   async sendInbound(msg) {
-    const res = await fetch(`${this.daemonUrl}/messages/inbound`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transport: "discord", ...msg })
-    });
+    let res;
+    try {
+      res = await fetch(`${this.daemonUrl}/messages/inbound`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transport: "discord", ...msg })
+      });
+    } catch (err) {
+      this.reregister();
+      throw err;
+    }
     if (!res.ok) throw new Error(`Failed to send inbound message: ${res.status}`);
   }
 };
@@ -718,16 +777,13 @@ client.on("messageCreate", async (msg) => {
     console.error(`Failed to forward message to daemon ${client2.url}:`, err);
   }
 });
-client.once("ready", async () => {
+client.once("ready", () => {
   console.error(`Discord bot connected as ${client.user?.tag}`);
   for (const c of allClients()) {
-    try {
-      await c.register(config.port, config.callback_url);
-      console.error(`Registered as transport with daemon at ${c.url}`);
-    } catch (err) {
-      console.error(`Failed to register with daemon ${c.url}:`, err);
+    void c.registerWithRetry(config.port, config.callback_url).then(() => console.error(`Registered as transport with daemon at ${c.url}`)).catch((err) => {
+      console.error(`Failed to register with daemon ${c.url} after retries:`, err);
       console.error("Messages routed to this daemon won't reach Claude Code");
-    }
+    });
   }
 });
 var shuttingDown = false;

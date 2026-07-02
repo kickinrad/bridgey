@@ -738,18 +738,23 @@ client.on("messageCreate", async (msg: Message) => {
 
 // --- Startup ---
 
-client.once("ready", async () => {
+client.once("ready", () => {
   console.error(`Discord bot connected as ${client.user?.tag}`);
   // Register the callback with every daemon we route to, so each can reach the
-  // bot for replies. One failure doesn't block the others.
+  // bot for replies. Each registration retries independently with backoff
+  // (see TransportClient.registerWithRetry) so a daemon that hasn't finished
+  // binding its HTTP port yet — discord.js can fire 'ready' well before a
+  // slower-starting daemon binds — doesn't leave the bot permanently
+  // unregistered. Kicked off without awaiting so one slow/failing daemon
+  // doesn't block registration against the others.
   for (const c of allClients()) {
-    try {
-      await c.register(config.port, config.callback_url);
-      console.error(`Registered as transport with daemon at ${c.url}`);
-    } catch (err) {
-      console.error(`Failed to register with daemon ${c.url}:`, err);
-      console.error("Messages routed to this daemon won't reach Claude Code");
-    }
+    void c
+      .registerWithRetry(config.port, config.callback_url)
+      .then(() => console.error(`Registered as transport with daemon at ${c.url}`))
+      .catch((err) => {
+        console.error(`Failed to register with daemon ${c.url} after retries:`, err);
+        console.error("Messages routed to this daemon won't reach Claude Code");
+      });
   }
 });
 

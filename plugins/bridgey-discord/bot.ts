@@ -712,7 +712,10 @@ client.on("messageCreate", async (msg: Message) => {
   if (msg.author.bot) meta.from_bot = "true";
 
   // Route to the persona daemon that owns this channel (or named in the message).
-  const { client, persona } = clientFor(channelId, content);
+  // NOTE: destructured as `daemonClient` (not `client`) — a `const client` here
+  // would shadow the outer discord.js `client` across this whole handler scope,
+  // putting every earlier `client.user` reference in the TDZ (see commit 1512754).
+  const { client: daemonClient, persona } = clientFor(channelId, content);
   if (persona) meta.persona = persona;
 
   const attachments = msg.attachments.map((a) => ({
@@ -724,7 +727,7 @@ client.on("messageCreate", async (msg: Message) => {
   }));
 
   try {
-    await client.sendInbound({
+    await daemonClient.sendInbound({
       chat_id: chatId,
       sender: msg.author.username,
       content,
@@ -732,7 +735,7 @@ client.on("messageCreate", async (msg: Message) => {
       attachments: attachments.length > 0 ? attachments : undefined,
     });
   } catch (err) {
-    console.error(`Failed to forward message to daemon ${client.url}:`, err);
+    console.error(`Failed to forward message to daemon ${daemonClient.url}:`, err);
   }
 });
 

@@ -697,11 +697,11 @@ ${inputPreview}`;
 client.on("messageCreate", async (msg) => {
   const isDM = !msg.guild;
   const isReplyToBot = !isDM && msg.reference?.messageId ? recentSentIds.has(msg.reference.messageId) : false;
-  const isMentioned = !isDM && !!client2.user && msg.mentions.has(client2.user.id) || isReplyToBot;
+  const isMentioned = !isDM && !!client.user && msg.mentions.has(client.user.id) || isReplyToBot;
   console.error(`[msg] from=${msg.author.username} bot=${msg.author.bot} isDM=${isDM} mentioned=${isMentioned} content="${msg.content.slice(0, 50)}"`);
   if (msg.author.bot && isDM) return;
   if (msg.author.bot && !isMentioned) return;
-  if (msg.author.id === client2.user?.id) return;
+  if (msg.author.id === client.user?.id) return;
   const permMatch = PERMISSION_REPLY_RE.exec(msg.content);
   if (permMatch && isAllowed(msg.author.id)) {
     const behavior = permMatch[1].toLowerCase().startsWith("y") ? "allow" : "deny";
@@ -742,8 +742,8 @@ client.on("messageCreate", async (msg) => {
   }
   const chatId = isDM ? `discord:dm:${msg.author.id}` : `discord:ch:${channelId}`;
   let content = msg.content;
-  if (isMentioned && client2.user) {
-    content = content.replace(new RegExp(`<@!?${client2.user.id}>\\s*`), "").trim();
+  if (isMentioned && client.user) {
+    content = content.replace(new RegExp(`<@!?${client.user.id}>\\s*`), "").trim();
   }
   const meta = {
     message_id: msg.id,
@@ -756,7 +756,7 @@ client.on("messageCreate", async (msg) => {
   }
   if (isMentioned) meta.mentioned = "true";
   if (msg.author.bot) meta.from_bot = "true";
-  const { client: client2, persona } = clientFor(channelId, content);
+  const { client: daemonClient, persona } = clientFor(channelId, content);
   if (persona) meta.persona = persona;
   const attachments = msg.attachments.map((a) => ({
     id: a.id,
@@ -766,7 +766,7 @@ client.on("messageCreate", async (msg) => {
     url: a.url
   }));
   try {
-    await client2.sendInbound({
+    await daemonClient.sendInbound({
       chat_id: chatId,
       sender: msg.author.username,
       content,
@@ -774,7 +774,7 @@ client.on("messageCreate", async (msg) => {
       attachments: attachments.length > 0 ? attachments : void 0
     });
   } catch (err) {
-    console.error(`Failed to forward message to daemon ${client2.url}:`, err);
+    console.error(`Failed to forward message to daemon ${daemonClient.url}:`, err);
   }
 });
 client.once("ready", () => {

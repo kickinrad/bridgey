@@ -28228,7 +28228,7 @@ async function scanTailnet(config2) {
 import { readFileSync as readFileSync2, writeFileSync as writeFileSync2, readdirSync, unlinkSync, existsSync as existsSync2, mkdirSync as mkdirSync2 } from "fs";
 import { join as join2 } from "path";
 import { homedir } from "os";
-var DEFAULT_REGISTRY = join2(homedir(), ".bridgey", "agents");
+var DEFAULT_REGISTRY = join2(process.env.BRIDGEY_DATA_DIR || join2(homedir(), ".bridgey"), "agents");
 function ensureDir(dir) {
   if (!existsSync2(dir)) mkdirSync2(dir, { recursive: true });
 }

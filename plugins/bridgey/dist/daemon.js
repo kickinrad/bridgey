@@ -34783,7 +34783,7 @@ async function sendA2AMessage(agentUrl, token, message, contextId) {
 import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, unlinkSync, readdirSync, readFileSync as readFileSync3 } from "fs";
 import { join as join3 } from "path";
 import { homedir as homedir2 } from "os";
-var REGISTRY_DIR = join3(homedir2(), ".bridgey", "agents");
+var REGISTRY_DIR = join3(process.env.BRIDGEY_DATA_DIR || join3(homedir2(), ".bridgey"), "agents");
 function ensureDir() {
   mkdirSync2(REGISTRY_DIR, { recursive: true });
 }
@@ -49588,7 +49588,7 @@ function parseConfig(raw) {
 
 // daemon/src/index.ts
 var HOME = homedir3();
-var BRIDGEY_DIR = join5(HOME, ".bridgey");
+var BRIDGEY_DIR = process.env.BRIDGEY_DATA_DIR || join5(HOME, ".bridgey");
 var LOG_PATH = join5(BRIDGEY_DIR, "daemon.log");
 var DEFAULT_USER = process.env.USER || process.env.USERNAME || "unknown";
 function parseArgs(argv) {
@@ -49666,7 +49666,7 @@ async function startDaemon(pidfile2, configPath2) {
     console.log("Run /bridgey:setup first");
     process.exit(0);
   }
-  const store = new Store();
+  const store = new Store(BRIDGEY_DIR);
   for (const agent of config2.agents) {
     store.saveAgent(agent.name, agent.url, agent.token, null, "configured");
   }

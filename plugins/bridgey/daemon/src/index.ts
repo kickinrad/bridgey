@@ -15,7 +15,10 @@ import { parseConfig } from './config.js';
 import type { BridgeyConfig } from './types.js';
 
 const HOME = homedir();
-const BRIDGEY_DIR = join(HOME, '.bridgey');
+// Data dir override lets multiple daemons (a hub + per-persona spokes) run on
+// one host without clobbering each other's agents.json/messages.json/audit.
+// Defaults to ~/.bridgey so single-daemon installs are unaffected.
+const BRIDGEY_DIR = process.env.BRIDGEY_DATA_DIR || join(HOME, '.bridgey');
 const LOG_PATH = join(BRIDGEY_DIR, 'daemon.log');
 const DEFAULT_USER = process.env.USER || process.env.USERNAME || 'unknown';
 
@@ -128,7 +131,7 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   }
 
   // Initialize store
-  const store = new Store();
+  const store = new Store(BRIDGEY_DIR);
 
   // Sync configured remote agents to store. `config.agents` is guaranteed to be
   // an array by parseConfig() — a minimal entrypoint-generated config that omits

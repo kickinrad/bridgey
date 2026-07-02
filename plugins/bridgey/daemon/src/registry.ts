@@ -3,7 +3,9 @@ import { join } from 'path';
 import { homedir } from 'os';
 import type { LocalAgent } from './types.js';
 
-const REGISTRY_DIR = join(homedir(), '.bridgey', 'agents');
+// Honors BRIDGEY_DATA_DIR so per-persona daemons keep isolated local registries
+// (see index.ts). Defaults to ~/.bridgey for single-daemon installs.
+const REGISTRY_DIR = join(process.env.BRIDGEY_DATA_DIR || join(homedir(), '.bridgey'), 'agents');
 
 function ensureDir(): void {
   mkdirSync(REGISTRY_DIR, { recursive: true });

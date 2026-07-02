@@ -93,7 +93,7 @@ async function scanTailnet(config) {
 import { readFileSync as readFileSync2, writeFileSync, readdirSync, unlinkSync, existsSync as existsSync2, mkdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-var DEFAULT_REGISTRY = join(homedir(), ".bridgey", "agents");
+var DEFAULT_REGISTRY = join(process.env.BRIDGEY_DATA_DIR || join(homedir(), ".bridgey"), "agents");
 function ensureDir(dir) {
   if (!existsSync2(dir)) mkdirSync(dir, { recursive: true });
 }

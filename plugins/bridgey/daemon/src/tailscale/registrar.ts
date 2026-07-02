@@ -25,7 +25,7 @@ type RegistryEntry = {
   discovered_at?: string;
 };
 
-const DEFAULT_REGISTRY = join(homedir(), '.bridgey', 'agents');
+const DEFAULT_REGISTRY = join(process.env.BRIDGEY_DATA_DIR || join(homedir(), '.bridgey'), 'agents');
 
 function ensureDir(dir: string): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });

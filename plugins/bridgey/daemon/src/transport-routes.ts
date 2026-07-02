@@ -3,8 +3,8 @@ import { z } from 'zod';
 import type { TransportRegistry } from './transport-registry.js';
 import type { ChannelPush } from './channel-push.js';
 import { executePrompt, chatIdToSessionId } from './executor.js';
-import { downloadInboundAttachments, buildInboundPrompt } from './attachments.js';
 import type { BridgeyConfig } from './types.js';
+import { isAuthorized } from './auth.js';
 import {
   TransportRegisterSchema,
   TransportUnregisterSchema,
@@ -28,11 +28,14 @@ export function registerTransportRoutes(
   app: FastifyInstance,
   registry: TransportRegistry,
   channelPush: ChannelPush,
-  config?: BridgeyConfig,
+  config: BridgeyConfig,
 ): void {
   // ── Transport Management ────────────────────────────────────────────
 
   app.post('/transports/register', async (req, reply) => {
+    if (!(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = TransportRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -42,6 +45,9 @@ export function registerTransportRoutes(
   });
 
   app.post('/transports/unregister', async (req, reply) => {
+    if (!(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = TransportUnregisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -57,6 +63,9 @@ export function registerTransportRoutes(
   // ── Channel Server ─────────────────────────────────────────────────
 
   app.post('/channel/register', async (req, reply) => {
+    if (!(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = ChannelRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -177,6 +186,9 @@ export function registerTransportRoutes(
   // ── Messages ────────────────────────────────────────────────────────
 
   app.post('/messages/inbound', async (req, reply) => {
+    if (!(await isAuthorized(req, config))) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const parsed = InboundMessageSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -213,31 +225,25 @@ export function registerTransportRoutes(
     // Respond immediately, execute async
     reply.send({ ok: true, queued: false, mode: 'executor' });
 
-    const workspace = config.workspace;
-    const maxTurns = config.max_turns ?? 5;
+    // Fire-and-forget: execute and reply through transport callback
+    const prompt = `[Message from ${sender} via ${transport}]\n${content}`;
     const sessionId = chatIdToSessionId(chat_id);
-
-    // Fire-and-forget: download any attachments into the workspace so the
-    // cold-spawned session can open them, build the prompt with their paths,
-    // execute, and reply through the transport callback.
-    void (async () => {
-      try {
-        const attachmentPaths =
-          attachments && attachments.length > 0
-            ? await downloadInboundAttachments(attachments, workspace)
-            : [];
-        const prompt = buildInboundPrompt(sender, transport, content, attachmentPaths);
-        const response = await executePrompt(prompt, workspace, maxTurns, sessionId);
-        await fetch(`${transportEntry.callback_url}/callback/reply`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id, text: response }),
-          signal: AbortSignal.timeout(10_000),
-        });
-      } catch (err) {
+    executePrompt(prompt, config.workspace, config.max_turns ?? 5, sessionId)
+      .then(async (response) => {
+        try {
+          await fetch(`${transportEntry.callback_url}/callback/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id, text: response }),
+            signal: AbortSignal.timeout(10_000),
+          });
+        } catch (err) {
+          console.error(`Failed to deliver executor reply to ${transport}:`, err);
+        }
+      })
+      .catch((err) => {
         console.error(`Executor failed for inbound from ${sender}:`, err);
-      }
-    })();
+      });
   });
 
   app.post('/messages/reply', async (req, reply) => {

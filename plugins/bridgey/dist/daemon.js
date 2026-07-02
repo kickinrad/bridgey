@@ -2358,18 +2358,18 @@ var require_hooks = __commonJS({
       }
     }
     function hookRunnerGenerator(iterator) {
-      return function hookRunner(functions, request, reply, cb) {
+      return function hookRunner(functions, request2, reply, cb) {
         let i = 0;
         function next(err) {
           if (err || i === functions.length) {
-            cb(err, request, reply);
+            cb(err, request2, reply);
             return;
           }
           let result;
           try {
-            result = iterator(functions[i++], request, reply, next);
+            result = iterator(functions[i++], request2, reply, next);
           } catch (error48) {
-            cb(error48, request, reply);
+            cb(error48, request2, reply);
             return;
           }
           if (result && typeof result.then === "function") {
@@ -2383,38 +2383,38 @@ var require_hooks = __commonJS({
           if (!err) {
             err = new FST_ERR_SEND_UNDEFINED_ERR();
           }
-          cb(err, request, reply);
+          cb(err, request2, reply);
         }
         next();
       };
     }
-    function onResponseHookIterator(fn, request, reply, next) {
-      return fn(request, reply, next);
+    function onResponseHookIterator(fn, request2, reply, next) {
+      return fn(request2, reply, next);
     }
     var onResponseHookRunner = hookRunnerGenerator(onResponseHookIterator);
     var preValidationHookRunner = hookRunnerGenerator(hookIterator);
     var preHandlerHookRunner = hookRunnerGenerator(hookIterator);
     var onTimeoutHookRunner = hookRunnerGenerator(hookIterator);
     var onRequestHookRunner = hookRunnerGenerator(hookIterator);
-    function onSendHookRunner(functions, request, reply, payload, cb) {
+    function onSendHookRunner(functions, request2, reply, payload, cb) {
       let i = 0;
       function next(err, newPayload) {
         if (err) {
-          cb(err, request, reply, payload);
+          cb(err, request2, reply, payload);
           return;
         }
         if (newPayload !== void 0) {
           payload = newPayload;
         }
         if (i === functions.length) {
-          cb(null, request, reply, payload);
+          cb(null, request2, reply, payload);
           return;
         }
         let result;
         try {
-          result = functions[i++](request, reply, payload, next);
+          result = functions[i++](request2, reply, payload, next);
         } catch (error48) {
-          cb(error48, request, reply);
+          cb(error48, request2, reply);
           return;
         }
         if (result && typeof result.then === "function") {
@@ -2428,29 +2428,29 @@ var require_hooks = __commonJS({
         if (!err) {
           err = new FST_ERR_SEND_UNDEFINED_ERR();
         }
-        cb(err, request, reply, payload);
+        cb(err, request2, reply, payload);
       }
       next();
     }
     var preSerializationHookRunner = onSendHookRunner;
-    function preParsingHookRunner(functions, request, reply, cb) {
+    function preParsingHookRunner(functions, request2, reply, cb) {
       let i = 0;
       function next(err, newPayload) {
         if (reply.sent) {
           return;
         }
         if (newPayload !== void 0) {
-          request[kRequestPayloadStream] = newPayload;
+          request2[kRequestPayloadStream] = newPayload;
         }
         if (err || i === functions.length) {
-          cb(err, request, reply);
+          cb(err, request2, reply);
           return;
         }
         let result;
         try {
-          result = functions[i++](request, reply, request[kRequestPayloadStream], next);
+          result = functions[i++](request2, reply, request2[kRequestPayloadStream], next);
         } catch (error48) {
-          cb(error48, request, reply);
+          cb(error48, request2, reply);
           return;
         }
         if (result && typeof result.then === "function") {
@@ -2464,22 +2464,22 @@ var require_hooks = __commonJS({
         if (!err) {
           err = new FST_ERR_SEND_UNDEFINED_ERR();
         }
-        cb(err, request, reply);
+        cb(err, request2, reply);
       }
       next();
     }
-    function onRequestAbortHookRunner(functions, request, cb) {
+    function onRequestAbortHookRunner(functions, request2, cb) {
       let i = 0;
       function next(err) {
         if (err || i === functions.length) {
-          cb(err, request);
+          cb(err, request2);
           return;
         }
         let result;
         try {
-          result = functions[i++](request, next);
+          result = functions[i++](request2, next);
         } catch (error48) {
-          cb(error48, request);
+          cb(error48, request2);
           return;
         }
         if (result && typeof result.then === "function") {
@@ -2493,13 +2493,13 @@ var require_hooks = __commonJS({
         if (!err) {
           err = new FST_ERR_SEND_UNDEFINED_ERR();
         }
-        cb(err, request);
+        cb(err, request2);
       }
       next();
     }
-    function hookIterator(fn, request, reply, next) {
+    function hookIterator(fn, request2, reply, next) {
       if (reply.sent === true) return void 0;
-      return fn(request, reply, next);
+      return fn(request2, reply, next);
     }
     module.exports = {
       Hooks,
@@ -2571,9 +2571,9 @@ var require_promise = __commonJS({
 var require_server = __commonJS({
   "daemon/node_modules/fastify/lib/server.js"(exports, module) {
     "use strict";
-    var http = __require("node:http");
+    var http2 = __require("node:http");
     var https = __require("node:https");
-    var http2 = __require("node:http2");
+    var http22 = __require("node:http2");
     var dns = __require("node:dns");
     var os = __require("node:os");
     var { kState, kOptions, kServerBindings, kHttp2ServerSessions } = require_symbols2();
@@ -2816,7 +2816,7 @@ var require_server = __commonJS({
       }
       const httpsOptions = options.https === true ? {} : options.https;
       if (options.http2) {
-        const server2 = typeof httpsOptions === "object" ? http2.createSecureServer(httpsOptions, httpHandler) : http2.createServer(options.http, httpHandler);
+        const server2 = typeof httpsOptions === "object" ? http22.createSecureServer(httpsOptions, httpHandler) : http22.createServer(options.http, httpHandler);
         server2.on("session", (session) => session.setTimeout(options.http2SessionTimeout, () => {
           session.close();
         }));
@@ -2826,7 +2826,7 @@ var require_server = __commonJS({
         server2.setTimeout(options.connectionTimeout);
         return server2;
       }
-      const server = httpsOptions ? https.createServer(httpsOptions, httpHandler) : http.createServer(options.http, httpHandler);
+      const server = httpsOptions ? https.createServer(httpsOptions, httpHandler) : http2.createServer(options.http, httpHandler);
       server.keepAliveTimeout = options.keepAliveTimeout;
       server.requestTimeout = options.requestTimeout;
       server.setTimeout(options.connectionTimeout);
@@ -3185,11 +3185,11 @@ var require_validation = __commonJS({
         FSTWRN001("params", method, url2);
       }
     }
-    function validateParam(validatorFunction, request, paramName) {
-      const isUndefined = request[paramName] === void 0;
+    function validateParam(validatorFunction, request2, paramName) {
+      const isUndefined = request2[paramName] === void 0;
       let ret;
       try {
-        ret = validatorFunction?.(isUndefined ? null : request[paramName]);
+        ret = validatorFunction?.(isUndefined ? null : request2[paramName]);
       } catch (err) {
         err.statusCode = 500;
         return err;
@@ -3205,19 +3205,19 @@ var require_validation = __commonJS({
       function answer(ret2) {
         if (ret2 === false) return validatorFunction.errors;
         if (ret2 && ret2.error) return ret2.error;
-        if (ret2 && ret2.value) request[paramName] = ret2.value;
+        if (ret2 && ret2.value) request2[paramName] = ret2.value;
         return false;
       }
     }
-    function validate(context, request, execution) {
+    function validate(context, request2, execution) {
       const runExecution = execution === void 0;
       if (runExecution || !execution.skipParams) {
-        const params = validateParam(context[paramsSchema], request, "params");
+        const params = validateParam(context[paramsSchema], request2, "params");
         if (params) {
           if (typeof params.then !== "function") {
             return wrapValidationError(params, "params", context.schemaErrorFormatter);
           } else {
-            return validateAsyncParams(params, context, request);
+            return validateAsyncParams(params, context, request2);
           }
         }
       }
@@ -3226,66 +3226,66 @@ var require_validation = __commonJS({
         if (typeof context[bodySchema] === "function") {
           validatorFunction = context[bodySchema];
         } else if (context[bodySchema]) {
-          const contentType = getEssenceMediaType(request.headers["content-type"]);
+          const contentType = getEssenceMediaType(request2.headers["content-type"]);
           const contentSchema = context[bodySchema][contentType];
           if (contentSchema) {
             validatorFunction = contentSchema;
           }
         }
-        const body = validateParam(validatorFunction, request, "body");
+        const body = validateParam(validatorFunction, request2, "body");
         if (body) {
           if (typeof body.then !== "function") {
             return wrapValidationError(body, "body", context.schemaErrorFormatter);
           } else {
-            return validateAsyncBody(body, context, request);
+            return validateAsyncBody(body, context, request2);
           }
         }
       }
       if (runExecution || !execution.skipQuery) {
-        const query = validateParam(context[querystringSchema], request, "query");
+        const query = validateParam(context[querystringSchema], request2, "query");
         if (query) {
           if (typeof query.then !== "function") {
             return wrapValidationError(query, "querystring", context.schemaErrorFormatter);
           } else {
-            return validateAsyncQuery(query, context, request);
+            return validateAsyncQuery(query, context, request2);
           }
         }
       }
-      const headers = validateParam(context[headersSchema], request, "headers");
+      const headers = validateParam(context[headersSchema], request2, "headers");
       if (headers) {
         if (typeof headers.then !== "function") {
           return wrapValidationError(headers, "headers", context.schemaErrorFormatter);
         } else {
-          return validateAsyncHeaders(headers, context, request);
+          return validateAsyncHeaders(headers, context, request2);
         }
       }
       return false;
     }
-    function validateAsyncParams(validatePromise, context, request) {
+    function validateAsyncParams(validatePromise, context, request2) {
       return validatePromise.then((paramsResult) => {
         if (paramsResult) {
           return wrapValidationError(paramsResult, "params", context.schemaErrorFormatter);
         }
-        return validate(context, request, { skipParams: true });
+        return validate(context, request2, { skipParams: true });
       });
     }
-    function validateAsyncBody(validatePromise, context, request) {
+    function validateAsyncBody(validatePromise, context, request2) {
       return validatePromise.then((bodyResult) => {
         if (bodyResult) {
           return wrapValidationError(bodyResult, "body", context.schemaErrorFormatter);
         }
-        return validate(context, request, { skipParams: true, skipBody: true });
+        return validate(context, request2, { skipParams: true, skipBody: true });
       });
     }
-    function validateAsyncQuery(validatePromise, context, request) {
+    function validateAsyncQuery(validatePromise, context, request2) {
       return validatePromise.then((queryResult) => {
         if (queryResult) {
           return wrapValidationError(queryResult, "querystring", context.schemaErrorFormatter);
         }
-        return validate(context, request, { skipParams: true, skipBody: true, skipQuery: true });
+        return validate(context, request2, { skipParams: true, skipBody: true, skipQuery: true });
       });
     }
-    function validateAsyncHeaders(validatePromise, context, request) {
+    function validateAsyncHeaders(validatePromise, context, request2) {
       return validatePromise.then((headersResult) => {
         if (headersResult) {
           return wrapValidationError(headersResult, "headers", context.schemaErrorFormatter);
@@ -3338,30 +3338,30 @@ var require_handle_request = __commonJS({
       kSupportedHTTPMethods
     } = require_symbols2();
     var channels = diagnostics.tracingChannel("fastify.request.handler");
-    function handleRequest(err, request, reply) {
+    function handleRequest(err, request2, reply) {
       if (reply.sent === true) return;
       if (err != null) {
         reply[kReplyIsError] = true;
         reply.send(err);
         return;
       }
-      const method = request.method;
+      const method = request2.method;
       if (this[kSupportedHTTPMethods].bodyless.has(method)) {
-        handler(request, reply);
+        handler(request2, reply);
         return;
       }
       if (this[kSupportedHTTPMethods].bodywith.has(method)) {
-        const headers = request.headers;
+        const headers = request2.headers;
         const ctHeader = headers["content-type"];
         if (ctHeader === void 0) {
           const contentLength = headers["content-length"];
           const transferEncoding = headers["transfer-encoding"];
           const isEmptyBody = transferEncoding === void 0 && (contentLength === void 0 || contentLength === "0");
           if (isEmptyBody) {
-            handler(request, reply);
+            handler(request2, reply);
             return;
           }
-          request[kRouteContext].contentTypeParser.run("", handler, request, reply);
+          request2[kRouteContext].contentTypeParser.run("", handler, request2, reply);
           return;
         }
         const contentType = new ContentType(ctHeader);
@@ -3370,44 +3370,44 @@ var require_handle_request = __commonJS({
           reply.status(415).send(new FST_ERR_CTP_INVALID_MEDIA_TYPE());
           return;
         }
-        request[kRouteContext].contentTypeParser.run(contentType.toString(), handler, request, reply);
+        request2[kRouteContext].contentTypeParser.run(contentType.toString(), handler, request2, reply);
         return;
       }
-      handler(request, reply);
+      handler(request2, reply);
     }
-    function handler(request, reply) {
+    function handler(request2, reply) {
       try {
-        if (request[kRouteContext].preValidation !== null) {
+        if (request2[kRouteContext].preValidation !== null) {
           preValidationHookRunner(
-            request[kRouteContext].preValidation,
-            request,
+            request2[kRouteContext].preValidation,
+            request2,
             reply,
             preValidationCallback
           );
         } else {
-          preValidationCallback(null, request, reply);
+          preValidationCallback(null, request2, reply);
         }
       } catch (err) {
-        preValidationCallback(err, request, reply);
+        preValidationCallback(err, request2, reply);
       }
     }
-    function preValidationCallback(err, request, reply) {
+    function preValidationCallback(err, request2, reply) {
       if (reply.sent === true) return;
       if (err != null) {
         reply[kReplyIsError] = true;
         reply.send(err);
         return;
       }
-      const validationErr = validateSchema(reply[kRouteContext], request);
+      const validationErr = validateSchema(reply[kRouteContext], request2);
       const isAsync = validationErr && typeof validationErr.then === "function" || false;
       if (isAsync) {
-        const cb = validationCompleted.bind(null, request, reply);
+        const cb = validationCompleted.bind(null, request2, reply);
         validationErr.then(cb, cb);
       } else {
-        validationCompleted(request, reply, validationErr);
+        validationCompleted(request2, reply, validationErr);
       }
     }
-    function validationCompleted(request, reply, validationErr) {
+    function validationCompleted(request2, reply, validationErr) {
       if (validationErr) {
         if (reply[kRouteContext].attachValidation === false) {
           reply.send(validationErr);
@@ -3415,25 +3415,25 @@ var require_handle_request = __commonJS({
         }
         reply.request.validationError = validationErr;
       }
-      if (request[kRouteContext].preHandler !== null) {
+      if (request2[kRouteContext].preHandler !== null) {
         preHandlerHookRunner(
-          request[kRouteContext].preHandler,
-          request,
+          request2[kRouteContext].preHandler,
+          request2,
           reply,
           preHandlerCallback
         );
       } else {
-        preHandlerCallback(null, request, reply);
+        preHandlerCallback(null, request2, reply);
       }
     }
-    function preHandlerCallback(err, request, reply) {
+    function preHandlerCallback(err, request2, reply) {
       if (reply.sent) return;
-      const context = request[kRouteContext];
+      const context = request2[kRouteContext];
       if (!channels.hasSubscribers || context[kFourOhFourContext] === null) {
-        preHandlerCallbackInner(err, request, reply);
+        preHandlerCallbackInner(err, request2, reply);
       } else {
         const store = {
-          request,
+          request: request2,
           reply,
           async: false,
           route: {
@@ -3441,11 +3441,11 @@ var require_handle_request = __commonJS({
             method: context.config.method
           }
         };
-        channels.start.runStores(store, preHandlerCallbackInner, void 0, err, request, reply, store);
+        channels.start.runStores(store, preHandlerCallbackInner, void 0, err, request2, reply, store);
       }
     }
-    function preHandlerCallbackInner(err, request, reply, store) {
-      const context = request[kRouteContext];
+    function preHandlerCallbackInner(err, request2, reply, store) {
+      const context = request2[kRouteContext];
       try {
         if (err != null) {
           reply[kReplyIsError] = true;
@@ -3459,7 +3459,7 @@ var require_handle_request = __commonJS({
         }
         let result;
         try {
-          result = context.handler(request, reply);
+          result = context.handler(request2, reply);
         } catch (err2) {
           if (store) {
             store.error = err2;
@@ -4760,7 +4760,7 @@ var require_sonic_boom = __commonJS({
       if (!(this instanceof SonicBoom)) {
         return new SonicBoom(opts);
       }
-      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir2, retryEAGAIN, fsync, contentMode, mode } = opts || {};
+      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir, retryEAGAIN, fsync, contentMode, mode } = opts || {};
       fd = fd || dest;
       this._len = 0;
       this.fd = -1;
@@ -4785,7 +4785,7 @@ var require_sonic_boom = __commonJS({
       this.append = append || false;
       this.mode = mode;
       this.retryEAGAIN = retryEAGAIN || (() => true);
-      this.mkdir = mkdir2 || false;
+      this.mkdir = mkdir || false;
       let fsWriteSync;
       let fsWrite;
       if (contentMode === kContentModeBuffer) {
@@ -5491,7 +5491,7 @@ var require_thread_stream = __commonJS({
     var { version: version2 } = require_package();
     var { EventEmitter } = __require("events");
     var { Worker } = __require("worker_threads");
-    var { join: join6 } = __require("path");
+    var { join: join5 } = __require("path");
     var { pathToFileURL } = __require("url");
     var { wait } = require_wait();
     var {
@@ -5527,7 +5527,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join6(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join5(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -5918,7 +5918,7 @@ var require_transport = __commonJS({
     var { createRequire } = __require("module");
     var { existsSync: existsSync4 } = __require("node:fs");
     var getCallers = require_caller();
-    var { join: join6, isAbsolute, sep } = __require("node:path");
+    var { join: join5, isAbsolute, sep } = __require("node:path");
     var { fileURLToPath } = __require("node:url");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
@@ -6071,7 +6071,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -6089,7 +6089,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -6112,7 +6112,7 @@ var require_transport = __commonJS({
           return origin;
         }
         if (origin === "pino/file") {
-          return join6(__dirname, "..", "file.js");
+          return join5(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
@@ -7092,7 +7092,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join6 = ",";
+            let join5 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -7106,7 +7106,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join6 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -7114,13 +7114,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join6;
+                res += join5;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -7141,7 +7141,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join6 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -7155,13 +7155,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join6;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join6;
+              separator = join5;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -7202,7 +7202,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join6 = ",";
+            let join5 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -7215,7 +7215,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join6 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -7223,13 +7223,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join6;
+                res += join5;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -7242,7 +7242,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join6 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -7251,7 +7251,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join6;
+                separator = join5;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -7309,20 +7309,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join7 = `,
+              const join6 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join7;
+                res2 += join6;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join7}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -7338,16 +7338,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join6 = `,
+            const join5 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join6, maximumBreadth);
+              res += stringifyTypedArray(value, join5, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join6;
+              separator = join5;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -7358,13 +7358,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join6;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join6;
+              separator = join5;
             }
             if (separator !== "") {
               res = `
@@ -8677,7 +8677,7 @@ var require_error_handler = __commonJS({
         reply.send(err);
       }
     }
-    function defaultErrorHandler(error48, request, reply) {
+    function defaultErrorHandler(error48, request2, reply) {
       setErrorHeaders(error48, reply);
       setErrorStatusCode(reply, error48);
       if (reply.statusCode < 500) {
@@ -8690,7 +8690,7 @@ var require_error_handler = __commonJS({
       } else {
         if (!reply.log[kDisableRequestLogging]) {
           reply.log.error(
-            { req: request, res: reply, err: error48 },
+            { req: request2, res: reply, err: error48 },
             error48?.message
           );
         }
@@ -8955,13 +8955,13 @@ var require_reply = __commonJS({
     } = require_errors2();
     var decorators = require_decorate();
     var toString = Object.prototype.toString;
-    function Reply(res, request, log) {
+    function Reply(res, request2, log) {
       this.raw = res;
       this[kReplySerializer] = null;
       this[kReplyErrorHandlerCalled] = false;
       this[kReplyIsError] = false;
       this[kReplyIsRunningOnErrorHook] = false;
-      this.request = request;
+      this.request = request2;
       this[kReplyHeaders] = {};
       this[kReplyTrailers] = null;
       this[kReplyHasStatusCode] = false;
@@ -9193,8 +9193,8 @@ var require_reply = __commonJS({
       return serialize2;
     };
     Reply.prototype.compileSerializationSchema = function(schema, httpStatus = null, contentType = null) {
-      const { request } = this;
-      const { method, url: url2 } = request;
+      const { request: request2 } = this;
+      const { method, url: url2 } = request2;
       if (this[kRouteContext][kReplyCacheSerializeFns]?.has(schema)) {
         return this[kRouteContext][kReplyCacheSerializeFns].get(schema);
       }
@@ -9343,7 +9343,7 @@ var require_reply = __commonJS({
         onSendEnd(reply, payload);
       }
     }
-    function wrapOnSendEnd(err, request, reply, payload) {
+    function wrapOnSendEnd(err, request2, reply, payload) {
       if (err != null) {
         onErrorHook(reply, err);
       } else {
@@ -9628,7 +9628,7 @@ var require_reply = __commonJS({
       reply.raw.on("finish", onResFinished);
       reply.raw.on("error", onResFinished);
     }
-    function onResponseCallback(err, request, reply) {
+    function onResponseCallback(err, request2, reply) {
       if (reply.log[kDisableRequestLogging]) {
         return;
       }
@@ -9648,13 +9648,13 @@ var require_reply = __commonJS({
     }
     function buildReply(R) {
       const props = R.props.slice();
-      function _Reply(res, request, log) {
+      function _Reply(res, request2, log) {
         this.raw = res;
         this[kReplyIsError] = false;
         this[kReplyErrorHandlerCalled] = false;
         this[kReplyHijacked] = false;
         this[kReplySerializer] = null;
-        this.request = request;
+        this.request = request2;
         this[kReplyHeaders] = {};
         this[kReplyTrailers] = null;
         this[kReplyStartTime] = void 0;
@@ -10828,8 +10828,8 @@ var require_request = __commonJS({
       });
       return _Request;
     }
-    function assertsRequestDecoration(request, name) {
-      if (!decorators.hasKey(request, name) && !decorators.exist(request, name)) {
+    function assertsRequestDecoration(request2, name) {
+      if (!decorators.hasKey(request2, name) && !decorators.exist(request2, name)) {
         throw new FST_ERR_DEC_UNDECLARED(name, "request");
       }
     }
@@ -12061,22 +12061,22 @@ var require_content_type_parser = __commonJS({
       }
       return removed || idx > -1;
     };
-    ContentTypeParser.prototype.run = function(contentType, handler, request, reply) {
+    ContentTypeParser.prototype.run = function(contentType, handler, request2, reply) {
       const parser = this.getParser(contentType);
       if (parser === void 0) {
-        if (request.is404 === true) {
-          handler(request, reply);
+        if (request2.is404 === true) {
+          handler(request2, reply);
           return;
         }
         reply[kReplyIsError] = true;
         reply.send(new FST_ERR_CTP_INVALID_MEDIA_TYPE());
         return;
       }
-      const resource = new AsyncResource("content-type-parser:run", request);
+      const resource = new AsyncResource("content-type-parser:run", request2);
       const done = resource.bind(onDone);
       if (parser.asString === true || parser.asBuffer === true) {
         rawBody(
-          request,
+          request2,
           reply,
           reply[kRouteContext]._parserOptions,
           parser,
@@ -12084,7 +12084,7 @@ var require_content_type_parser = __commonJS({
         );
         return;
       }
-      const result = parser.fn(request, request[kRequestPayloadStream], done);
+      const result = parser.fn(request2, request2[kRequestPayloadStream], done);
       if (result && typeof result.then === "function") {
         result.then((body) => {
           done(null, body);
@@ -12098,21 +12098,21 @@ var require_content_type_parser = __commonJS({
           reply.send(error48);
           return;
         }
-        request.body = body;
-        handler(request, reply);
+        request2.body = body;
+        handler(request2, reply);
       }
     };
-    function rawBody(request, reply, options, parser, done) {
+    function rawBody(request2, reply, options, parser, done) {
       const asString = parser.asString === true;
       const limit = options.limit === null ? parser.bodyLimit : options.limit;
-      const contentLength = Number(request.headers["content-length"]);
+      const contentLength = Number(request2.headers["content-length"]);
       if (contentLength > limit) {
         done(new FST_ERR_CTP_BODY_TOO_LARGE(), void 0);
         return;
       }
       let receivedLength = 0;
       let body = asString ? "" : [];
-      const payload = request[kRequestPayloadStream] || request.raw;
+      const payload = request2[kRequestPayloadStream] || request2.raw;
       if (asString) {
         payload.setEncoding("utf8");
       }
@@ -12154,7 +12154,7 @@ var require_content_type_parser = __commonJS({
         if (!asString) {
           body = Buffer.concat(body);
         }
-        const result = parser.fn(request, body, done);
+        const result = parser.fn(request2, body, done);
         if (result && typeof result.then === "function") {
           result.then((body2) => {
             done(null, body2);
@@ -15706,7 +15706,7 @@ var require_schemes = __commonJS({
       urnComponent.nss = (uuidComponent.uuid || "").toLowerCase();
       return urnComponent;
     }
-    var http = (
+    var http2 = (
       /** @type {SchemeHandler} */
       {
         scheme: "http",
@@ -15719,7 +15719,7 @@ var require_schemes = __commonJS({
       /** @type {SchemeHandler} */
       {
         scheme: "https",
-        domainHost: http.domainHost,
+        domainHost: http2.domainHost,
         parse: httpParse,
         serialize: httpSerialize
       }
@@ -15763,7 +15763,7 @@ var require_schemes = __commonJS({
     var SCHEMES = (
       /** @type {Record<SchemeName, SchemeHandler>} */
       {
-        http,
+        http: http2,
         https,
         ws,
         wss,
@@ -27673,19 +27673,19 @@ var require_sets_lookup = __commonJS({
     var Sets = __importStar(require_sets());
     var types_1 = require_types4();
     function setToLookup(tokens) {
-      let lookup2 = {};
+      let lookup = {};
       let len = 0;
       for (const token of tokens) {
         if (token.type === types_1.types.CHAR) {
-          lookup2[token.value] = true;
+          lookup[token.value] = true;
         }
         if (token.type === types_1.types.RANGE) {
-          lookup2[`${token.from}-${token.to}`] = true;
+          lookup[`${token.from}-${token.to}`] = true;
         }
         len += 1;
       }
       return {
-        lookup: () => Object.assign({}, lookup2),
+        lookup: () => Object.assign({}, lookup),
         len
       };
     }
@@ -27731,11 +27731,11 @@ var require_write_set_tokens = __commonJS({
       return charCode === 94 ? "\\^" : charCode === 92 ? "\\\\" : charCode === 93 ? "\\]" : charCode === 45 ? "\\-" : String.fromCharCode(charCode);
     }
     exports.setChar = setChar;
-    function isSameSet(set2, { lookup: lookup2, len }) {
+    function isSameSet(set2, { lookup, len }) {
       if (len !== set2.length) {
         return false;
       }
-      const map2 = lookup2();
+      const map2 = lookup();
       for (const elem of set2) {
         if (elem.type === types_1.types.SET) {
           return false;
@@ -29207,7 +29207,7 @@ var require_find_my_way = __commonJS({
       const newRoutes = this.routes.filter(predicate);
       this._rebuild(newRoutes);
     };
-    Router.prototype.lookup = function lookup2(req, res, ctx, done) {
+    Router.prototype.lookup = function lookup(req, res, ctx, done) {
       if (typeof ctx === "function") {
         done = ctx;
         ctx = void 0;
@@ -29895,18 +29895,18 @@ var require_route = __commonJS({
           req.headers["accept-version"] = req.headers[kRequestAcceptVersion];
           req.headers[kRequestAcceptVersion] = void 0;
         }
-        const request = new context.Request(id, params, req, query, childLogger, context);
-        const reply = new context.Reply(res, request, childLogger);
-        const resolvedDisableRequestLogging = disableRequestLoggingFn ? disableRequestLoggingFn(request) : disableRequestLogging;
+        const request2 = new context.Request(id, params, req, query, childLogger, context);
+        const reply = new context.Reply(res, request2, childLogger);
+        const resolvedDisableRequestLogging = disableRequestLoggingFn ? disableRequestLoggingFn(request2) : disableRequestLogging;
         childLogger[kDisableRequestLogging] = resolvedDisableRequestLogging;
         if (resolvedDisableRequestLogging === false) {
-          childLogger.info({ req: request }, "incoming request");
+          childLogger.info({ req: request2 }, "incoming request");
         }
         const handlerTimeout = context.handlerTimeout;
         if (handlerTimeout > 0) {
           const ac = new AbortController();
-          request[kRequestSignal] = ac;
-          request[kTimeoutTimer] = setTimeout(() => {
+          request2[kRequestSignal] = ac;
+          request2[kTimeoutTimer] = setTimeout(() => {
             if (!reply.sent) {
               const err = new FST_ERR_HANDLER_TIMEOUT(handlerTimeout, context.config?.url);
               ac.abort(err);
@@ -29918,10 +29918,10 @@ var require_route = __commonJS({
             if (!ac.signal.aborted) {
               ac.abort();
             }
-            clearTimeout(request[kTimeoutTimer]);
+            clearTimeout(request2[kTimeoutTimer]);
           };
           req.on("close", onAbort);
-          request[kOnAbort] = onAbort;
+          request2[kOnAbort] = onAbort;
         }
         if (hasLogger === true || context.onResponse !== null || handlerTimeout > 0) {
           setupResponseListeners(reply);
@@ -29929,29 +29929,29 @@ var require_route = __commonJS({
         if (context.onRequest !== null) {
           onRequestHookRunner(
             context.onRequest,
-            request,
+            request2,
             reply,
             runPreParsing
           );
         } else {
-          runPreParsing(null, request, reply);
+          runPreParsing(null, request2, reply);
         }
         if (context.onRequestAbort !== null) {
           req.on("close", () => {
             if (req.aborted) {
               onRequestAbortHookRunner(
                 context.onRequestAbort,
-                request,
+                request2,
                 handleOnRequestAbortHooksErrors.bind(null, reply)
               );
             }
           });
         }
         if (context.onTimeout !== null) {
-          if (!request.raw.socket._meta) {
-            request.raw.socket.on("timeout", handleTimeout);
+          if (!request2.raw.socket._meta) {
+            request2.raw.socket.on("timeout", handleTimeout);
           }
-          request.raw.socket._meta = { context, request, reply };
+          request2.raw.socket._meta = { context, request: request2, reply };
         }
       }
     }
@@ -29961,10 +29961,10 @@ var require_route = __commonJS({
       }
     }
     function handleTimeout() {
-      const { context, request, reply } = this._meta;
+      const { context, request: request2, reply } = this._meta;
       onTimeoutHookRunner(
         context.onTimeout,
-        request,
+        request2,
         reply,
         noop
       );
@@ -29996,18 +29996,18 @@ var require_route = __commonJS({
         throw new FST_ERR_ROUTE_HANDLER_TIMEOUT_OPTION_NOT_INT(handlerTimeout);
       }
     }
-    function runPreParsing(err, request, reply) {
+    function runPreParsing(err, request2, reply) {
       if (reply.sent === true) return;
       if (err != null) {
         reply[kReplyIsError] = true;
         reply.send(err);
         return;
       }
-      request[kRequestPayloadStream] = request.raw;
-      if (request[kRouteContext].preParsing !== null) {
-        preParsingHookRunner(request[kRouteContext].preParsing, request, reply, handleRequest.bind(request.server));
+      request2[kRequestPayloadStream] = request2.raw;
+      if (request2[kRouteContext].preParsing !== null) {
+        preParsingHookRunner(request2[kRouteContext].preParsing, request2, reply, handleRequest.bind(request2.server));
       } else {
-        handleRequest.call(request.server, null, request, reply);
+        handleRequest.call(request2.server, null, request2, reply);
       }
     }
     function buildRouterOptions(options, defaultOptions) {
@@ -30066,12 +30066,12 @@ var require_four_oh_four = __commonJS({
         router.onBadUrl = router.onBadUrl.bind(instance);
         router.defaultRoute = router.defaultRoute.bind(instance);
       }
-      function basic404(request, reply) {
-        const { url: url2, method } = request.raw;
+      function basic404(request2, reply) {
+        const { url: url2, method } = request2.raw;
         const message = `Route ${method}:${url2} not found`;
-        const resolvedDisableRequestLogging = typeof disableRequestLogging === "function" ? disableRequestLogging(request.raw) : disableRequestLogging;
+        const resolvedDisableRequestLogging = typeof disableRequestLogging === "function" ? disableRequestLogging(request2.raw) : disableRequestLogging;
         if (!resolvedDisableRequestLogging) {
-          request.log.info(message);
+          request2.log.info(message);
         }
         reply.code(404).send({
           message,
@@ -30084,9 +30084,9 @@ var require_four_oh_four = __commonJS({
           const fourOhFourContext = this[kFourOhFourLevelInstance][kFourOhFourContext];
           const id = getGenReqId(fourOhFourContext.server, req);
           const childLogger = createChildLogger(fourOhFourContext, logger, req, id);
-          const request = new Request(id, null, req, null, childLogger, fourOhFourContext);
-          const reply = new Reply(res, request, childLogger);
-          _onBadUrlHandler(request, reply);
+          const request2 = new Request(id, null, req, null, childLogger, fourOhFourContext);
+          const reply = new Reply(res, request2, childLogger);
+          _onBadUrlHandler(request2, reply);
         };
       }
       function setContext(instance, context) {
@@ -30168,10 +30168,10 @@ var require_four_oh_four = __commonJS({
         const id = getGenReqId(fourOhFourContext.server, req);
         const childLogger = createChildLogger(fourOhFourContext, logger, req, id);
         childLogger.info({ req }, "incoming request");
-        const request = new Request(id, null, req, null, childLogger, fourOhFourContext);
-        const reply = new Reply(res, request, childLogger);
-        request.log.warn("the default handler for 404 did not catch this, this is likely a fastify bug, please report it");
-        request.log.warn(router.prettyPrint());
+        const request2 = new Request(id, null, req, null, childLogger, fourOhFourContext);
+        const reply = new Reply(res, request2, childLogger);
+        request2.log.warn("the default handler for 404 did not catch this, this is likely a fastify bug, please report it");
+        request2.log.warn(router.prettyPrint());
         reply.code(404).send(new FST_ERR_NOT_FOUND());
       }
     }
@@ -32224,12 +32224,12 @@ var require_set_cookie = __commonJS({
 var require_response = __commonJS({
   "daemon/node_modules/light-my-request/lib/response.js"(exports, module) {
     "use strict";
-    var http = __require("node:http");
+    var http2 = __require("node:http");
     var { Writable, Readable, addAbortSignal } = __require("node:stream");
     var util = __require("node:util");
     var setCookie = require_set_cookie();
     function Response(req, onEnd, reject) {
-      http.ServerResponse.call(this, req);
+      http2.ServerResponse.call(this, req);
       if (req._lightMyRequest?.payloadAsStream) {
         const read = this.emit.bind(this, "drain");
         this._lightMyRequest = { headers: null, trailers: {}, stream: new Readable({ read }) };
@@ -32294,7 +32294,7 @@ var require_response = __commonJS({
       this.once("error", onEndFailure);
       this.once("close", onEndFailure);
     }
-    util.inherits(Response, http.ServerResponse);
+    util.inherits(Response, http2.ServerResponse);
     Response.prototype.setTimeout = function(msecs, callback) {
       this.timeoutHandle = setTimeout(() => {
         this.emit("timeout");
@@ -32303,7 +32303,7 @@ var require_response = __commonJS({
       return this;
     };
     Response.prototype.writeHead = function() {
-      const result = http.ServerResponse.prototype.writeHead.apply(this, arguments);
+      const result = http2.ServerResponse.prototype.writeHead.apply(this, arguments);
       copyHeaders(this);
       if (this._lightMyRequest.stream) {
         this._lightMyRequest.onEndSuccess(generatePayload(this));
@@ -32314,7 +32314,7 @@ var require_response = __commonJS({
       if (this.timeoutHandle) {
         clearTimeout(this.timeoutHandle);
       }
-      http.ServerResponse.prototype.write.call(this, data, encoding, callback);
+      http2.ServerResponse.prototype.write.call(this, data, encoding, callback);
       if (this._lightMyRequest.stream) {
         return this._lightMyRequest.stream.push(Buffer.from(data, encoding));
       } else {
@@ -32326,7 +32326,7 @@ var require_response = __commonJS({
       if (data) {
         this.write(data, encoding);
       }
-      http.ServerResponse.prototype.end.call(this, callback);
+      http2.ServerResponse.prototype.end.call(this, callback);
       this.emit("finish");
       this.destroy();
     };
@@ -33407,7 +33407,7 @@ var require_fastify = __commonJS({
     "use strict";
     var VERSION = "5.8.5";
     var Avvio = require_boot();
-    var http = __require("node:http");
+    var http2 = __require("node:http");
     var diagnostics = __require("node:diagnostics_channel");
     var lightMyRequest;
     var {
@@ -33943,13 +33943,13 @@ var require_fastify = __commonJS({
         if (options.frameworkErrors) {
           const id = getGenReqId(onBadUrlContext.server, req);
           const childLogger = createChildLogger(onBadUrlContext, options.logger, req, id);
-          const request = new Request(id, null, req, null, childLogger, onBadUrlContext);
-          const reply = new Reply(res, request, childLogger);
+          const request2 = new Request(id, null, req, null, childLogger, onBadUrlContext);
+          const reply = new Reply(res, request2, childLogger);
           const resolvedDisableRequestLogging = typeof disableRequestLogging === "function" ? disableRequestLogging(req) : disableRequestLogging;
           if (resolvedDisableRequestLogging === false) {
-            childLogger.info({ req: request }, "incoming request");
+            childLogger.info({ req: request2 }, "incoming request");
           }
-          return options.frameworkErrors(new FST_ERR_BAD_URL(path), request, reply);
+          return options.frameworkErrors(new FST_ERR_BAD_URL(path), request2, reply);
         }
         const body = JSON.stringify({
           error: "Bad Request",
@@ -33970,13 +33970,13 @@ var require_fastify = __commonJS({
             if (options.frameworkErrors) {
               const id = getGenReqId(onBadUrlContext.server, req);
               const childLogger = createChildLogger(onBadUrlContext, options.logger, req, id);
-              const request = new Request(id, null, req, null, childLogger, onBadUrlContext);
-              const reply = new Reply(res, request, childLogger);
+              const request2 = new Request(id, null, req, null, childLogger, onBadUrlContext);
+              const reply = new Reply(res, request2, childLogger);
               const resolvedDisableRequestLogging = typeof disableRequestLogging === "function" ? disableRequestLogging(req) : disableRequestLogging;
               if (resolvedDisableRequestLogging === false) {
-                childLogger.info({ req: request }, "incoming request");
+                childLogger.info({ req: request2 }, "incoming request");
               }
-              return options.frameworkErrors(new FST_ERR_ASYNC_CONSTRAINT(), request, reply);
+              return options.frameworkErrors(new FST_ERR_ASYNC_CONSTRAINT(), request2, reply);
             }
             const body = '{"error":"Internal Server Error","message":"Unexpected error from async constraint","statusCode":500}';
             res.writeHead(500, {
@@ -34071,7 +34071,7 @@ var require_fastify = __commonJS({
         return this;
       }
       function addHttpMethod(method, { hasBody = false } = {}) {
-        if (typeof method !== "string" || http.METHODS.indexOf(method) === -1) {
+        if (typeof method !== "string" || http2.METHODS.indexOf(method) === -1) {
           throw new FST_ERR_ROUTE_METHOD_INVALID();
         }
         if (hasBody === true) {
@@ -34166,17 +34166,17 @@ var require_fastify = __commonJS({
       let body, errorCode, errorStatus, errorLabel;
       if (err.code === "ERR_HTTP_REQUEST_TIMEOUT") {
         errorCode = "408";
-        errorStatus = http.STATUS_CODES[errorCode];
+        errorStatus = http2.STATUS_CODES[errorCode];
         body = `{"error":"${errorStatus}","message":"Client Timeout","statusCode":408}`;
         errorLabel = "timeout";
       } else if (err.code === "HPE_HEADER_OVERFLOW") {
         errorCode = "431";
-        errorStatus = http.STATUS_CODES[errorCode];
+        errorStatus = http2.STATUS_CODES[errorCode];
         body = `{"error":"${errorStatus}","message":"Exceeded maximum allowed HTTP header size","statusCode":431}`;
         errorLabel = "header_overflow";
       } else {
         errorCode = "400";
-        errorStatus = http.STATUS_CODES[errorCode];
+        errorStatus = http2.STATUS_CODES[errorCode];
         body = `{"error":"${errorStatus}","message":"Client Error","statusCode":400}`;
         errorLabel = "error";
       }
@@ -34207,7 +34207,7 @@ ${body}`);
 // daemon/src/index.ts
 var import_fastify = __toESM(require_fastify(), 1);
 import { readFileSync as readFileSync4, writeFileSync as writeFileSync3, unlinkSync as unlinkSync2, existsSync as existsSync3, createWriteStream } from "fs";
-import { join as join5 } from "path";
+import { join as join4 } from "path";
 import { homedir as homedir3 } from "os";
 
 // daemon/src/store.ts
@@ -34365,6 +34365,51 @@ var Store = class {
 
 // daemon/src/auth.ts
 import { randomBytes, timingSafeEqual } from "crypto";
+
+// daemon/src/tailscale/whois.ts
+import * as http from "node:http";
+var DEFAULT_SOCK = "/run/tailscale/tailscaled.sock";
+function whoisFromSocket(addr, sockPath = DEFAULT_SOCK) {
+  return new Promise((resolve) => {
+    let req;
+    try {
+      req = http.request(
+        {
+          socketPath: sockPath,
+          host: "local-tailscaled.sock",
+          path: `/localapi/v0/whois?addr=${encodeURIComponent(addr)}`,
+          method: "GET"
+        },
+        (res) => {
+          if (res.statusCode !== 200) {
+            res.resume();
+            return resolve(null);
+          }
+          const chunks = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => {
+            try {
+              const body = chunks.map((c) => typeof c === "string" ? c : c.toString("utf8")).join("");
+              const parsed = JSON.parse(body);
+              resolve({
+                node: parsed.Node.Name,
+                user: parsed.UserProfile.LoginName
+              });
+            } catch {
+              resolve(null);
+            }
+          });
+        }
+      );
+    } catch {
+      return resolve(null);
+    }
+    req.on("error", () => resolve(null));
+    req.end();
+  });
+}
+
+// daemon/src/auth.ts
 function validateToken(req, config2) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return false;
@@ -34397,8 +34442,31 @@ function isTrustedNetwork(ip, trustedNetworks) {
   if (!trustedNetworks?.length) return false;
   return trustedNetworks.some((cidr) => isInCIDR(ip, cidr));
 }
-function isAuthorized(req, config2) {
-  return validateToken(req, config2) || isLocalAgent(req) || isTrustedNetwork(req.ip, config2.trusted_networks);
+function sourceAddr(req) {
+  const port = req.socket.remotePort ?? 0;
+  return `${req.ip}:${port}`;
+}
+async function checkTailscaleIdentity(req, config2) {
+  const id = await whoisFromSocket(
+    sourceAddr(req),
+    config2.tailscale_sock ?? "/run/tailscale/tailscaled.sock"
+  );
+  if (!id) return false;
+  const users = config2.identity_allowlist?.tailscale_users ?? [];
+  const nodes = config2.identity_allowlist?.tailscale_nodes ?? [];
+  return users.includes(id.user) || nodes.includes(id.node);
+}
+async function isAuthorized(req, config2) {
+  if (isLocalAgent(req)) return true;
+  const mode = config2.identity_mode ?? "bearer";
+  if (mode === "tailscale") {
+    return checkTailscaleIdentity(req, config2);
+  }
+  if (mode === "both") {
+    if (validateToken(req, config2) || isTrustedNetwork(req.ip, config2.trusted_networks)) return true;
+    return checkTailscaleIdentity(req, config2);
+  }
+  return validateToken(req, config2) || isTrustedNetwork(req.ip, config2.trusted_networks);
 }
 
 // daemon/src/agent-card.ts
@@ -48592,6 +48660,36 @@ function date4(params) {
 config(en_default());
 
 // daemon/src/schemas.ts
+var BridgeyConfigSchema = external_exports.object({
+  name: external_exports.string().min(1),
+  description: external_exports.string().default(""),
+  port: external_exports.number().int().min(1).max(65535),
+  bind: external_exports.string().default("localhost"),
+  token: external_exports.string().min(1),
+  workspace: external_exports.string().default(""),
+  max_turns: external_exports.number().int().min(1).default(5),
+  agents: external_exports.array(external_exports.object({
+    name: external_exports.string().min(1),
+    url: external_exports.string().url(),
+    token: external_exports.string().min(1)
+  })).default([]),
+  rate_limit: external_exports.object({
+    max_requests: external_exports.number().int().min(1),
+    window_ms: external_exports.number().int().min(1)
+  }).optional(),
+  tls: external_exports.object({
+    cert: external_exports.string().min(1),
+    key: external_exports.string().min(1),
+    ca: external_exports.string().optional()
+  }).optional(),
+  trusted_networks: external_exports.array(external_exports.string()).optional(),
+  identity_mode: external_exports.enum(["bearer", "tailscale", "both"]).default("bearer"),
+  identity_allowlist: external_exports.object({
+    tailscale_users: external_exports.array(external_exports.string()).optional(),
+    tailscale_nodes: external_exports.array(external_exports.string()).optional()
+  }).optional(),
+  tailscale_sock: external_exports.string().default("/run/tailscale/tailscaled.sock")
+});
 var SendBodySchema = external_exports.object({
   agent: external_exports.string().min(1, "agent is required").max(100),
   message: external_exports.string().min(1, "message is required").max(1e4),
@@ -48728,7 +48826,7 @@ function a2aRoutes(fastify, config2, store) {
     });
   });
   fastify.get("/agents", async (req, reply) => {
-    if (!isAuthorized(req, config2)) {
+    if (!await isAuthorized(req, config2)) {
       return reply.code(401).send({ error: "Unauthorized" });
     }
     const dbAgents = store.getAgents();
@@ -48775,7 +48873,7 @@ function a2aRoutes(fastify, config2, store) {
     return reply.send(merged);
   });
   fastify.get("/messages", async (req, reply) => {
-    if (!isAuthorized(req, config2)) {
+    if (!await isAuthorized(req, config2)) {
       return reply.code(401).send({ error: "Unauthorized" });
     }
     const query = req.query;
@@ -48783,7 +48881,7 @@ function a2aRoutes(fastify, config2, store) {
     return reply.send(store.getMessages(limit));
   });
   fastify.get("/audit", async (req, reply) => {
-    if (!isAuthorized(req, config2)) {
+    if (!await isAuthorized(req, config2)) {
       return reply.code(401).send({ error: "Unauthorized" });
     }
     const query = req.query;
@@ -48791,7 +48889,7 @@ function a2aRoutes(fastify, config2, store) {
     return reply.send(store.getAuditLog(limit));
   });
   fastify.post("/send", async (req, reply) => {
-    if (!isAuthorized(req, config2)) {
+    if (!await isAuthorized(req, config2)) {
       return reply.code(401).send({ error: "Unauthorized" });
     }
     if (!rateLimiter.check(req.ip)) {
@@ -48834,7 +48932,7 @@ function a2aRoutes(fastify, config2, store) {
     return reply.send({ response });
   });
   fastify.post("/", async (req, reply) => {
-    if (!isAuthorized(req, config2)) {
+    if (!await isAuthorized(req, config2)) {
       return reply.code(401).send(jsonRpcError("0", -32e3, "Unauthorized"));
     }
     if (!rateLimiter.check(req.ip)) {
@@ -49151,101 +49249,12 @@ var ChannelPush = class {
   }
 };
 
-// daemon/src/attachments.ts
-import { mkdir, writeFile } from "node:fs/promises";
-import { join as join4 } from "node:path";
-import { lookup } from "node:dns/promises";
-var INBOX_DIRNAME = ".inbox";
-var DEFAULT_MAX_BYTES = 25e6;
-var defaultLookup = (host) => lookup(host, { all: true });
-function safeAttachmentName(name) {
-  const base = name.split(/[/\\]/).pop() ?? name;
-  const cleaned = base.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/\.\.+/g, "_");
-  return cleaned.length > 0 ? cleaned : "attachment";
-}
-function isPrivateOrReservedIp(ip) {
-  const mapped = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
-  if (mapped) ip = mapped[1];
-  if (ip.includes(":")) {
-    const lower = ip.toLowerCase();
-    if (lower === "::1" || lower === "::") return true;
-    if (lower.startsWith("fe80")) return true;
-    if (/^f[cd]/.test(lower)) return true;
-    return false;
-  }
-  const parts = ip.split(".").map((p) => Number(p));
-  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
-    return true;
-  }
-  const [a, b] = parts;
-  if (a === 0) return true;
-  if (a === 10) return true;
-  if (a === 127) return true;
-  if (a === 169 && b === 254) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;
-  return false;
-}
-async function assertPublicHttpsUrl(rawUrl, opts = {}) {
-  const url2 = new URL(rawUrl);
-  if (url2.protocol !== "https:") {
-    throw new Error(`attachment url must be https, got ${url2.protocol}`);
-  }
-  const lookupFn = opts.lookupFn ?? defaultLookup;
-  const results = await lookupFn(url2.hostname);
-  if (results.length === 0) {
-    throw new Error(`attachment host ${url2.hostname} did not resolve`);
-  }
-  for (const r of results) {
-    if (isPrivateOrReservedIp(r.address)) {
-      throw new Error(`attachment host ${url2.hostname} resolves to non-public address ${r.address}`);
-    }
-  }
-  return url2;
-}
-function buildInboundPrompt(sender, transport, content, attachmentPaths) {
-  const base = `[Message from ${sender} via ${transport}]
-${content}`;
-  if (attachmentPaths.length === 0) return base;
-  const list = attachmentPaths.map((p) => `- ${p}`).join("\n");
-  return `${base}
-
-[Attachments downloaded to this workspace \u2014 open them to view:]
-${list}`;
-}
-async function downloadInboundAttachments(attachments, workspace, opts = {}) {
-  const fetchFn = opts.fetchFn ?? fetch;
-  const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
-  const inbox = join4(workspace, INBOX_DIRNAME);
-  const saved = [];
-  for (const att of attachments) {
-    if (att.size > maxBytes) continue;
-    let safeUrl;
-    try {
-      safeUrl = await assertPublicHttpsUrl(att.url, { lookupFn: opts.lookupFn });
-    } catch {
-      continue;
-    }
-    try {
-      const res = await fetchFn(safeUrl.toString(), { redirect: "manual" });
-      if (!res.ok) continue;
-      const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > maxBytes) continue;
-      await mkdir(inbox, { recursive: true });
-      const dest = join4(inbox, safeAttachmentName(att.name));
-      await writeFile(dest, buf);
-      saved.push(dest);
-    } catch {
-      continue;
-    }
-  }
-  return saved;
-}
-
 // daemon/src/transport-routes.ts
 function registerTransportRoutes(app, registry2, channelPush, config2) {
   app.post("/transports/register", async (req, reply) => {
+    if (!await isAuthorized(req, config2)) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
     const parsed = TransportRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -49254,6 +49263,9 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
     return reply.send({ ok: true, transport_id: parsed.data.name });
   });
   app.post("/transports/unregister", async (req, reply) => {
+    if (!await isAuthorized(req, config2)) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
     const parsed = TransportUnregisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -49265,6 +49277,9 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
     return reply.send({ transports: registry2.list() });
   });
   app.post("/channel/register", async (req, reply) => {
+    if (!await isAuthorized(req, config2)) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
     const parsed = ChannelRegisterSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -49357,6 +49372,9 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
     }
   });
   app.post("/messages/inbound", async (req, reply) => {
+    if (!await isAuthorized(req, config2)) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
     const parsed = InboundMessageSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.issues[0].message });
@@ -49382,14 +49400,11 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
       return reply.send({ ok: true, queued: true });
     }
     reply.send({ ok: true, queued: false, mode: "executor" });
-    const workspace = config2.workspace;
-    const maxTurns = config2.max_turns ?? 5;
+    const prompt = `[Message from ${sender} via ${transport}]
+${content}`;
     const sessionId = chatIdToSessionId(chat_id);
-    void (async () => {
+    executePrompt(prompt, config2.workspace, config2.max_turns ?? 5, sessionId).then(async (response) => {
       try {
-        const attachmentPaths = attachments && attachments.length > 0 ? await downloadInboundAttachments(attachments, workspace) : [];
-        const prompt = buildInboundPrompt(sender, transport, content, attachmentPaths);
-        const response = await executePrompt(prompt, workspace, maxTurns, sessionId);
         await fetch(`${transportEntry.callback_url}/callback/reply`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -49397,9 +49412,11 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
           signal: AbortSignal.timeout(1e4)
         });
       } catch (err) {
-        console.error(`Executor failed for inbound from ${sender}:`, err);
+        console.error(`Failed to deliver executor reply to ${transport}:`, err);
       }
-    })();
+    }).catch((err) => {
+      console.error(`Executor failed for inbound from ${sender}:`, err);
+    });
   });
   app.post("/messages/reply", async (req, reply) => {
     const parsed = OutboundReplySchema.safeParse(req.body);
@@ -49568,28 +49585,10 @@ function registerTransportRoutes(app, registry2, channelPush, config2) {
   });
 }
 
-// daemon/src/config.ts
-function parseConfig(raw) {
-  let obj;
-  try {
-    obj = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
-    return null;
-  }
-  const c = obj;
-  return {
-    ...c,
-    agents: Array.isArray(c.agents) ? c.agents : []
-  };
-}
-
 // daemon/src/index.ts
 var HOME = homedir3();
-var BRIDGEY_DIR = process.env.BRIDGEY_DATA_DIR || join5(HOME, ".bridgey");
-var LOG_PATH = join5(BRIDGEY_DIR, "daemon.log");
+var BRIDGEY_DIR = join4(HOME, ".bridgey");
+var LOG_PATH = join4(BRIDGEY_DIR, "daemon.log");
 var DEFAULT_USER = process.env.USER || process.env.USERNAME || "unknown";
 function parseArgs(argv) {
   const args = argv.slice(2);
@@ -49628,17 +49627,23 @@ function removePid(pidfile2) {
 }
 function findConfig(explicitPath) {
   const candidates = explicitPath ? [explicitPath] : [
-    join5(BRIDGEY_DIR, "bridgey.config.json"),
-    join5(process.cwd(), "bridgey.config.json")
+    join4(BRIDGEY_DIR, "bridgey.config.json"),
+    join4(process.cwd(), "bridgey.config.json")
   ];
   for (const candidate of candidates) {
     if (existsSync3(candidate)) {
-      const raw = readFileSync4(candidate, "utf-8");
-      const config2 = parseConfig(raw);
-      if (!config2) {
-        console.error(`Failed to parse config at ${candidate}`);
+      try {
+        const raw = readFileSync4(candidate, "utf-8");
+        const parsed = BridgeyConfigSchema.safeParse(JSON.parse(raw));
+        if (!parsed.success) {
+          console.error(`Invalid config at ${candidate}: ${parsed.error.message}`);
+          return null;
+        }
+        return parsed.data;
+      } catch (err) {
+        console.error(`Failed to parse config at ${candidate}: ${err}`);
+        return null;
       }
-      return config2;
     }
   }
   return null;
@@ -49666,7 +49671,7 @@ async function startDaemon(pidfile2, configPath2) {
     console.log("Run /bridgey:setup first");
     process.exit(0);
   }
-  const store = new Store(BRIDGEY_DIR);
+  const store = new Store();
   for (const agent of config2.agents) {
     store.saveAgent(agent.name, agent.url, agent.token, null, "configured");
   }

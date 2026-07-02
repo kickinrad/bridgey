@@ -11,14 +11,11 @@ import { registerTransportRoutes } from './transport-routes.js';
 import { getLocalIP } from './agent-card.js';
 import { isTrustedNetwork } from './auth.js';
 import { isProcessAlive } from './registry.js';
-import { parseConfig } from './config.js';
 import type { BridgeyConfig } from './types.js';
+import { BridgeyConfigSchema } from './schemas.js';
 
 const HOME = homedir();
-// Data dir override lets multiple daemons (a hub + per-persona spokes) run on
-// one host without clobbering each other's agents.json/messages.json/audit.
-// Defaults to ~/.bridgey so single-daemon installs are unaffected.
-const BRIDGEY_DIR = process.env.BRIDGEY_DATA_DIR || join(HOME, '.bridgey');
+const BRIDGEY_DIR = join(HOME, '.bridgey');
 const LOG_PATH = join(BRIDGEY_DIR, 'daemon.log');
 const DEFAULT_USER = process.env.USER || process.env.USERNAME || 'unknown';
 
@@ -84,12 +81,18 @@ function findConfig(explicitPath?: string): BridgeyConfig | null {
 
   for (const candidate of candidates) {
     if (existsSync(candidate)) {
-      const raw = readFileSync(candidate, 'utf-8');
-      const config = parseConfig(raw);
-      if (!config) {
-        console.error(`Failed to parse config at ${candidate}`);
+      try {
+        const raw = readFileSync(candidate, 'utf-8');
+        const parsed = BridgeyConfigSchema.safeParse(JSON.parse(raw));
+        if (!parsed.success) {
+          console.error(`Invalid config at ${candidate}: ${parsed.error.message}`);
+          return null;
+        }
+        return parsed.data as BridgeyConfig;
+      } catch (err) {
+        console.error(`Failed to parse config at ${candidate}: ${err}`);
+        return null;
       }
-      return config;
     }
   }
 
@@ -131,11 +134,9 @@ async function startDaemon(pidfile: string, configPath?: string): Promise<void> 
   }
 
   // Initialize store
-  const store = new Store(BRIDGEY_DIR);
+  const store = new Store();
 
-  // Sync configured remote agents to store. `config.agents` is guaranteed to be
-  // an array by parseConfig() — a minimal entrypoint-generated config that omits
-  // it is normalized to [] at load, so this loop can't crash-loop the daemon.
+  // Sync configured remote agents to store
   for (const agent of config.agents) {
     store.saveAgent(agent.name, agent.url, agent.token, null, 'configured');
   }

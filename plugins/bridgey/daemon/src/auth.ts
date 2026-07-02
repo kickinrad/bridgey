@@ -1,6 +1,7 @@
 import { randomBytes, timingSafeEqual } from 'crypto';
 import type { FastifyRequest } from 'fastify';
 import type { BridgeyConfig } from './types.js';
+import { whoisFromSocket } from './tailscale/whois.js';
 
 /**
  * Validate that the request carries a valid Bearer token matching config.token.
@@ -66,10 +67,41 @@ export function isTrustedNetwork(ip: string, trustedNetworks?: string[]): boolea
   return trustedNetworks.some((cidr) => isInCIDR(ip, cidr));
 }
 
+function sourceAddr(req: FastifyRequest): string {
+  const port = (req.socket as { remotePort?: number }).remotePort ?? 0;
+  return `${req.ip}:${port}`;
+}
+
+async function checkTailscaleIdentity(req: FastifyRequest, config: BridgeyConfig): Promise<boolean> {
+  const id = await whoisFromSocket(
+    sourceAddr(req),
+    config.tailscale_sock ?? '/run/tailscale/tailscaled.sock',
+  );
+  if (!id) return false;
+
+  const users = config.identity_allowlist?.tailscale_users ?? [];
+  const nodes = config.identity_allowlist?.tailscale_nodes ?? [];
+  return users.includes(id.user) || nodes.includes(id.node);
+}
+
 /**
  * Check if a request is authorized via any mechanism:
- * bearer token, local agent registry, or trusted network.
+ * bearer token, local agent, trusted network, or tailscale identity.
  */
-export function isAuthorized(req: FastifyRequest, config: BridgeyConfig): boolean {
-  return validateToken(req, config) || isLocalAgent(req) || isTrustedNetwork(req.ip, config.trusted_networks);
+export async function isAuthorized(req: FastifyRequest, config: BridgeyConfig): Promise<boolean> {
+  if (isLocalAgent(req)) return true;
+
+  const mode = config.identity_mode ?? 'bearer';
+
+  if (mode === 'tailscale') {
+    return checkTailscaleIdentity(req, config);
+  }
+
+  if (mode === 'both') {
+    if (validateToken(req, config) || isTrustedNetwork(req.ip, config.trusted_networks)) return true;
+    return checkTailscaleIdentity(req, config);
+  }
+
+  // mode === 'bearer' (default)
+  return validateToken(req, config) || isTrustedNetwork(req.ip, config.trusted_networks);
 }

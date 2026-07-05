@@ -221,7 +221,7 @@ ssh {tailscale_host} "docker exec agent-{name} claude -p 'respond with exactly: 
 
 ### Path B: Coolify
 
-Delegate to `Skill('bridgey-deploy:coolify')` — it handles service creation, env var configuration, and deployment via the Coolify API.
+Delegate to `Skill('infra:coolify')` — it handles service creation, env var configuration, and deployment via the Coolify API.
 
 After the Coolify skill completes, return here for Phase 7 post-install steps.
 

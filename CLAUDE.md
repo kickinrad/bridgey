@@ -43,13 +43,12 @@ plugins/
 ├── bridgey/
 │   ├── .claude-plugin/    # plugin.json
 │   ├── daemon/            # Fastify A2A server (TypeScript)
-│   │   └── src/           # Core: index, a2a-server, a2a-client, store, registry, auth, rate-limiter, executor, queue, watchdog, channel-push, schemas, types
-│   │       ├── tailscale/ # scanner, registrar, config, scan-cli, index
-│   │       └── transport/ # transport-registry, transport-routes, transport-types
+│   │   └── src/           # Core: index, a2a-server, a2a-client, agent-card, attachments, store, registry, auth, rate-limiter, retry, executor, queue, watchdog, channel-push, schemas, config, types, transport-registry, transport-routes, transport-types
+│   │       └── tailscale/ # scanner, registrar, whois, config, scan-cli, index
 │   ├── server/            # Channel Server — Channels API (TypeScript)
 │   │   └── src/           # index, tools, daemon-client, orchestrator-client, channel-listener, config, types
 │   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan)
-│   ├── skills/            # setup, status, add-agent, tailscale-setup, tailscale-scan
+│   ├── skills/            # bridgey — single consolidated lifecycle skill (setup, status, agents, tailscale references)
 │   └── CLAUDE.md          # Plugin-level instructions for CC
 ├── bridgey-discord/
 │   ├── bot.ts             # Discord.js gateway + message handling

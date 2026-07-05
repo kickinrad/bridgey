@@ -69,22 +69,24 @@ User: "any new messages?"
 
 ## Skills
 
-| Skill | Trigger |
-|-------|---------|
-| `/bridgey:setup` | First-time configuration — name, port, token generation |
-| `/bridgey:status` | Dashboard showing daemon health and agent status |
-| `/bridgey:add-agent` | Register a remote agent (URL + token) |
-| `/bridgey:tailscale-setup` | Configure Tailscale mesh scanning |
-| `/bridgey:tailscale-scan` | Scan tailnet for bridgey agents |
+A single consolidated skill, `bridgey` (`skills/bridgey/`), covers the operator lifecycle. Trigger it with natural language; workflow detail lives in the skill's `references/` (setup.md, agents.md, tailscale.md):
+
+| Intent | Trigger |
+|--------|---------|
+| First-time configuration — name, port, token generation | "set up bridgey", "configure bridgey" |
+| Dashboard showing daemon health and agent status | "bridgey status", "is bridgey running" |
+| Register a remote agent (URL + token) | "add a bridgey agent", "connect to another agent" |
+| Configure Tailscale mesh scanning | "tailscale setup for bridgey" |
+| Scan tailnet for bridgey agents | "scan tailnet", "find peers" |
 
 ## Config
 
-Config lives at `~/.bridgey/bridgey.config.json`. Created by `/bridgey:setup`. Do not edit manually unless the user asks.
+Config lives at `~/.bridgey/bridgey.config.json`. Created by the `bridgey` skill's setup workflow. Do not edit manually unless the user asks.
 
 ## Discovery
 
 - **Local agents** (same machine): Auto-discovered via `~/.bridgey/agents/` file registry
-- **Remote agents**: Configured manually via `/bridgey:add-agent` or config file
+- **Remote agents**: Configured via the `bridgey` skill's add-agent workflow or config file
 
 ## HTTP API (Direct Access)
 
@@ -143,7 +145,7 @@ When running in Docker or on a headless server:
 
 If tools return "daemon unreachable":
 1. Check config exists: `cat ~/.bridgey/bridgey.config.json`
-2. If no config: run `/bridgey:setup`
+2. If no config: ask Claude to "set up bridgey" (runs the `bridgey` skill's setup workflow)
 3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first)
 4. Check daemon logs: `cat ~/.bridgey/daemon.log`
 

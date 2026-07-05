@@ -56,10 +56,10 @@ npm test              # Runs all tests
 
 ## Quick start
 
-1. Run `/bridgey:setup` in Claude Code to configure your instance
+1. Ask Claude to "set up bridgey" — the `bridgey` skill walks through configuration
 2. The daemon starts automatically via SessionStart hook
 3. Use `send`, `list_agents`, `get_inbox` tools to communicate
-4. Share your connection snippet (`/bridgey:status`) with other instances
+4. Share your connection snippet (ask for "bridgey status") with other instances
 
 ## License
 

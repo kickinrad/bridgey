@@ -59,11 +59,10 @@ plugins/
 │   └── CLAUDE.md          # Plugin-level instructions
 ├── bridgey-deploy/
 │   ├── .claude-plugin/    # plugin.json
-│   ├── skills/            # deploy, sync, remote-status, coolify
+│   ├── skills/            # deploy, sync, remote-status
 │   │   ├── deploy/        # Main deployment walkthrough + references (Dockerfile, compose, entrypoint)
 │   │   ├── sync/          # Bidirectional rsync (push/pull)
-│   │   ├── remote-status/ # Container + daemon health checks
-│   │   └── coolify/       # Coolify API integration
+│   │   └── remote-status/ # Container + daemon health checks
 │   └── hooks/             # sync-reminder (Stop hook snippet)
 ```
 

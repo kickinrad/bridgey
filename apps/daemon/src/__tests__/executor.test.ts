@@ -100,7 +100,7 @@ describe('executor — executePrompt', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       'claude',
-      ['-p', 'test message', '--output-format', 'json', '--max-turns', '5'],
+      ['-p', 'test message', '--output-format', 'json', '--max-turns', '5', '--setting-sources', 'project,local'],
       expect.objectContaining({
         shell: false,
         cwd: '/workspace',

@@ -149,7 +149,7 @@ export async function executePrompt(
     return '[error] Empty message after sanitization';
   }
 
-  const baseArgs = ['-p', sanitizedMessage, '--output-format', 'json', '--max-turns', String(maxTurns)];
+  const baseArgs = ['-p', sanitizedMessage, '--output-format', 'json', '--max-turns', String(maxTurns), '--setting-sources', 'project,local'];
 
   if (sessionId) {
     // Try resuming existing session first
@@ -194,7 +194,7 @@ export async function* executePromptStreaming(
     return;
   }
 
-  const args = ['-p', sanitizedMessage, '--output-format', 'stream-json', '--max-turns', String(maxTurns)];
+  const args = ['-p', sanitizedMessage, '--output-format', 'stream-json', '--max-turns', String(maxTurns), '--setting-sources', 'project,local'];
   if (sessionId) {
     args.push('--resume', sessionId);
   }

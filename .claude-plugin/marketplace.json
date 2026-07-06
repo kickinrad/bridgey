@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Inter-agent communication for Claude Code via A2A protocol",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -19,7 +19,7 @@
     {
       "name": "bridgey-discord",
       "source": "./plugins/bridgey-discord",
-      "description": "Discord bot bridge for bridgey — route Discord channel messages to Claude Code agents via A2A",
+      "description": "Discord transport adapter for bridgey — bridges Discord messages to the bridgey A2A mesh",
       "category": "productivity"
     },
     {

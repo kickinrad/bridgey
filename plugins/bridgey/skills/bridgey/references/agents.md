@@ -13,7 +13,7 @@ Display the health and status of the bridgey daemon and all connected agents.
 Use the `status` MCP tool to get daemon health and agent list. If the daemon is unreachable, inform the user and suggest:
 
 - Check if config exists: `cat ~/.bridgey/bridgey.config.json`
-- Run `/bridgey:setup` if no config
+- Set up bridgey if no config
 - Manually start: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first)
 
 ### 2. Display status dashboard
@@ -104,7 +104,7 @@ Ask the user for:
 Tips for the user:
 
 - The URL is the remote daemon's address (hostname/IP + port)
-- The token is the remote agent's bearer token (generated during their `/bridgey:setup`)
+- The token is the remote agent's bearer token (generated when they set up bridgey)
 - For Tailscale users: use the MagicDNS hostname (e.g., `http://my-server:8092`)
 - For Docker containers: use the service name (e.g., `http://bridgey-mila:8093`)
 - If the remote agent trusts your network via `trusted_networks`, you may not need a token
@@ -164,7 +164,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
 Verify the agent appears in the list:
 
 - Use `list_agents` MCP tool
-- Or run `/bridgey:status`
+- Or ask "bridgey status"
 
 ### 7. Mutual registration
 

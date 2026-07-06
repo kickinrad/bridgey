@@ -1,6 +1,6 @@
 ---
 name: bridgey
-description: This skill should be used when the user asks to "set up bridgey", "configure bridgey", "initialize bridgey", "bridgey setup", "check bridgey status", "show bridgey agents", "is bridgey running", "bridgey health", "show connected agents", "add a bridgey agent", "connect to another agent", "register a remote agent", "add remote agent", "configure tailscale for bridgey", "scan tailnet for bridgey", or runs `/bridgey:setup`, `/bridgey:status`, `/bridgey:add-agent`, `/bridgey:tailscale-setup`, `/bridgey:tailscale-scan`. Lifecycle surface for the bridgey A2A daemon — first-time setup, health dashboard, remote-agent registration, and Tailscale mesh discovery.
+description: This skill should be used when the user asks to "set up bridgey", "configure bridgey", "initialize bridgey", "bridgey setup", "check bridgey status", "show bridgey agents", "is bridgey running", "bridgey health", "show connected agents", "add a bridgey agent", "connect to another agent", "register a remote agent", "add remote agent", "configure tailscale for bridgey", or "scan tailnet for bridgey". Lifecycle surface for the bridgey A2A daemon — first-time setup, health dashboard, remote-agent registration, and Tailscale mesh discovery.
 version: 0.3.0
 ---
 

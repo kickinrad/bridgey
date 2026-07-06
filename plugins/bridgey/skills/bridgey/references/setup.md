@@ -91,8 +91,8 @@ Show the user:
 - Agent name and description
 - Listening address and port
 - Token (masked, e.g., `brg_a1b2...`)
-- How to add remote agents: `/bridgey:add-agent`
-- How to check status: `/bridgey:status`
+- How to add remote agents: ask to "add a bridgey agent"
+- How to check status: ask "bridgey status"
 
 ## Container / headless deployment notes
 

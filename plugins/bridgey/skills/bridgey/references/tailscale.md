@@ -12,7 +12,7 @@ Configure bridgey for Tailscale mesh network discovery.
 
 1. **Check Tailscale is running.** Run `tailscale status` via Bash. If it fails, tell the user to install Tailscale (https://tailscale.com/download) or run `tailscale up`.
 
-2. **Find bridgey config.** Look for bridgey's config at `~/.bridgey/bridgey.config.json` or check the bridgey plugin's `bridgey.config.json`. If not found, tell the user to run `/bridgey:setup` first.
+2. **Find bridgey config.** Look for bridgey's config at `~/.bridgey/bridgey.config.json` or check the bridgey plugin's `bridgey.config.json`. If not found, tell the user to set up bridgey first.
 
 3. **Update bridgey daemon binding.** Read the bridgey config file. Update two fields:
    - Set `bind` to `"0.0.0.0"`
@@ -50,7 +50,7 @@ Configure bridgey for Tailscale mesh network discovery.
 
 6. **Run first scan.** Use the `tailscale_scan` MCP tool to discover peers. Display the results.
 
-7. **Remind the user.** Other devices on the tailnet also need bridgey with Tailscale configured to be discoverable. Tell them to run `/bridgey:tailscale-setup` on each device.
+7. **Remind the user.** Other devices on the tailnet also need bridgey with Tailscale configured to be discoverable. Tell them to configure Tailscale for bridgey on each device.
 
 ---
 
@@ -66,7 +66,7 @@ Scan the tailnet for bridgey agents on demand. The SessionStart hook also trigge
    - **Known agents** — previously discovered and still online
    - **Offline agents** — previously discovered but not responding
 3. If no agents found, suggest:
-   - Check that other devices have bridgey running and configured with `/bridgey:tailscale-setup`
+   - Check that other devices have bridgey running with Tailscale configured for bridgey
    - Check `tailscale status` to verify devices are online
    - Check if any peers are in `exclude_peers` config
    - Verify the remote daemon is bound to `0.0.0.0` (not localhost) — localhost binding is not reachable over Tailscale

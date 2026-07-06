@@ -9,8 +9,8 @@ Inter-agent communication marketplace for Claude Code via A2A protocol.
 ## Quick Reference
 
 ```bash
-npm run install:all   # Install all dependencies
-npm run build         # Build daemon + MCP server
+npm run install:all   # Install dependencies for all apps
+npm run build         # Build daemon + MCP server + discord bot (apps/*/dist/)
 npm test              # Run all tests
 ```
 
@@ -38,23 +38,35 @@ Claude Code <-stdio-> Channel Server <-HTTP-> Daemon <-A2A/HTTP-> Remote Daemons
 
 ## Project Layout
 
+Application code lives in `apps/`; `plugins/` holds only Claude Code surfaces (skills, hooks, MCP config, manifest, MOC). The plugin hooks and MCP config launch the app bundles from `apps/*/dist/` in this repo — keeping node_modules and build output out of the version-keyed plugin cache.
+
 ```
+apps/
+├── daemon/                # Fastify A2A server (TypeScript) — own package.json + esbuild config
+│   ├── src/               # Core: index, a2a-server, a2a-client, agent-card, attachments, store, registry, auth, rate-limiter, retry, executor, queue, watchdog, channel-push, schemas, config, types, transport-registry, transport-routes, transport-types
+│   │   └── tailscale/     # scanner, registrar, whois, config, scan-cli, index
+│   └── dist/              # daemon.js, watchdog.js, scan-cli.js (committed bundles)
+├── server/                # Channel Server — Channels API (TypeScript) — own package.json + esbuild config
+│   ├── src/               # index, tools, daemon-client, orchestrator-client, channel-listener, config, types
+│   └── dist/              # server.js (committed bundle)
+└── discord-bot/           # Discord transport adapter — own package.json + esbuild config + Dockerfile
+    ├── bot.ts             # Discord.js gateway + message handling
+    ├── transport.ts       # Daemon registration + message forwarding
+    ├── gate.ts            # Sender allowlist and gating
+    ├── config.ts          # Zod config schema and loader
+    └── dist/              # bot.js (committed bundle)
+
 plugins/
 ├── bridgey/
 │   ├── .claude-plugin/    # plugin.json
-│   ├── daemon/            # Fastify A2A server (TypeScript)
-│   │   └── src/           # Core: index, a2a-server, a2a-client, agent-card, attachments, store, registry, auth, rate-limiter, retry, executor, queue, watchdog, channel-push, schemas, config, types, transport-registry, transport-routes, transport-types
-│   │       └── tailscale/ # scanner, registrar, whois, config, scan-cli, index
-│   ├── server/            # Channel Server — Channels API (TypeScript)
-│   │   └── src/           # index, tools, daemon-client, orchestrator-client, channel-listener, config, types
-│   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan)
+│   ├── .mcp.json          # Channel Server launch (apps/server/dist/server.js)
+│   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan from apps/daemon/dist/)
 │   ├── skills/            # bridgey — single consolidated lifecycle skill (setup, status, agents, tailscale references)
 │   └── CLAUDE.md          # Plugin-level instructions for CC
 ├── bridgey-discord/
-│   ├── bot.ts             # Discord.js gateway + message handling
-│   ├── transport.ts       # Daemon registration + message forwarding
-│   ├── gate.ts            # Sender allowlist and gating
-│   ├── config.ts          # Zod config schema and loader
+│   ├── .claude-plugin/    # plugin.json
+│   ├── hooks/             # SessionStart (dep auto-install into apps/discord-bot/) + bot health check
+│   ├── skills/            # access, configure
 │   └── CLAUDE.md          # Plugin-level instructions
 ├── bridgey-deploy/
 │   ├── .claude-plugin/    # plugin.json
@@ -74,7 +86,7 @@ plugins/
 | Persistence | JSON files (`~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl) |
 | Channel Server | `@modelcontextprotocol/sdk` (stdio, Channels API) |
 | Validation | Zod |
-| Build | esbuild → single-file bundles in `plugins/bridgey/dist/` (daemon.js, server.js, watchdog.js, scan-cli.js) |
+| Build | esbuild → single-file bundles per app: `apps/daemon/dist/` (daemon.js, watchdog.js, scan-cli.js), `apps/server/dist/` (server.js), `apps/discord-bot/dist/` (bot.js) |
 | Auth | Bearer tokens (`brg_` prefix), CIDR trust, local registry |
 
 ## Key Runtime Paths
@@ -107,7 +119,7 @@ The Channel Server uses the official Claude Code Channels API (`--channels` rese
 
 **Permission relay** (v2.1.81): Channel servers can declare a `permission` capability to forward tool approval prompts through the channel (e.g. to Discord/phone). Not yet implemented — potential v2 feature.
 
-**`--bare` flag** (v2.1.81): Skips hooks, LSP, plugins, skill walks. Consider for inbound `claude -p` execution in `daemon/src/executor.ts` — inbound messages don't need the full plugin stack.
+**`--bare` flag** (v2.1.81): Skips hooks, LSP, plugins, skill walks. Consider for inbound `claude -p` execution in `apps/daemon/src/executor.ts` — inbound messages don't need the full plugin stack.
 
 ## Claude Code Plugin Conventions
 
@@ -142,6 +154,6 @@ Core plugin with Channels API integration, Tailscale discovery, and adaptive MCP
 
 - Follow existing patterns when adding new endpoints or tools
 - All inbound payloads validated with Zod schemas
-- Tests live in `daemon/src/__tests__/`
+- Tests live in `apps/daemon/src/__tests__/` and `apps/server/src/__tests__/`
 - Config changes go through skills, not manual edits
 - Credentials via `pass` — never hardcode secrets. Full doctrine: [[Credential Management]]

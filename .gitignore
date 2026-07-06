@@ -11,6 +11,7 @@ tests/e2e/runs/
 !.claude/settings.json
 **/package-lock.json
 
-# Allow plugin dist bundles (needed for marketplace distribution)
-!plugins/bridgey/dist/
-!plugins/bridgey-discord/dist/
+# Allow app dist bundles (hooks, MCP config, and systemd units run them from the repo)
+!apps/daemon/dist/
+!apps/server/dist/
+!apps/discord-bot/dist/

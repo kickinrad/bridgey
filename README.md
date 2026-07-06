@@ -49,8 +49,8 @@ claude plugin add ./plugins/bridgey-deploy
 ```bash
 git clone https://github.com/kickinrad/bridgey.git
 cd bridgey
-npm run install:all   # Installs all plugin dependencies
-npm run build         # Bundles all plugins to dist/
+npm run install:all   # Installs dependencies for all apps
+npm run build         # Bundles all apps to apps/*/dist/
 npm test              # Runs all tests
 ```
 

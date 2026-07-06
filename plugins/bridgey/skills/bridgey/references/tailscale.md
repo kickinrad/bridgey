@@ -22,11 +22,11 @@ Configure bridgey for Tailscale mesh network discovery.
 
    Write the updated config back. Explain to the user: "This binds your bridgey daemon to all interfaces but only accepts unauthenticated connections from Tailscale IPs (100.64.0.0/10). Other sources still need a bearer token."
 
-4. **Restart bridgey daemon.** Stop and start the daemon (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first):
+4. **Restart bridgey daemon.** Stop and start the daemon (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first):
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js stop
-   node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config <config-path>
+   node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
+   node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start --config <config-path>
    ```
 
    Verify it restarted successfully:

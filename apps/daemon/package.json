@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsx esbuild.config.ts",
+    "typecheck": "tsc --noEmit",
     "dev": "tsx src/index.ts start",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.17",
+    "esbuild": "^0.28.0",
     "tsx": "^4.19.4",
     "typescript": "^6.0.2"
   }

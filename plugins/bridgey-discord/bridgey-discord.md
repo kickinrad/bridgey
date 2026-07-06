@@ -17,7 +17,7 @@ tags:
 
 ## Files
 
-- [[Resources/Repos/markets/bridgey/plugins/bridgey-discord/CLAUDE|CLAUDE]] — plugin harness instructions
+- [[Resources/Repos/markets/bridgey/apps/discord-bot/CLAUDE|CLAUDE]] — bot app instructions (the app lives in `apps/discord-bot/`; this plugin holds the Claude Code surfaces)
 
 ## Components
 

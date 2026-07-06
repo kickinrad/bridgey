@@ -16,7 +16,7 @@ tags:
 > [!abstract] What this is
 > Inter-agent communication for Claude Code via the A2A protocol — each instance becomes both an A2A client and server, forming a mesh for multi-agent collaboration.
 
-Lives at `~/projects/markets/bridgey/` and surfaces into the vault via Folder Bridge at `Resources/Repos/markets/bridgey`. The core plugin handles agent registration and message routing; companion plugins add Discord integration and Coolify-based deployment.
+Lives at `~/projects/markets/bridgey/` and surfaces into the vault via Folder Bridge at `Resources/Repos/markets/bridgey`. The core plugin handles agent registration and message routing; companion plugins add Discord integration and Coolify-based deployment. Application code (daemon, channel server, Discord bot) lives in `apps/` with per-app package.json + esbuild configs; the `plugins/` directories carry only Claude Code surfaces (skills, hooks, MCP config, manifests), so the version-keyed plugin cache stays small.
 
 Key sub-areas: the `bridgey` core plugin (a single consolidated `bridgey` lifecycle skill — setup, status, add-agent, tailscale — with per-topic reference files, replacing the five separate skills it started as), `bridgey-discord` (access + configure), and `bridgey-deploy` (deploy, remote-status, sync — the `coolify` skill has relocated to `core/infra`).
 

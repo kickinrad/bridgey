@@ -12,7 +12,7 @@ Two processes:
 - **MCP Server** (stdio) — thin client providing tools to CC, lives with the session
 - **Daemon** (HTTP) — long-running Fastify server handling A2A protocol, persists across sessions
 
-Both are bundled as single JS files in `dist/` — zero runtime deps, works out of the box.
+Both are bundled as single JS files with zero runtime deps — `apps/server/dist/server.js` and `apps/daemon/dist/` in this repo (the plugin itself carries no app code).
 The daemon starts automatically via SessionStart hook and manages itself via pidfile.
 
 **Storage:** JSON files in `~/.bridgey/` — agents.json, messages.json, conversations.json, audit.jsonl
@@ -146,7 +146,7 @@ When running in Docker or on a headless server:
 If tools return "daemon unreachable":
 1. Check config exists: `cat ~/.bridgey/bridgey.config.json`
 2. If no config: ask Claude to "set up bridgey" (runs the `bridgey` skill's setup workflow)
-3. If config exists, start daemon manually: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first)
+3. If config exists, start daemon manually: `node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first)
 4. Check daemon logs: `cat ~/.bridgey/daemon.log`
 
 If A2A sends return 400:

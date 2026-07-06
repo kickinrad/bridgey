@@ -14,29 +14,22 @@ const shared = {
 // Bundle daemon
 await build({
   ...shared,
-  entryPoints: ['daemon/src/index.ts'],
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/daemon.js',
 });
 
 // Bundle watchdog
 await build({
   ...shared,
-  entryPoints: ['daemon/src/watchdog.ts'],
+  entryPoints: ['src/watchdog.ts'],
   outfile: 'dist/watchdog.js',
 });
 
-// Bundle MCP server
+// Bundle tailscale scan CLI (used by the bridgey plugin's SessionStart hook)
 await build({
   ...shared,
-  entryPoints: ['server/src/index.ts'],
-  outfile: 'dist/server.js',
-});
-
-// Bundle tailscale scan CLI (used by SessionStart hook)
-await build({
-  ...shared,
-  entryPoints: ['daemon/src/tailscale/scan-cli.ts'],
+  entryPoints: ['src/tailscale/scan-cli.ts'],
   outfile: 'dist/scan-cli.js',
 });
 
-console.log('Build complete: dist/daemon.js, dist/watchdog.js, dist/server.js, dist/scan-cli.js');
+console.log('Build complete: dist/daemon.js, dist/watchdog.js, dist/scan-cli.js');

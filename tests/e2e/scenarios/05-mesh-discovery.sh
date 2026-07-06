@@ -96,7 +96,7 @@ assert_json_key "$A2A_RESULT" '.id' 'mesh-test-1' "A2A response id matches"
 # ── Tailscale scan (optional) ────────────────────────────────────────────
 if [[ "${BRIDGEY_TEST_TAILSCALE:-}" == "1" ]]; then
   info "Running Tailscale scan..."
-  SCAN_CLI="$REPO_ROOT/plugins/bridgey/dist/scan-cli.js"
+  SCAN_CLI="$REPO_ROOT/apps/daemon/dist/scan-cli.js"
   if [[ -f "$SCAN_CLI" ]]; then
     SCAN_RESULT=$(node "$SCAN_CLI" --config "$CONFIG_A" 2>&1 || true)
     if [[ -n "$SCAN_RESULT" ]]; then

@@ -122,7 +122,7 @@ wait_for_health() {
 
 start_daemon() {
   local config_path="$1" pidfile="$2" port="$3"
-  local daemon_script="${REPO_ROOT}/plugins/bridgey/dist/daemon.js"
+  local daemon_script="${REPO_ROOT}/apps/daemon/dist/daemon.js"
 
   node "$daemon_script" start --config "$config_path" --pidfile "$pidfile" > /dev/null 2>&1 &
   disown

@@ -14,7 +14,7 @@ Use the `status` MCP tool to get daemon health and agent list. If the daemon is 
 
 - Check if config exists: `cat ~/.bridgey/bridgey.config.json`
 - Set up bridgey if no config
-- Manually start: `node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first)
+- Manually start: `node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first)
 
 ### 2. Display status dashboard
 
@@ -151,11 +151,11 @@ Write the updated config back.
 
 ### 5. Sync to daemon
 
-The daemon picks up config changes on the next request, or restart it (if dist/daemon.js is missing, run `npm run build` from plugins/bridgey/ first):
+The daemon picks up config changes on the next request, or restart it (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first):
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js stop
-node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
+node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
+node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start \
   --config ~/.bridgey/bridgey.config.json
 ```
 

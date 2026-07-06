@@ -1,6 +1,6 @@
 import { createRequire } from 'module'; const require = createRequire(import.meta.url);
 
-// daemon/src/watchdog.ts
+// src/watchdog.ts
 import { spawn } from "child_process";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";

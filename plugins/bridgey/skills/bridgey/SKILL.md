@@ -73,14 +73,14 @@ The SessionStart hook auto-starts the daemon. For manual control:
 
 ```bash
 # Build (if dist/daemon.js is missing)
-cd "${CLAUDE_PLUGIN_ROOT}" && npm run build
+cd ~/projects/markets/bridgey/apps/daemon && npm run build
 
 # Start
-node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js start \
+node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start \
   --config ~/.bridgey/bridgey.config.json
 
 # Stop
-node ${CLAUDE_PLUGIN_ROOT}/dist/daemon.js stop
+node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
 ```
 
 ## Reference files

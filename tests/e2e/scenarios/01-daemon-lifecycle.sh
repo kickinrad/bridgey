@@ -12,7 +12,7 @@ PORT=19001
 TMPDIR=$(mktemp -d /tmp/bridgey-e2e-01-XXXXXX)
 PIDFILE="$TMPDIR/daemon.pid"
 CONFIG="$TMPDIR/config.json"
-DAEMON="$REPO_ROOT/plugins/bridgey/dist/daemon.js"
+DAEMON="$REPO_ROOT/apps/daemon/dist/daemon.js"
 
 cat > "$CONFIG" <<EOF
 {

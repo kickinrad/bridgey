@@ -1,6 +1,6 @@
 import { createRequire } from 'module'; const require = createRequire(import.meta.url);
 
-// daemon/src/tailscale/config.ts
+// src/tailscale/config.ts
 import { readFileSync, existsSync } from "fs";
 var DEFAULTS = {
   bridgey_port: 8092,
@@ -24,7 +24,7 @@ function loadConfig(configPath) {
   }
 }
 
-// daemon/src/tailscale/scanner.ts
+// src/tailscale/scanner.ts
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 var execFileAsync = promisify(execFile);
@@ -89,7 +89,7 @@ async function scanTailnet(config) {
   return discovered;
 }
 
-// daemon/src/tailscale/registrar.ts
+// src/tailscale/registrar.ts
 import { readFileSync as readFileSync2, writeFileSync, readdirSync, unlinkSync, existsSync as existsSync2, mkdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
@@ -142,7 +142,7 @@ function removeStaleTailnetAgents(currentPeerNames, registryDir = DEFAULT_REGIST
   return removed;
 }
 
-// daemon/src/tailscale/scan-cli.ts
+// src/tailscale/scan-cli.ts
 async function main() {
   const configPath = process.argv.find((_, i, a) => a[i - 1] === "--config");
   const config = loadConfig(configPath);

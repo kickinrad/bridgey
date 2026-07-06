@@ -59,7 +59,7 @@ Guide the user through adding guild channels:
 ## Starting the Bot
 
 After configuration, tell the user:
-- Start: `cd ${CLAUDE_PLUGIN_ROOT} && DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start`
+- Start: `cd ~/projects/markets/bridgey/apps/discord-bot && DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start`
 - The bot runs from `dist/bot.js` (esbuild bundle) with discord.js/zod as external deps
 - The bot will register as a transport with the bridgey daemon automatically
 
@@ -67,6 +67,6 @@ After configuration, tell the user:
 
 Dependencies (discord.js, zod) are auto-installed on first Claude Code session via the SessionStart hook. If the bot fails with a missing module error:
 
-1. Check if `node_modules/discord.js` exists in the plugin directory
-2. If missing, run manually: `npm install --omit=dev --prefix ${CLAUDE_PLUGIN_ROOT}`
-3. If `dist/bot.js` is missing, rebuild: `cd ${CLAUDE_PLUGIN_ROOT} && npm run build`
+1. Check if `node_modules/discord.js` exists in `~/projects/markets/bridgey/apps/discord-bot/`
+2. If missing, run manually: `npm install --omit=dev --prefix ~/projects/markets/bridgey/apps/discord-bot`
+3. If `dist/bot.js` is missing, rebuild: `cd ~/projects/markets/bridgey/apps/discord-bot && npm run build`

@@ -59,7 +59,7 @@ check_prereqs() {
   ! command -v node &>/dev/null && missing+=("node")
   ! command -v jq &>/dev/null && missing+=("jq")
   ! command -v curl &>/dev/null && missing+=("curl")
-  [[ ! -f "$REPO_ROOT/plugins/bridgey/dist/daemon.js" ]] && missing+=("daemon build (run: npm run build)")
+  [[ ! -f "$REPO_ROOT/apps/daemon/dist/daemon.js" ]] && missing+=("daemon build (run: npm run build)")
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo -e "${RED}Missing prerequisites:${RESET}"

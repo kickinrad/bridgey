@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
+  "imports": {
+    "#test-utils/*": "./src/__tests__/utils/*.js"
+  },
   "scripts": {
     "build": "tsx esbuild.config.ts",
     "typecheck": "tsc --noEmit",

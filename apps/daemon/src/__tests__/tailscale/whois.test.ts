@@ -20,6 +20,18 @@ function makeRequestEmitter() {
   return req;
 }
 
+// http.request is overloaded; vi.mocked infers the (url, options, callback) overload,
+// which mistypes the second arg as RequestOptions. Pin the options+callback shape so the
+// callback stays callable, then hand it to the mock as the full request type.
+type RequestImpl = (
+  options: http.RequestOptions | string | URL,
+  callback?: (res: http.IncomingMessage) => void,
+) => http.ClientRequest;
+
+function mockHttpRequest(impl: RequestImpl) {
+  vi.mocked(http.request).mockImplementation(impl as typeof http.request);
+}
+
 describe('whoisFromSocket', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,8 +48,8 @@ describe('whoisFromSocket', () => {
     }));
     const req = makeRequestEmitter();
 
-    vi.mocked(http.request).mockImplementation((_opts, cb) => {
-      cb?.(res as Parameters<typeof http.request>[1] extends ((res: infer R) => void) ? R : never);
+    mockHttpRequest((_opts, cb) => {
+      cb?.(res as unknown as http.IncomingMessage);
       setTimeout(sendBody, 0);
       return req as unknown as http.ClientRequest;
     });
@@ -50,8 +62,8 @@ describe('whoisFromSocket', () => {
     const { res, sendBody } = makeResponseEmitter(404, '');
     const req = makeRequestEmitter();
 
-    vi.mocked(http.request).mockImplementation((_opts, cb) => {
-      cb?.(res as Parameters<typeof http.request>[1] extends ((res: infer R) => void) ? R : never);
+    mockHttpRequest((_opts, cb) => {
+      cb?.(res as unknown as http.IncomingMessage);
       setTimeout(sendBody, 0);
       return req as unknown as http.ClientRequest;
     });
@@ -64,8 +76,8 @@ describe('whoisFromSocket', () => {
     const { res, sendBody } = makeResponseEmitter(200, 'not-json{{{');
     const req = makeRequestEmitter();
 
-    vi.mocked(http.request).mockImplementation((_opts, cb) => {
-      cb?.(res as Parameters<typeof http.request>[1] extends ((res: infer R) => void) ? R : never);
+    mockHttpRequest((_opts, cb) => {
+      cb?.(res as unknown as http.IncomingMessage);
       setTimeout(sendBody, 0);
       return req as unknown as http.ClientRequest;
     });
@@ -77,7 +89,7 @@ describe('whoisFromSocket', () => {
   it('returns null when socket errors', async () => {
     const req = makeRequestEmitter();
 
-    vi.mocked(http.request).mockImplementation(() => {
+    mockHttpRequest(() => {
       setTimeout(() => req.emit('error', new Error('ENOENT')), 0);
       return req as unknown as http.ClientRequest;
     });
@@ -93,10 +105,10 @@ describe('whoisFromSocket', () => {
     }));
     const req = makeRequestEmitter();
 
-    let capturedOpts: Parameters<typeof http.request>[0] | undefined;
-    vi.mocked(http.request).mockImplementation((opts, cb) => {
+    let capturedOpts: http.RequestOptions | string | URL | undefined;
+    mockHttpRequest((opts, cb) => {
       capturedOpts = opts;
-      cb?.(res as Parameters<typeof http.request>[1] extends ((res: infer R) => void) ? R : never);
+      cb?.(res as unknown as http.IncomingMessage);
       setTimeout(sendBody, 0);
       return req as unknown as http.ClientRequest;
     });

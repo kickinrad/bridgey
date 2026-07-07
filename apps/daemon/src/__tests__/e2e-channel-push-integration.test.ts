@@ -7,6 +7,7 @@ import { Store } from '../store.js';
 import { TransportRegistry } from '../transport-registry.js';
 import { ChannelPush } from '../channel-push.js';
 import { registerTransportRoutes } from '../transport-routes.js';
+import type { BridgeyConfig } from '../types.js';
 import { startChannelCapture } from '#test-utils/channel-capture';
 import type { ChannelCapture } from '#test-utils/channel-capture';
 
@@ -29,7 +30,7 @@ describe('e2e: channel push integration', () => {
     channelPush = new ChannelPush();
 
     app = Fastify({ logger: false });
-    a2aRoutes(app, {
+    const config: BridgeyConfig = {
       name: 'channel-test',
       description: 'Channel push test',
       port: 0,
@@ -38,8 +39,9 @@ describe('e2e: channel push integration', () => {
       workspace: '/tmp',
       max_turns: 1,
       agents: [],
-    }, store);
-    registerTransportRoutes(app, registry, channelPush);
+    };
+    a2aRoutes(app, config, store);
+    registerTransportRoutes(app, registry, channelPush, config);
 
     await app.listen({ port: 0, host: '127.0.0.1' });
     capture = await startChannelCapture();

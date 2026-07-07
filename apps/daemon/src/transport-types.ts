@@ -2,10 +2,14 @@ import { z } from 'zod';
 
 // --- Transport Registration ---
 
+export const TransportCapabilitySchema = z.enum(['reply', 'react', 'edit', 'edit_message', 'fetch_messages', 'download_attachment', 'permission']);
+
+export type TransportCapability = z.infer<typeof TransportCapabilitySchema>;
+
 export const TransportRegisterSchema = z.object({
   name: z.string().min(1).regex(/^[a-z][a-z0-9_]*$/),
   callback_url: z.string().url(),
-  capabilities: z.array(z.enum(['reply', 'react', 'edit', 'edit_message', 'fetch_messages', 'download_attachment', 'permission'])),
+  capabilities: z.array(TransportCapabilitySchema),
 });
 
 export const TransportUnregisterSchema = z.object({

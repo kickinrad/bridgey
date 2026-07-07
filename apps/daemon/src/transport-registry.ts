@@ -3,7 +3,7 @@
  * and capability tracking.
  */
 
-import type { TransportRegistration } from './transport-types.js';
+import type { TransportCapability, TransportRegistration } from './transport-types.js';
 import { parseTransportFromChatId } from './transport-types.js';
 
 export type { TransportRegistration };
@@ -12,7 +12,7 @@ export class TransportRegistry {
   private transports = new Map<string, TransportRegistration>();
 
   /** Register (or re-register) a transport. */
-  register(opts: { name: string; callback_url: string; capabilities: string[] }): void {
+  register(opts: { name: string; callback_url: string; capabilities: TransportCapability[] }): void {
     this.transports.set(opts.name, {
       name: opts.name,
       callback_url: opts.callback_url,
@@ -45,7 +45,7 @@ export class TransportRegistry {
   }
 
   /** Check whether a transport supports a given capability. */
-  hasCapability(name: string, capability: string): boolean {
+  hasCapability(name: string, capability: TransportCapability): boolean {
     const transport = this.transports.get(name);
     if (!transport) return false;
     return transport.capabilities.includes(capability);

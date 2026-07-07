@@ -20,8 +20,8 @@ Discord Gateway <-> Bot Process <-HTTP-> Bridgey Daemon <-push-> Channel Server 
 # Start the bot (requires DISCORD_BOT_TOKEN env var)
 cd apps/discord-bot && npm start
 
-# Or with pass:
-DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start
+# Or with pass (per-persona token, e.g. discord/julia-bot-token):
+DISCORD_BOT_TOKEN=$(pass show discord/<persona>-bot-token) npm start
 ```
 
 Dependencies are auto-installed on first Claude Code session via the `bridgey-discord` plugin's SessionStart hook.

@@ -9,15 +9,15 @@ Configure the bridgey-discord transport adapter.
 
 ## Token Setup
 
-The bot reads `DISCORD_BOT_TOKEN` from the environment (not auto-loaded from a file). Recommended: store in `pass` and pass inline.
+The bot reads `DISCORD_BOT_TOKEN` from the environment (not auto-loaded from a file). Recommended: store in `pass` and pass inline. Each persona runs its own bot with its own token, stored at `discord/<persona>-bot-token` (e.g. `discord/julia-bot-token`).
 
 If `$ARGUMENTS` contains a bot token (long alphanumeric string):
-1. Store it in pass: `pass insert discord/bot-token` (prompt user to paste)
+1. Store it in pass: `pass insert discord/<persona>-bot-token` (prompt user to paste)
 2. Confirm the token was saved (never display the actual token)
-3. Show how to start: `DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start`
+3. Show how to start: `DISCORD_BOT_TOKEN=$(pass show discord/<persona>-bot-token) npm start`
 
 If no arguments provided, show status:
-- Check if `pass show discord/bot-token` succeeds
+- Check if `pass show discord/<persona>-bot-token` succeeds
 - Check if `DISCORD_BOT_TOKEN` env var is currently set
 - Show current config from `~/.bridgey/discord.config.json`
 
@@ -59,7 +59,7 @@ Guide the user through adding guild channels:
 ## Starting the Bot
 
 After configuration, tell the user:
-- Start: `cd ~/projects/markets/bridgey/apps/discord-bot && DISCORD_BOT_TOKEN=$(pass show discord/bot-token) npm start`
+- Start: `cd ~/projects/markets/bridgey/apps/discord-bot && DISCORD_BOT_TOKEN=$(pass show discord/<persona>-bot-token) npm start`
 - The bot runs from `dist/bot.js` (esbuild bundle) with discord.js/zod as external deps
 - The bot will register as a transport with the bridgey daemon automatically
 

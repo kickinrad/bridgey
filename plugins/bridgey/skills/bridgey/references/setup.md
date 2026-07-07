@@ -106,6 +106,6 @@ If running in Docker or on a headless server:
 ## Notes
 
 - Config file lives at `~/.bridgey/bridgey.config.json` (survives plugin updates)
-- The daemon is started automatically by the SessionStart hook on future sessions
+- The daemon runs under the `bridgey-hub.service` systemd user unit — start-on-boot, restart-on-crash, not tied to any Claude Code session
 - Local agents on the same machine discover each other automatically via `~/.bridgey/agents/`
 - Remote agents must be added manually via the procedure in `agents.md`

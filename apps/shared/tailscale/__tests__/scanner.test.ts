@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll, afterEach, beforeAll } from 'vitest';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { parseTailscaleStatus, probePeer } from '../../tailscale/scanner.js';
+import { parseTailscaleStatus, probePeer } from '../scanner.js';
 
 describe('parseTailscaleStatus', () => {
   it('extracts online peers with tailscale IPs', () => {

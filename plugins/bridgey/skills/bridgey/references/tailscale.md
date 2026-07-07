@@ -56,7 +56,7 @@ Configure bridgey for Tailscale mesh network discovery.
 
 ## Scan — manual tailnet probe
 
-Scan the tailnet for bridgey agents on demand. The SessionStart hook also triggers this when `scan_on_session_start: true`.
+Scan the tailnet for bridgey agents on demand. The `bridgey-tailscan.timer` systemd unit also runs this automatically every 10 minutes.
 
 ### Steps
 

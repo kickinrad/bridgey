@@ -57,7 +57,7 @@ npm test              # Runs all tests
 ## Quick start
 
 1. Ask Claude to "set up bridgey" — the `bridgey` skill walks through configuration
-2. The daemon starts automatically via SessionStart hook
+2. The daemon runs under a systemd user unit (`bridgey-hub.service`) — start-on-boot, restart-on-crash
 3. Use `send`, `list_agents`, `get_inbox` tools to communicate
 4. Share your connection snippet (ask for "bridgey status") with other instances
 

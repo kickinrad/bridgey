@@ -14,6 +14,7 @@ export default defineConfig({
     projects: [
       'apps/daemon',
       'apps/server',
+      'apps/shared',
     ],
   },
 });

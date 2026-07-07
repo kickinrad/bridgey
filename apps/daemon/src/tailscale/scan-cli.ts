@@ -1,6 +1,10 @@
-import { loadConfig } from './config.js';
-import { scanTailnet } from './scanner.js';
-import { readLocalDaemon, registerTailnetAgent, removeStaleTailnetAgents } from './registrar.js';
+import { loadConfig } from '../../../shared/tailscale/config.js';
+import { scanTailnet } from '../../../shared/tailscale/scanner.js';
+import {
+  readLocalDaemon,
+  registerTailnetAgent,
+  removeStaleTailnetAgents,
+} from '../../../shared/tailscale/registrar.js';
 
 async function main(): Promise<void> {
   const configPath = process.argv.find((_, i, a) => a[i - 1] === '--config');

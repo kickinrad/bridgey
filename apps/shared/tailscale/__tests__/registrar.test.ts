@@ -8,7 +8,7 @@ import {
   removeStaleTailnetAgents,
   listTailnetAgents,
   type TailnetAgent,
-} from '../../tailscale/registrar.js';
+} from '../registrar.js';
 
 describe('registrar', () => {
   let registryDir: string;

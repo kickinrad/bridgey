@@ -8,17 +8,17 @@ const mockRegisterTailnetAgent = vi.fn();
 const mockRemoveStaleTailnetAgents = vi.fn();
 const mockLoadConfig = vi.fn();
 
-vi.mock('../../tailscale/scanner.js', () => ({
+vi.mock('../../../../shared/tailscale/scanner.js', () => ({
   scanTailnet: mockScanTailnet,
 }));
 
-vi.mock('../../tailscale/registrar.js', () => ({
+vi.mock('../../../../shared/tailscale/registrar.js', () => ({
   readLocalDaemon: mockReadLocalDaemon,
   registerTailnetAgent: mockRegisterTailnetAgent,
   removeStaleTailnetAgents: mockRemoveStaleTailnetAgents,
 }));
 
-vi.mock('../../tailscale/config.js', () => ({
+vi.mock('../../../../shared/tailscale/config.js', () => ({
   loadConfig: mockLoadConfig,
 }));
 

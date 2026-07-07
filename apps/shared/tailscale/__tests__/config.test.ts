@@ -3,7 +3,7 @@ import { writeFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-import { loadConfig } from '../../tailscale/config.js';
+import { loadConfig } from '../config.js';
 
 describe('loadConfig', () => {
   const testDir = join(tmpdir(), `bridgey-tailscale-config-test-${process.pid}`);

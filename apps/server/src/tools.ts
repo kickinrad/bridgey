@@ -3,14 +3,14 @@ import { homedir } from 'node:os';
 import type { BridgeyClient } from './types.js';
 import { DaemonClient } from './daemon-client.js';
 import { loadConfig, saveConfig } from './config.js';
-import { scanTailnet } from '../../daemon/src/tailscale/scanner.js';
+import { scanTailnet } from '../../shared/tailscale/scanner.js';
 import {
   readLocalDaemon,
   registerTailnetAgent,
   removeStaleTailnetAgents,
   listTailnetAgents,
-} from '../../daemon/src/tailscale/registrar.js';
-import { loadConfig as loadTailscaleConfig } from '../../daemon/src/tailscale/config.js';
+} from '../../shared/tailscale/registrar.js';
+import { loadConfig as loadTailscaleConfig } from '../../shared/tailscale/config.js';
 
 // ---------------------------------------------------------------------------
 // File safety — refuse to send files from ~/.bridgey/

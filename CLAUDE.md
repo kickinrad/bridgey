@@ -40,29 +40,32 @@ Claude Code <-stdio-> Channel Server <-HTTP-> Daemon <-A2A/HTTP-> Remote Daemons
 
 Application code lives in `apps/`; `plugins/` holds only Claude Code surfaces (skills, hooks, MCP config, manifest, MOC). The plugin hooks and MCP config launch the app bundles from `apps/*/dist/` in this repo — keeping node_modules and build output out of the version-keyed plugin cache.
 
+`apps/*/dist/` is build output, gitignored, not committed — run `npm run build` (root, or per-app) to regenerate it after every pull and before restarting any daemon or unit that runs from `dist/`. `apps/shared/` holds code imported by more than one app (currently the Tailscale modules); it has no `package.json` of its own — esbuild bundles it straight from source into each app's independent `dist/` output, so each app stays independently buildable and deployable without npm workspace machinery.
+
 ```
 apps/
 ├── daemon/                # Fastify A2A server (TypeScript) — own package.json + esbuild config
 │   ├── src/               # Core: index, a2a-server, a2a-client, agent-card, attachments, store, registry, auth, rate-limiter, retry, executor, queue, watchdog, channel-push, schemas, config, types, transport-registry, transport-routes, transport-types
-│   │   └── tailscale/     # scanner, registrar, whois, config, scan-cli, index
-│   └── dist/              # daemon.js, watchdog.js, scan-cli.js (committed bundles)
+│   │   └── tailscale/     # daemon-only: whois, scan-cli (scan-cli imports the shared scanner/registrar/config below)
+│   └── dist/              # daemon.js, watchdog.js, scan-cli.js (generated — gitignored)
 ├── server/                # Channel Server — Channels API (TypeScript) — own package.json + esbuild config
 │   ├── src/               # index, tools, daemon-client, orchestrator-client, channel-listener, config, types
-│   └── dist/              # server.js (committed bundle)
-└── discord-bot/           # Discord transport adapter — own package.json + esbuild config + Dockerfile
-    ├── bot.ts             # Discord.js gateway + message handling
-    ├── transport.ts       # Daemon registration + message forwarding
-    ├── gate.ts            # Sender allowlist and gating
-    ├── config.ts          # Zod config schema and loader
-    └── dist/              # bot.js (committed bundle)
+│   └── dist/              # server.js (generated — gitignored)
+├── discord-bot/           # Discord transport adapter — own package.json + esbuild config + Dockerfile
+│   ├── bot.ts             # Discord.js gateway + message handling
+│   ├── transport.ts       # Daemon registration + message forwarding
+│   ├── gate.ts            # Sender allowlist and gating
+│   ├── config.ts          # Zod config schema and loader
+│   └── dist/              # bot.js (generated — gitignored)
+└── shared/                # Cross-app code, no package.json — bundled by each app's esbuild config
+    └── tailscale/         # scanner, registrar, config, index (barrel) — imported by both daemon (scan-cli) and server (tools.ts)
 
 plugins/
 ├── bridgey/
 │   ├── .claude-plugin/    # plugin.json
 │   ├── .mcp.json          # Channel Server launch (apps/server/dist/server.js)
-│   ├── hooks/             # SessionStart hook (auto-start watchdog + tailscale scan from apps/daemon/dist/)
 │   ├── skills/            # bridgey — single consolidated lifecycle skill (setup, status, agents, tailscale references)
-│   └── CLAUDE.md          # Plugin-level instructions for CC
+│   └── CLAUDE.md          # Plugin-level instructions for CC — no SessionStart hook; the hub daemon and tailnet scan run under systemd user units (bridgey-hub.service, bridgey-tailscan.timer), not the plugin
 ├── bridgey-discord/
 │   ├── .claude-plugin/    # plugin.json
 │   ├── hooks/             # SessionStart (dep auto-install into apps/discord-bot/) + bot health check
@@ -98,6 +101,18 @@ plugins/
 | Daemon log | `~/.bridgey/daemon.log` |
 | Pidfile | `/tmp/bridgey-${USER}.pid` |
 | Agent registry | `~/.bridgey/agents/` (directory of JSON files, one per agent) |
+
+## Systemd Units
+
+The whole runtime is systemd-owned (`systemctl --user`) — no unsupervised background processes. Unit files live at `~/.config/systemd/user/` (host-specific, absolute `%h` paths — not tracked in this repo):
+
+| Unit | Runs | Restart policy |
+|------|------|----------------|
+| `bridgey-hub.service` | Host hub daemon (`apps/daemon/dist/daemon.js start`, config `~/.bridgey/bridgey.config.json`) | `Restart=always` |
+| `bridgey-persona@<name>.service` | Per-persona spoke daemon (12 instances: archer, bob, flora, julia, kai, mila, nara, reed, rosie, urza, warren, zana), isolated data dir per instance (`BRIDGEY_DATA_DIR=%h/.bridgey/d/%i`) | `Restart=always` |
+| `bridgey-tailscan.timer` + `.service` | Tailnet peer scan (`apps/daemon/dist/scan-cli.js`), oneshot, every 10 minutes | N/A (timer-triggered) |
+
+All three ExecStart lines point at `apps/*/dist/` — rebuild (`npm run build`) and restart the relevant unit(s) after every pull; `systemctl --user is-active` only confirms the unit is *running*, not that it's running the current build (check `/proc/<pid>/cmdline` or `readlink /proc/<pid>/exe` against the unit's `ExecStart` path to be sure). There is no SessionStart hook anymore — the hub used to be launched by a detached `setsid nohup` bootstrap from the plugin's SessionStart hook, and the tailnet scan used to ride along on every session start; both are retired in favor of the units above.
 
 ## Security Model
 
@@ -154,6 +169,6 @@ Core plugin with Channels API integration, Tailscale discovery, and adaptive MCP
 
 - Follow existing patterns when adding new endpoints or tools
 - All inbound payloads validated with Zod schemas
-- Tests live in `apps/daemon/src/__tests__/` and `apps/server/src/__tests__/`
+- Tests live in `apps/daemon/src/__tests__/`, `apps/server/src/__tests__/`, and `apps/shared/tailscale/__tests__/`
 - Config changes go through skills, not manual edits
 - Credentials via `pass` — never hardcode secrets. Full doctrine: [[Credential Management]]

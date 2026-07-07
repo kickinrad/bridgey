@@ -10,8 +10,3 @@ tests/e2e/runs/
 .claude/
 !.claude/settings.json
 **/package-lock.json
-
-# Allow app dist bundles (hooks, MCP config, and systemd units run them from the repo)
-!apps/daemon/dist/
-!apps/server/dist/
-!apps/discord-bot/dist/

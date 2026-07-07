@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { parseTailscaleStatus } from '../../tailscale/scanner.js';
+import { parseTailscaleStatus } from '../scanner.js';
 import {
   registerTailnetAgent,
   removeStaleTailnetAgents,
   readLocalDaemon,
   listTailnetAgents,
-} from '../../tailscale/registrar.js';
+} from '../registrar.js';
 
 describe('scan flow integration', () => {
   let registryDir: string;

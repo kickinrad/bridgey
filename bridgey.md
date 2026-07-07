@@ -50,7 +50,7 @@ The bridgey ecosystem ships as three coordinated plugins rather than one. The sp
 
 | Plugin | Role | When you need it | Lifecycle |
 |---|---|---|---|
-| `bridgey` | Daemon + A2A protocol + Tailscale mesh + 13 MCP tools | Always — the engine | Long-running daemon, SessionStart hook, watchdog |
+| `bridgey` | Daemon + A2A protocol + Tailscale mesh + 13 MCP tools | Always — the engine | Long-running daemon under `bridgey-hub.service` (systemd, restart-on-crash); tailnet scan under `bridgey-tailscan.timer` |
 | `bridgey-discord` | Discord transport adapter (bot process + HTTP callbacks) | Only if you want Discord routing | Optional bolt-on; hooks-only plugin starts/healthchecks the bot |
 | `bridgey-deploy` | Remote agent deployment to Docker + Tailscale SSH + optional Coolify | Only if you deploy agents remotely | On-demand operations + Stop-hook sync reminder |
 

@@ -69,18 +69,18 @@ Container deployments use the Tailscale IP or Docker host. Expected response inc
 
 ## Manual daemon control
 
-The SessionStart hook auto-starts the daemon. For manual control:
+The `bridgey-hub.service` systemd user unit runs the daemon (start-on-boot, restart-on-crash) — it is not tied to a Claude Code session. For manual control:
 
 ```bash
 # Build (if dist/daemon.js is missing)
 cd ~/projects/markets/bridgey/apps/daemon && npm run build
 
-# Start
-node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start \
-  --config ~/.bridgey/bridgey.config.json
+# Restart via systemd (preferred — picks up a fresh build)
+systemctl --user restart bridgey-hub.service
 
-# Stop
-node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
+# Status / logs
+systemctl --user status bridgey-hub.service
+cat ~/.bridgey/daemon.log
 ```
 
 ## Reference files

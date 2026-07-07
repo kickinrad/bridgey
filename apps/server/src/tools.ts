@@ -529,7 +529,7 @@ async function handleTailscaleScan(
 async function handleReply(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [
@@ -570,7 +570,7 @@ async function handleReply(
 async function handleReact(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [

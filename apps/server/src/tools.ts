@@ -39,6 +39,14 @@ export interface ToolDefinition {
   };
 }
 
+// Result shape shared by handleToolCall and every tool handler below.
+// A type alias (not an interface) so it stays assignable to the SDK's
+// index-signature ServerResult type.
+type ToolResult = {
+  content: Array<{ type: 'text'; text: string }>;
+  isError?: boolean;
+};
+
 export type ServerMode = 'daemon' | 'orchestrator';
 
 export function getToolDefinitions(mode: ServerMode = 'daemon'): ToolDefinition[] {
@@ -226,7 +234,7 @@ export async function handleToolCall(
   name: string,
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   switch (name) {
     case 'send':
       return handleSend(args, client);
@@ -266,7 +274,7 @@ export async function handleToolCall(
 async function handleSend(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<ToolResult> {
   const agent = args.agent as string;
   const message = args.message as string;
   const contextId = args.context_id as string | undefined;
@@ -284,7 +292,7 @@ async function handleSend(
 
 async function handleListAgents(
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<ToolResult> {
   let agents;
   try {
     agents = await client.listAgents();
@@ -325,7 +333,7 @@ async function handleListAgents(
 async function handleGetInbox(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<ToolResult> {
   const limit = (args.limit as number) ?? 10;
 
   let messages;
@@ -362,7 +370,7 @@ async function handleGetInbox(
 
 async function handleStatus(
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<ToolResult> {
   const sections: string[] = [];
 
   // Daemon health
@@ -463,7 +471,7 @@ async function handleStatus(
 
 async function handleTailscaleScan(
   args: Record<string, unknown>,
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<ToolResult> {
   const config = loadTailscaleConfig(process.env.BRIDGEY_TAILSCALE_CONFIG);
 
   const local = readLocalDaemon();
@@ -529,7 +537,7 @@ async function handleTailscaleScan(
 async function handleReply(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [
@@ -570,7 +578,7 @@ async function handleReply(
 async function handleReact(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [
@@ -598,7 +606,7 @@ async function handleReact(
 async function handleEditMessage(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [
@@ -626,7 +634,7 @@ async function handleEditMessage(
 async function handleFetchMessages(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [
@@ -669,7 +677,7 @@ async function handleFetchMessages(
 async function handleDownloadAttachment(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   if (!(client instanceof DaemonClient)) {
     return {
       content: [
@@ -702,7 +710,7 @@ async function handleDownloadAttachment(
 
 async function handleConfigureAgent(
   args: Record<string, unknown>,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   const name = args.name as string;
   const url = args.url as string;
   const token = args.token as string;
@@ -734,7 +742,7 @@ async function handleConfigureAgent(
 
 async function handleRemoveAgent(
   args: Record<string, unknown>,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   const name = args.name as string;
 
   if (!name) {
@@ -769,7 +777,7 @@ async function handleRemoveAgent(
 async function handleAgentInfo(
   args: Record<string, unknown>,
   client: BridgeyClient,
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   const agentName = args.agent as string;
   if (!agentName) {
     return { content: [{ type: 'text', text: 'Missing required field: agent.' }], isError: true };

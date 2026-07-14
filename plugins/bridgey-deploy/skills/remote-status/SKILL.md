@@ -1,13 +1,6 @@
 ---
 name: remote-status
 description: Check the health and status of the remote agent deployment. Use when the user says "remote status", "check remote", "is my agent running", "server status", or runs /remote-status.
-triggers:
-  - remote status
-  - check remote
-  - is my agent running
-  - server status
-  - remote health
-  - is my persona running
 ---
 
 # Remote Status
@@ -40,7 +33,7 @@ Report: running/stopped, uptime.
 Check if the bridgey daemon is responding inside the container:
 
 ```bash
-ssh {tailscale_host} "docker exec {container_name} curl -sf http://localhost:3000/.well-known/agent.json 2>/dev/null && echo 'daemon: healthy' || echo 'daemon: not running or not responding'"
+ssh {tailscale_host} "docker exec {container_name} curl -sf http://localhost:3000/.well-known/agent-card.json 2>/dev/null && echo 'daemon: healthy' || echo 'daemon: not running or not responding'"
 ```
 
 Report: daemon healthy/unhealthy, agent card details if available.

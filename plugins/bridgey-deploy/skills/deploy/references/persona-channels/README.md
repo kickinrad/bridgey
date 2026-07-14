@@ -38,7 +38,7 @@ docker build -t persona-channels .
    permission. The discord `reply` tool is a channel tool (not `mcp__`-namespaced),
    so an allowlist can't target it cleanly — bypass is the right lever here.
 
-   > ⚠️ **Blocked in Claude CLI 2.1.185+ (GH #52501):** `IS_SANDBOX=1` no longer
+   > ⚠️ **Blocked in Claude CLI 2.1.185+ (GH #52501) — re-verify against current CLI:** `IS_SANDBOX=1` no longer
    > suppresses the bypass-permissions acceptance prompt. Native-channels Tier-A
    > is blocked on current CLI; use the daemon+bot path (Tier-B) as the stable
    > fallback until upstream fixes it.

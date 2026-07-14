@@ -9,9 +9,9 @@
             "timeout": 30
           },
           {
-            "type": "http",
-            "url": "http://127.0.0.1:8094/health",
-            "timeout": 5
+            "type": "command",
+            "command": "curl -sf --max-time 5 http://127.0.0.1:8094/health >/dev/null || echo 'bridgey-discord: bot health endpoint not responding on 127.0.0.1:8094'",
+            "timeout": 10
           }
         ]
       }

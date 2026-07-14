@@ -1,7 +1,7 @@
 {
   "name": "bridgey-deploy",
   "description": "Deploy agents to remote servers as Docker containers with Tailscale SSH access, Coolify integration, and bidirectional sync",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "author": {
     "name": "Wils",
     "email": "wils@bestfootforward.business"

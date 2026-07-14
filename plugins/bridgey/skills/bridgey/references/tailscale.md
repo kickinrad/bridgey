@@ -16,18 +16,11 @@ Configure bridgey for Tailscale mesh network discovery.
 
 3. **Update bridgey daemon binding.** Read the bridgey config file. Update two fields:
    - Set `bind` to `"0.0.0.0"`
-   - Set `"trusted_networks"` — merge Tailscale CIDR with any existing entries:
-     - Always add: `"100.64.0.0/10"` (Tailscale IPs)
-     - If running in Docker, also add: `"172.16.0.0/12"` and `"10.0.0.0/8"` (Docker bridge/overlay)
+   - Set `"trusted_networks"` — merge the Tailscale CIDR with any existing entries; if running in Docker, also add the Docker bridge/overlay ranges. Canonical CIDR values: SKILL.md §Bind modes.
 
-   Write the updated config back. Explain to the user: "This binds your bridgey daemon to all interfaces but only accepts unauthenticated connections from Tailscale IPs (100.64.0.0/10). Other sources still need a bearer token."
+   Write the updated config back. Explain to the user: "This binds your bridgey daemon to all interfaces but only accepts unauthenticated connections from Tailscale IPs. Other sources still need a bearer token."
 
-4. **Restart bridgey daemon.** Stop and start the daemon (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first):
-
-   ```bash
-   node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
-   node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start --config <config-path>
-   ```
+4. **Restart bridgey daemon.** Restart per SKILL.md §Manual daemon control.
 
    Verify it restarted successfully:
 

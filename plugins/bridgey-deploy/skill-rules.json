@@ -8,7 +8,7 @@
       "priority": "medium",
       "activationHint": "Skill('bridgey-deploy:deploy')",
       "promptTriggers": {
-        "keywords": ["remote deploy", "deploy agent", "deploy persona", "remote server", "deploy to server", "run agent remotely", "headless agent", "24/7 agent"],
+        "keywords": ["remote deploy", "deploy agent", "deploy persona", "deploy persona to cloud", "remote server", "deploy to server", "run agent remotely", "headless agent", "24/7 agent"],
         "intentPatterns": ["(deploy|run|set up|install).*?(remote|server|vps|headless)", "(agent|persona).*?(remote|server|deploy|headless)", "run.*?24.?7", "always.?on.*?(agent|persona)"]
       },
       "fileTriggers": { "pathPatterns": [], "contentPatterns": [] }
@@ -20,7 +20,7 @@
       "priority": "medium",
       "activationHint": "Skill('bridgey-deploy:sync')",
       "promptTriggers": {
-        "keywords": ["sync", "sync push", "sync pull", "push to remote", "pull from remote", "sync agent"],
+        "keywords": ["sync remote deployment", "sync push", "sync pull", "push to remote", "pull from remote", "sync agent"],
         "intentPatterns": ["sync.*?(remote|push|pull|agent|persona)", "(push|pull).*?(remote|server)"]
       },
       "fileTriggers": { "pathPatterns": [], "contentPatterns": [] }

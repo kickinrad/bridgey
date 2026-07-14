@@ -1,14 +1,6 @@
 ---
 name: sync
 description: Sync agent files between local and remote server. Use when the user says "sync", "push to remote", "pull from remote", "sync agent", or runs /sync.
-triggers:
-  - sync
-  - sync push
-  - sync pull
-  - push to remote
-  - pull from remote
-  - sync agent
-  - sync persona
 ---
 
 # Remote Sync
@@ -50,7 +42,7 @@ rsync -avz --delete \
 After pushing, restart the container to pick up changes:
 
 ```bash
-ssh {tailscale_host} "cd $(dirname {remote_path}) && docker compose restart {container_name}"
+ssh {tailscale_host} "cd /opt/bridgey && docker compose restart {container_name}"
 ```
 
 ### Pull (remote -> local)

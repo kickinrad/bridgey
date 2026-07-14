@@ -66,7 +66,7 @@ Registered capabilities: `reply`, `react`, `edit_message`, `fetch_messages`, `do
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `token_env` | string | `DISCORD_BOT_TOKEN` | Env var name for bot token |
-| `daemon_url` | string | `http://localhost:8092` | Daemon URL |
+| `daemon_url` | string | `http://localhost:8091` | Daemon URL (default = hub; production bots set their persona spoke's URL) |
 | `port` | number | `8094` | Callback server port |
 | `dm_policy` | enum | `pairing` | `pairing` / `allowlist` / `disabled` |
 | `guilds` | object | `{}` | Per-guild channel config |

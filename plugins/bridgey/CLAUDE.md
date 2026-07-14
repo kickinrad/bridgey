@@ -85,8 +85,7 @@ Config lives at `~/.bridgey/bridgey.config.json`. Created by the `bridgey` skill
 
 ## Discovery
 
-- **Local agents** (same machine): Auto-discovered via `~/.bridgey/agents/` file registry
-- **Remote agents**: Configured via the `bridgey` skill's add-agent workflow or config file
+Local vs remote discovery boundaries: see the `bridgey` skill (`skills/bridgey/SKILL.md` §Discovery boundaries).
 
 ## HTTP API (Direct Access)
 
@@ -110,20 +109,7 @@ The `bind` config field controls where the daemon listens:
 - `"tailscale"` — bind to `0.0.0.0` (for Tailscale-exposed services)
 - Custom IP — bind to specific address
 
-When binding to non-localhost, configure `trusted_networks` to allow token-free access from trusted CIDRs:
-```json
-{
-  "bind": "0.0.0.0",
-  "trusted_networks": [
-    "100.64.0.0/10",
-    "172.16.0.0/12",
-    "10.0.0.0/8"
-  ]
-}
-```
-- `100.64.0.0/10` — Tailscale IPs
-- `172.16.0.0/12` — Docker bridge networks
-- `10.0.0.0/8` — Docker overlay / alternative bridge ranges
+When binding to non-localhost, configure `trusted_networks` to allow token-free access from trusted CIDRs — the canonical CIDR table lives in the `bridgey` skill (`skills/bridgey/SKILL.md` §Bind modes).
 
 ## Security
 
@@ -136,23 +122,9 @@ When binding to non-localhost, configure `trusted_networks` to allow token-free 
 
 ## Container / Headless Deployment
 
-When running in Docker or on a headless server:
-- **Bind:** Must use `"0.0.0.0"` (localhost is unreachable from other containers)
-- **Auth:** Claude Code Max uses OAuth; copy `~/.claude/.credentials.json` from a logged-in machine and mount read-only
-- **Inter-container DNS:** Use Docker service names (e.g., `http://bridgey-mila:8093`), not localhost or IPs
+See the `bridgey` skill's `references/setup.md` §Container / headless deployment notes — the one home for bind, trusted-CIDR, credential-mount, and inter-container DNS requirements.
 
 ## Troubleshooting
 
-If tools return "daemon unreachable":
-1. Check config exists: `cat ~/.bridgey/bridgey.config.json`
-2. If no config: ask Claude to "set up bridgey" (runs the `bridgey` skill's setup workflow)
-3. If config exists, check the systemd unit: `systemctl --user status bridgey-hub.service` — restart with `systemctl --user restart bridgey-hub.service` (if `dist/daemon.js` is missing, run `npm run build` from `apps/daemon/` first, then restart the unit)
-4. Check daemon logs: `cat ~/.bridgey/daemon.log`
-
-If A2A sends return 400:
-- Verify request body includes `agent` field (required)
-- Check agent name matches a configured or discovered agent
-
-If A2A sends return 401/403:
-- Check bearer token is correct
-- For container deployments: verify `trusted_networks` includes the source CIDR
+- "daemon unreachable" — check `~/.bridgey/bridgey.config.json` exists (no config → run the `bridgey` skill's setup workflow), then restart per the skill's §Manual daemon control and check `~/.bridgey/daemon.log`.
+- 400/401/403/429 on sends — the one home is the `bridgey` skill's `references/agents.md` §Troubleshooting.

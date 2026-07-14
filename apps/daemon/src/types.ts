@@ -6,7 +6,10 @@ export interface BridgeyConfig {
   token: string;
   workspace: string;
   max_turns: number;
-  allowed_tools?: string[]; // passed as --allowedTools; settings-file allow rules are ignored headless (workspace trust never accepted in -p)
+  // Passed as --allowedTools; settings-file allow rules are ignored headless (workspace trust never accepted in -p).
+  // Blast radius: these tools run unattended for EVERY authorized inbound message (A2A peer or transport sender)
+  // with no per-sender scoping — keep grants narrow and server-scoped (e.g. "mcp__mealie"), never Bash/Write/"*".
+  allowed_tools?: string[];
   agents: RemoteAgent[];
   rate_limit?: {
     max_requests: number;

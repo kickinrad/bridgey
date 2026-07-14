@@ -1,6 +1,6 @@
 ---
 name: bridgey
-description: This skill should be used when the user asks to "set up bridgey", "configure bridgey", "initialize bridgey", "bridgey setup", "check bridgey status", "show bridgey agents", "is bridgey running", "bridgey health", "show connected agents", "add a bridgey agent", "connect to another agent", "register a remote agent", "add remote agent", "configure tailscale for bridgey", or "scan tailnet for bridgey". Lifecycle surface for the bridgey A2A daemon — first-time setup, health dashboard, remote-agent registration, and Tailscale mesh discovery.
+description: This skill should be used when the user asks to "set up bridgey", "check bridgey status", "add a bridgey agent", or "scan the tailnet for bridgey". Lifecycle surface for the bridgey A2A daemon — first-time setup, health dashboard, remote-agent registration, and Tailscale mesh discovery.
 version: 0.3.0
 ---
 
@@ -43,15 +43,21 @@ Read the reference file before starting the workflow — each contains the full 
 
 **Config location.** `~/.bridgey/bridgey.config.json` survives plugin updates. Do not edit manually unless the user asks — use the workflows in `references/setup.md` and `references/agents.md`. The daemon picks up changes on next request, or restart with the stop/start commands documented in those references.
 
-**Token discipline.** Bearer tokens are prefixed `brg_` and generated via `crypto.randomBytes(16).toString('hex')`. Store secrets in `pass` (`pass insert bridgey/agent-name-token`) — never hardcode in committed config. Generate inline:
+**Token discipline.** Bearer tokens are prefixed `brg_` and generated via `crypto.randomBytes(32).toString('hex')`. Store secrets in `pass` (`pass insert bridgey/agent-name-token`) — never hardcode in committed config. Generate inline:
 
 ```bash
 node -e "console.log('brg_' + require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-**Bind modes.** Default `localhost` is most secure. Use `0.0.0.0` only when Docker or Tailscale exposure is needed; pair with `trusted_networks` CIDRs (`100.64.0.0/10` for Tailscale, `172.16.0.0/12` + `10.0.0.0/8` for Docker) to allow token-free access from known ranges.
+**Bind modes.** Default `localhost` is most secure. Use `0.0.0.0` only when Docker or Tailscale exposure is needed; pair with `trusted_networks` CIDRs to allow token-free access from known ranges. Canonical CIDR table (the one home for these values):
 
-**Container deployments.** Bind must be `0.0.0.0`, inter-container DNS uses Docker service names (e.g., `http://bridgey-mila:8093`), and OAuth credentials transfer from a logged-in machine via `~/.claude/.credentials.json` mount.
+| Network | CIDR |
+|---|---|
+| Tailscale | `100.64.0.0/10` |
+| Docker bridge | `172.16.0.0/12` |
+| Docker overlay / alt bridge | `10.0.0.0/8` |
+
+**Container deployments.** See `references/setup.md` §Container / headless deployment notes — the one home for bind, trusted-CIDR, credential-mount, and inter-container DNS requirements.
 
 **Discovery boundaries.**
 - Local agents (same host): auto-discovered via `~/.bridgey/agents/` file registry
@@ -69,18 +75,28 @@ Local port map: hub daemon 8091; persona spoke daemons 8092–8103. Container de
 
 ## Manual daemon control
 
-The `bridgey-hub.service` systemd user unit runs the daemon (start-on-boot, restart-on-crash) — it is not tied to a Claude Code session. For manual control:
+Canonical daemon lifecycle — every start/stop/restart step elsewhere in this plugin points here.
+
+The `bridgey-hub.service` systemd user unit runs the daemon (start-on-boot, restart-on-crash) — it is not tied to a Claude Code session.
+
+**Preferred — systemd:**
 
 ```bash
-# Build (if dist/daemon.js is missing)
-cd ~/projects/markets/bridgey/apps/daemon && npm run build
-
-# Restart via systemd (preferred — picks up a fresh build)
 systemctl --user restart bridgey-hub.service
 
 # Status / logs
 systemctl --user status bridgey-hub.service
 cat ~/.bridgey/daemon.log
+```
+
+**Fallback — raw node** (no systemd unit, e.g. containers or ad-hoc runs). If `dist/daemon.js` is missing, build it first — this build incantation is stated only here:
+
+```bash
+cd ~/projects/markets/bridgey/apps/daemon && npm run build   # only if dist/daemon.js is missing
+
+node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
+node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start \
+  --config ~/.bridgey/bridgey.config.json
 ```
 
 ## Reference files

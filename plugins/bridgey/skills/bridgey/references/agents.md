@@ -14,7 +14,7 @@ Use the `status` MCP tool to get daemon health and agent list. If the daemon is 
 
 - Check if config exists: `cat ~/.bridgey/bridgey.config.json`
 - Set up bridgey if no config
-- Manually start: `node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start --config ~/.bridgey/bridgey.config.json` (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first)
+- Start/restart the daemon per SKILL.md §Manual daemon control
 
 ### 2. Display status dashboard
 
@@ -30,12 +30,12 @@ Bind:    localhost
 
 Agents (3 connected):
   ● luna-dev       localhost:8093  local   healthy
-  ● cloud-coder    cloud:8092     remote  healthy
+  ● hetzner-coder  cloud:8092     remote  healthy
   ○ mesa-runner    mesa:8092      remote  offline
 
 Recent Activity (last 5):
-  → cloud-coder  "review this PR"           2m ago
-  ← luna-dev     "what's the test status?"   15m ago
+  → hetzner-coder  "review this PR"           2m ago
+  ← luna-dev       "what's the test status?"   15m ago
 ```
 
 ### 3. Use color indicators
@@ -62,9 +62,7 @@ If agents return 400 on send:
 If agents return 401/403:
 
 - Bearer token mismatch — verify token matches the remote agent's config
-- Source IP not in `trusted_networks` — add the appropriate CIDR range
-- Docker containers: add `172.16.0.0/12` and `10.0.0.0/8` to trusted_networks
-- Tailscale: add `100.64.0.0/10` to trusted_networks
+- Source IP not in `trusted_networks` — add the appropriate CIDR (Tailscale / Docker values: SKILL.md §Bind modes)
 
 If agents return 429:
 
@@ -73,17 +71,7 @@ If agents return 429:
 
 ### Quick status
 
-For a quick one-liner check, run (local port map: hub daemon 8091; persona spokes 8092–8103):
-
-```bash
-curl -s http://localhost:8091/health | jq .
-```
-
-For container deployments, use the Tailscale IP or Docker host:
-
-```bash
-curl -s http://<tailscale-ip>:8092/health | jq .
-```
+For the one-liner health probe and the local port map, see SKILL.md §Daemon health quick-check.
 
 ---
 
@@ -151,13 +139,7 @@ Write the updated config back.
 
 ### 5. Sync to daemon
 
-The daemon picks up config changes on the next request, or restart it (if dist/daemon.js is missing, run `npm run build` from apps/daemon/ first):
-
-```bash
-node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js stop
-node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start \
-  --config ~/.bridgey/bridgey.config.json
-```
+The daemon picks up config changes on the next request, or restart it per SKILL.md §Manual daemon control.
 
 ### 6. Confirm
 
@@ -178,9 +160,6 @@ Remind the user that for two-way communication, the remote agent also needs to a
 For secure token exchange between agents:
 
 1. Never send tokens over unencrypted channels
-2. Store tokens securely:
-   - **With `pass` (preferred):** `pass insert bridgey/agent-name-token`
-   - **Without `pass`:** store in environment variables or container platform env vars — never hardcode in config files committed to git
-   - **Generate a token inline:** `node -e "console.log('brg_' + require('crypto').randomBytes(32).toString('hex'))"`
+2. Store and generate tokens per SKILL.md §Token discipline (`pass` preferred; env vars as fallback — never hardcode in committed config)
 3. Share tokens via encrypted messaging, in person, or through Tailscale's secure channel
 4. For Docker deployments, use `trusted_networks` CIDR ranges to skip tokens for container-to-container traffic

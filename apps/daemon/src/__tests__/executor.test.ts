@@ -10,7 +10,7 @@ vi.mock('child_process', () => ({
   spawn: mockSpawn,
 }));
 
-import { executePrompt, MAX_MESSAGE_LENGTH, TIMEOUT_MS } from '../executor.js';
+import { executePrompt, executePromptStreaming, MAX_MESSAGE_LENGTH, TIMEOUT_MS } from '../executor.js';
 
 function createMockProcess(
   opts: {
@@ -120,6 +120,19 @@ describe('executor — executePrompt', () => {
       ['-p', 'test message', '--output-format', 'json', '--max-turns', '5', '--setting-sources', 'project,local', '--allowedTools', 'mcp__mealie,mcp__wlater'],
       expect.anything(),
     );
+  });
+
+  it('appends --allowedTools on the streaming path too', async () => {
+    const mock = createMockProcess({ stdout: '' });
+    mockSpawn.mockReturnValue(mock);
+
+    for await (const _chunk of executePromptStreaming('test message', '/workspace', 5, undefined, ['mcp__mealie'])) {
+      // drain
+    }
+
+    const args = mockSpawn.mock.calls[0][1];
+    expect(args).toContain('--allowedTools');
+    expect(args[args.indexOf('--allowedTools') + 1]).toBe('mcp__mealie');
   });
 
   it('omits --allowedTools when allowed_tools is empty or absent', async () => {

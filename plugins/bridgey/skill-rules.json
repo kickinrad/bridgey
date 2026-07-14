@@ -10,7 +10,7 @@
       "promptTriggers": {
         "keywords": [
           "bridgey", "a2a", "agent mesh", "agent-to-agent",
-          "tailnet", "tailscale mesh", "daemon",
+          "bridgey daemon", "scan tailnet for bridgey",
           "bridgey setup", "bridgey status", "bridgey config",
           "remote agent", "register agent", "add agent",
           "agent discovery", "peer discovery", "channel server"

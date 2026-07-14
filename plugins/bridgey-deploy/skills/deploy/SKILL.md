@@ -1,16 +1,6 @@
 ---
 name: deploy
 description: Deploy an agent to a remote server as a Docker container with Tailscale SSH access, optional Coolify integration, and bidirectional sync. Walks through server setup, hardening, Tailscale, Docker, deployment, and post-install tooling. Use when the user asks to deploy an agent remotely, set up a remote server, run an agent 24/7, or make an agent headless.
-triggers:
-  - deploy agent remotely
-  - remote deploy
-  - deploy to server
-  - set up remote server
-  - run agent 24/7
-  - headless agent
-  - always on agent
-  - deploy to vps
-  - deploy persona remotely
 ---
 
 # Deploy (bridgey-deploy)
@@ -21,7 +11,7 @@ Deploy an agent to a remote server as a Docker container, accessible via Tailsca
 
 A persona deploys under one of two container models. Pick before starting.
 
-**Tier-A — warm / native (persistent Channels session).** For personas that should be always-on and reachable in real time over **native Discord Channels**. A live `claude --channels` session runs as PID-1 in the container — no bridgey daemon, no bridgey-discord bot. Container artifacts live in `references/persona-channels/` (Dockerfile, entrypoint.sh, docker-compose.yml, claude.json, README); see that README for the full recipe — bun, runtime plugin install, `IS_SANDBOX=1` + `--dangerously-skip-permissions`, `tty:true`, onboarding pre-seed. Auth via `CLAUDE_CODE_OAUTH_TOKEN`. ⚠️ Blocked in Claude CLI 2.1.185+ (GH #52501): `IS_SANDBOX=1` no longer suppresses the bypass-permissions acceptance prompt, so Tier-A native channels can't start headless on current CLI — prefer the Tier-B daemon+bot path until upstream fixes it.
+**Tier-A — warm / native (persistent Channels session).** For personas that should be always-on and reachable in real time over **native Discord Channels**. A live `claude --channels` session runs as PID-1 in the container — no bridgey daemon, no bridgey-discord bot. Container artifacts live in `references/persona-channels/` (Dockerfile, entrypoint.sh, docker-compose.yml, claude.json, README); see that README for the full recipe — bun, runtime plugin install, `IS_SANDBOX=1` + `--dangerously-skip-permissions`, `tty:true`, onboarding pre-seed. Auth via `CLAUDE_CODE_OAUTH_TOKEN`. ⚠️ Tier-A is currently blocked on recent Claude CLI versions — see the GH #52501 warning in `references/persona-channels/README.md` (the canonical copy) and prefer the Tier-B daemon+bot path until it clears.
 
 **Tier-B — dormant / daemon (cold-spawn).** A bridgey daemon container that cold-spawns `claude -p` per inbound message, fronted by a bridgey-discord bot. Container artifacts are `references/{Dockerfile,docker-compose.yml,entrypoint.sh}`.
 
@@ -77,15 +67,15 @@ Ask the user which agent they want to deploy before starting.
 **Goal:** Basic security hardening — disable password auth, enable auto-updates.
 
 **Detection (via SSH):**
-- Password auth status: `ssh {user}@{ip} "grep -E '^PasswordAuthentication' /etc/ssh/sshd_config"`
+- Password auth status (main config AND drop-ins): `ssh {user}@{ip} "grep -RE '^PasswordAuthentication' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/ 2>/dev/null"`
 - Auto-updates: `ssh {user}@{ip} "dpkg -l unattended-upgrades 2>/dev/null | grep -q '^ii' && echo installed || echo missing"`
 - Current user: `ssh {user}@{ip} "whoami"` — if root, recommend creating a deploy user
 
 **Actions (only if needed):**
 
-1. **Disable password SSH auth:**
+1. **Disable password SSH auth** — in the main config AND any `/etc/ssh/sshd_config.d/*.conf` drop-ins (cloud-init images often ship `50-cloud-init.conf` with `PasswordAuthentication yes`, which overrides the main config):
 ```bash
-ssh {user}@{ip} "sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl restart sshd"
+ssh {user}@{ip} "sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo grep -rlE '^#*PasswordAuthentication' /etc/ssh/sshd_config.d/ 2>/dev/null | xargs -r sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' && sudo systemctl restart sshd"
 ```
 
 2. **Enable unattended security upgrades:**
@@ -110,7 +100,10 @@ Then update stored SSH username to `deploy`.
 - Remote: `ssh {user}@{ip} "tailscale status 2>/dev/null"`
 
 **If not installed on server:**
-1. Install: `ssh {user}@{ip} "curl -fsSL https://tailscale.com/install.sh | sh"`
+1. Install via the apt repo (docs-standard method — never `curl | sh`; adjust the distro/codename path for non-Ubuntu-24.04 servers):
+```bash
+ssh {user}@{ip} "curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null && curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null && sudo apt-get update && sudo apt-get install -y tailscale"
+```
 2. Authenticate with SSH enabled: `ssh {user}@{ip} "sudo tailscale up --ssh"`
 3. The command outputs an auth URL — tell the user to open it in their browser to approve the device
 4. Wait for approval, then verify: `ssh {user}@{ip} "tailscale status"`
@@ -139,14 +132,15 @@ This allows only Tailscale traffic — all public ports are blocked.
 **Detection:** `ssh {tailscale_host} "docker --version 2>/dev/null"`
 
 **If Docker not installed:**
-1. Install via official script:
+1. Install from the Ubuntu repos (no `curl | sh` — `docker-compose-v2` provides the `docker compose` subcommand used below):
 ```bash
-ssh {tailscale_host} "curl -fsSL https://get.docker.com | sh"
+ssh {tailscale_host} "sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2"
 ```
 2. Add user to docker group:
 ```bash
-ssh {tailscale_host} "sudo usermod -aG docker {user} && newgrp docker"
+ssh {tailscale_host} "sudo usermod -aG docker {user}"
 ```
+Group membership applies on the next SSH session — the verify step below opens a fresh session, so it picks the group up.
 3. Verify: `ssh {tailscale_host} "docker run --rm hello-world"`
 
 **Build agent container:**
@@ -162,7 +156,13 @@ scp ${CLAUDE_PLUGIN_ROOT}/skills/deploy/references/Dockerfile {tailscale_host}:/
 scp ${CLAUDE_PLUGIN_ROOT}/skills/deploy/references/entrypoint.sh {tailscale_host}:/opt/bridgey/build/
 ```
 
-3. Build image:
+3. Copy the bridgey daemon bundle into the build context (the Dockerfile COPYs it to `/opt/bridgey/daemon.js`, which the entrypoint runs as PID 1 — without it the container falls back to exec-only mode). Build it first if `dist/daemon.js` is missing:
+```bash
+cd ~/projects/markets/bridgey/apps/daemon && npm run build   # only if dist/daemon.js is missing
+scp ~/projects/markets/bridgey/apps/daemon/dist/daemon.js {tailscale_host}:/opt/bridgey/build/daemon.js
+```
+
+4. Build image:
 ```bash
 ssh {tailscale_host} "cd /opt/bridgey/build && docker build -t bridgey-agent ."
 ```
@@ -186,7 +186,7 @@ This builds a shared image for all agents. Individual agents are differentiated 
 ssh {tailscale_host} "sudo mkdir -p /opt/bridgey/personas/{name} /opt/bridgey/auth && sudo chown -R {user}:{user} /opt/bridgey"
 ```
 
-**Note:** The path uses `personas/` for backward compatibility with existing deployments. Fresh installs may use `agents/` — ask the user if this is a new deployment or an existing one.
+**Note:** Agent files live under `personas/` — the committed convention across the stack.
 
 2. **Sync agent files:**
 ```bash
@@ -235,29 +235,15 @@ After the Coolify skill completes, return here for Phase 7 post-install steps.
 
 ## Phase 7: Post-Install
 
-**Goal:** Install sync/status tools into the agent and set up the remote shell alias.
+**Goal:** Wire up the sync hook, remote shell alias, and remote config.
 
-### 7a: Install /sync skill
+**Note:** The `/sync` and `/remote-status` skills ship with this plugin — the plugin-level registration is the single one. They read `bridgey-deploy.config.json` at runtime, so nothing needs to be copied into the persona.
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/sync/SKILL.md` as a template. The skill references `bridgey-deploy.config.json` for connection details. Write a copy with resolved placeholders to:
-
-```
-~/.personas/{name}/skills/remote/sync/SKILL.md
-```
-
-### 7b: Install /remote-status skill
-
-Read `${CLAUDE_PLUGIN_ROOT}/skills/remote-status/SKILL.md` as a template. Write with resolved placeholders to:
-
-```
-~/.personas/{name}/skills/remote/status/SKILL.md
-```
-
-### 7c: Add SessionEnd sync hook
+### 7a: Add SessionEnd sync hook
 
 Read `${CLAUDE_PLUGIN_ROOT}/hooks/sync-reminder.json`. Read the agent's existing `~/.personas/{name}/hooks.json`. Append the sync reminder to the existing `Stop` array (don't replace the memory persistence hook that's already there). Write back the updated `hooks.json`.
 
-### 7d: Add remote shell alias
+### 7b: Add remote shell alias
 
 Append to `~/.personas/.aliases.sh`:
 
@@ -268,12 +254,12 @@ remote-{name}() {
   if [ $# -eq 0 ]; then
     ssh {tailscale_host} "cd /opt/bridgey/personas/{name} && claude"
   else
-    ssh {tailscale_host} "cd /opt/bridgey/personas/{name} && claude -p \"\$*\""
+    ssh {tailscale_host} "cd /opt/bridgey/personas/{name} && claude -p \"$*\""
   fi
 }
 ```
 
-### 7e: Store remote config
+### 7c: Store remote config
 
 Create `~/.personas/{name}/bridgey-deploy.config.json` (for skills to reference):
 
@@ -289,14 +275,14 @@ Create `~/.personas/{name}/bridgey-deploy.config.json` (for skills to reference)
 
 Add `bridgey-deploy.config.json` to the agent's `.gitignore` (contains host-specific info).
 
-### 7f: Verify everything
+### 7d: Verify everything
 
 1. Test remote alias: `remote-{name} "respond with exactly: OK"`
 2. Test sync push: run the push rsync command
 3. Test sync pull: run the pull rsync command
 4. Test remote-status: run the status checks
 
-### 7g: Custom ports (if needed)
+### 7e: Custom ports (if needed)
 
 Ask: "Does this agent need any ports open? (e.g., for bridgey daemon, dashboard, webhook listener)"
 
@@ -321,7 +307,7 @@ Document any opened ports in `bridgey-deploy.config.json`:
 }
 ```
 
-### 7h: Print summary
+### 7f: Print summary
 
 Print a completion summary:
 - Server: {tailscale_host}
@@ -333,12 +319,12 @@ Print a completion summary:
 - Custom ports: list any opened (Tailscale-only)
 - Credential refresh: "If Claude auth expires, re-run: `scp ~/.claude/.credentials.json {tailscale_host}:/opt/bridgey/auth/`"
 
-### 7i: Commit agent changes
+### 7g: Commit agent changes
 
-Commit the new skills, hook changes, and config to the agent's git repo:
+Commit the hook changes and config to the agent's git repo:
 
 ```bash
 cd ~/.personas/{name}
-git add skills/remote/ hooks.json bridgey-deploy.config.json .gitignore
+git add hooks.json bridgey-deploy.config.json .gitignore
 git commit -m "feat({name}): add bridgey-deploy remote deployment"
 ```

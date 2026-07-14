@@ -8,6 +8,6 @@ APP_ROOT="${BRIDGEY_DISCORD_APP_ROOT:-${HOME}/projects/markets/bridgey/apps/disc
 # One-time: install production dependencies if missing
 if [ -d "$APP_ROOT" ] && [ ! -d "$APP_ROOT/node_modules/discord.js" ]; then
   echo "bridgey-discord: installing dependencies..."
-  npm install --omit=dev --prefix "$APP_ROOT" --silent 2>/dev/null
+  npm install --omit=dev --prefix "$APP_ROOT" --silent 2>>/tmp/bridgey-discord-npm.log
   echo "bridgey-discord: dependencies installed."
 fi

@@ -20,6 +20,7 @@ Ask the user for each setting (provide sensible defaults):
 | **bind** | "localhost" | Network binding: `localhost`, `lan`, `0.0.0.0`, or custom IP |
 | **workspace** | current working directory | Working directory for inbound requests |
 | **max_turns** | 10 | Max turns for `claude -p` on inbound requests |
+| **allowed_tools** | none (optional) | `string[]` — MCP tool grants for cold-spawned sessions, passed as `--allowedTools` |
 
 **Bind mode guide:**
 - `"localhost"` — only reachable from same machine (most secure, default)
@@ -30,6 +31,14 @@ Ask the user for each setting (provide sensible defaults):
 If the user picks `"0.0.0.0"` for bind, warn them:
 
 > "Binding to all interfaces exposes the daemon to the network. A bearer token protects it, but consider using `localhost` with Tailscale for secure remote access."
+
+**allowed_tools guide:**
+
+Settings-file permission rules never apply headless — workspace trust is never accepted in `claude -p` — so `allowed_tools` is the ONLY grant path for persona daemons.
+
+> ⚠️ **Blast radius:** granted tools run unattended for EVERY authorized inbound message (A2A peer or transport sender), with no per-sender scoping. Keep grants narrow and server-scoped (e.g. `["mcp__mealie"]`) — never `Bash`, `Write`, or `"*"`. Tool names must not contain commas (schema-enforced).
+
+Working example (julia): her daemon config grants `["mcp__mealie"]`; her workspace `.mcp.json` defines the `mealie` MCP server, and her tracked `.claude/settings.json` lists it in `enabledMcpjsonServers`.
 
 ### 2b. Configure trusted networks (if non-localhost bind)
 

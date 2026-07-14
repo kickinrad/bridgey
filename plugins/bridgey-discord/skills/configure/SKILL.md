@@ -29,7 +29,7 @@ Default config structure:
 ```json
 {
   "token_env": "DISCORD_BOT_TOKEN",
-  "daemon_url": "http://localhost:8092",
+  "daemon_url": "http://localhost:8091",
   "port": 8094,
   "dm_policy": "pairing",
   "guilds": {}
@@ -37,6 +37,8 @@ Default config structure:
 ```
 
 Create this file if it doesn't exist when configuring.
+
+`daemon_url` defaults to the host hub daemon (`http://localhost:8091`). Production persona bots point at their persona spoke's URL instead — Docker service name + spoke port (e.g. `http://bridgey-julia:8092`).
 
 ## Guild Channel Setup
 

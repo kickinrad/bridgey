@@ -36,7 +36,10 @@ describe('e2e: channel push integration', () => {
       port: 0,
       bind: 'localhost',
       token: 'brg_channeltest',
-      workspace: '/tmp',
+      // Hub-shaped daemon (no workspace): unrouteable inbound QUEUES for a
+      // later channel server. Executor-mode daemons (workspace set) refuse
+      // with 409 instead — covered in transport-routes.test.ts.
+      workspace: '',
       max_turns: 1,
       agents: [],
     };

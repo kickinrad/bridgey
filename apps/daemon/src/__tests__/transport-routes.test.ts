@@ -270,6 +270,29 @@ describe('transport-routes', () => {
       });
       expect(res.statusCode).toBe(400);
     });
+
+    it('refuses with 409 when executor-mode transport is not registered (daemon-restart regression)', async () => {
+      const workspaceApp = Fastify({ logger: false });
+      registerTransportRoutes(workspaceApp, registry, channelPush, { ...bearerConfig, workspace: '/tmp' });
+      await workspaceApp.ready();
+
+      const res = await workspaceApp.inject({
+        method: 'POST',
+        url: '/messages/inbound',
+        payload: {
+          transport: 'discord',
+          chat_id: 'discord:12345',
+          sender: 'user123',
+          content: 'hello after daemon restart',
+          meta: {},
+        },
+      });
+      expect(res.statusCode).toBe(409);
+      expect(res.json().ok).toBe(false);
+      expect(channelPush.pendingCount()).toBe(0);
+
+      await workspaceApp.close();
+    });
   });
 
   // ── Reply Routing ──────────────────────────────────────────────────

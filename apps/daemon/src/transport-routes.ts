@@ -218,8 +218,11 @@ export function registerTransportRoutes(
 
     const transportEntry = registry.resolveFromChatId(chat_id);
     if (!transportEntry) {
-      channelPush.enqueue({ content, meta: channelMeta });
-      return reply.send({ ok: true, queued: true });
+      // A live transport reaching this branch means the daemon restarted and
+      // lost the in-memory registration. Enqueueing would strand the message
+      // (headless personas never connect a channel server) — refuse instead
+      // so the transport can re-register and resend.
+      return reply.code(409).send({ ok: false, error: 'transport not registered' });
     }
 
     // Respond immediately, execute async

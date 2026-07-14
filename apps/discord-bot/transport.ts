@@ -14,7 +14,7 @@ export class TransportClient {
   // (triggered by a sendInbound connection failure) doesn't need them re-passed.
   private registerPort?: number
   private registerCallbackUrl?: string
-  private reregistering = false
+  private reregistering: Promise<void> | null = null
 
   constructor(daemonUrl: string) {
     this.daemonUrl = daemonUrl
@@ -78,15 +78,19 @@ export class TransportClient {
    * request. No-op if a reregistration is already in flight, or if we've
    * never successfully started a registration (nothing to repeat yet).
    */
-  private reregister(): void {
-    if (this.reregistering || this.registerPort === undefined) return
-    this.reregistering = true
-    this.registerWithRetry(this.registerPort, this.registerCallbackUrl)
+  private reregister(): Promise<void> {
+    if (this.registerPort === undefined) return Promise.resolve()
+    if (this.reregistering) return this.reregistering
+    this.reregistering = this.registerWithRetry(this.registerPort, this.registerCallbackUrl)
       .then(() => console.error(`Re-registered as transport with daemon at ${this.daemonUrl}`))
-      .catch((err) => console.error(`Re-registration with daemon ${this.daemonUrl} ultimately failed:`, err))
-      .finally(() => {
-        this.reregistering = false
+      .catch((err) => {
+        console.error(`Re-registration with daemon ${this.daemonUrl} ultimately failed:`, err)
+        throw err
       })
+      .finally(() => {
+        this.reregistering = null
+      })
+    return this.reregistering
   }
 
   async unregister(): Promise<void> {
@@ -112,21 +116,30 @@ export class TransportClient {
     meta: Record<string, string>
     attachments?: Array<{ id: string; name: string; type: string; size: number; url: string }>
   }): Promise<void> {
-    let res: Response
-    try {
-      res = await fetch(`${this.daemonUrl}/messages/inbound`, {
+    const post = () =>
+      fetch(`${this.daemonUrl}/messages/inbound`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transport: 'discord', ...msg }),
       })
+
+    let res: Response
+    try {
+      res = await post()
     } catch (err) {
       // fetch() itself throwing (as opposed to resolving with a non-2xx
       // status) means a connection-level failure — ECONNREFUSED, timeout,
       // DNS, etc. That's the signature of a daemon restart, so kick off a
       // background reregistration in case the daemon lost our transport
       // registration when it came back up.
-      this.reregister()
+      void this.reregister().catch(() => {})
       throw err
+    }
+    if (res.status === 409 && this.registerPort !== undefined) {
+      // Daemon is up but lost our registration (clean restart): the message
+      // was refused, not queued. Re-register and resend this one message.
+      await this.reregister()
+      res = await post()
     }
     if (!res.ok) throw new Error(`Failed to send inbound message: ${res.status}`)
   }

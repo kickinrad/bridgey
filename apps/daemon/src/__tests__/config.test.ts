@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseConfig } from '../config.js';
+import { BridgeyConfigSchema } from '../schemas.js';
 
 const FULL_CONFIG = JSON.stringify({
   name: 'flora',
@@ -11,6 +12,20 @@ const FULL_CONFIG = JSON.stringify({
   max_turns: 5,
   agents: [{ name: 'julia', url: 'http://bridgey-julia:8092', token: 'brg_abc' }],
   trusted_networks: ['100.64.0.0/10'],
+});
+
+describe('BridgeyConfigSchema — allowed_tools', () => {
+  const base = { name: 'agent', port: 3000, token: 'brg_t' };
+
+  it('accepts server-scoped tool grants', () => {
+    const parsed = BridgeyConfigSchema.safeParse({ ...base, allowed_tools: ['mcp__mealie'] });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects tool names containing commas (grant smuggling via join)', () => {
+    const parsed = BridgeyConfigSchema.safeParse({ ...base, allowed_tools: ['mcp__mealie,Bash'] });
+    expect(parsed.success).toBe(false);
+  });
 });
 
 describe('parseConfig', () => {

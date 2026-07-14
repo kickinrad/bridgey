@@ -228,7 +228,7 @@ export function registerTransportRoutes(
     // Fire-and-forget: execute and reply through transport callback
     const prompt = `[Message from ${sender} via ${transport}]\n${content}`;
     const sessionId = chatIdToSessionId(chat_id);
-    executePrompt(prompt, config.workspace, config.max_turns ?? 5, sessionId)
+    executePrompt(prompt, config.workspace, config.max_turns ?? 5, sessionId, config.allowed_tools)
       .then(async (response) => {
         try {
           await fetch(`${transportEntry.callback_url}/callback/reply`, {

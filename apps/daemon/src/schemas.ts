@@ -8,6 +8,7 @@ export const BridgeyConfigSchema = z.object({
   token: z.string().min(1),
   workspace: z.string().default(''),
   max_turns: z.number().int().min(1).default(5),
+  allowed_tools: z.array(z.string().min(1)).optional(),
   agents: z.array(z.object({
     name: z.string().min(1),
     url: z.string().url(),

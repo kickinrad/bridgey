@@ -288,7 +288,7 @@ export function a2aRoutes(
 
         // Execute via claude -p (queued per-agent to prevent concurrent sessions)
         const response = await requestQueue.enqueue(agentName, () =>
-          executePrompt(messageText, config.workspace, config.max_turns),
+          executePrompt(messageText, config.workspace, config.max_turns, undefined, config.allowed_tools),
         );
 
         // Save to store
@@ -332,7 +332,7 @@ export function a2aRoutes(
 
         try {
           await requestQueue.enqueue(streamAgent, async () => {
-            for await (const chunk of executePromptStreaming(streamMessageText, config.workspace, config.max_turns)) {
+            for await (const chunk of executePromptStreaming(streamMessageText, config.workspace, config.max_turns, undefined, config.allowed_tools)) {
               if (clientDisconnected) break;
               fullResponse += chunk;
               const event = JSON.stringify({

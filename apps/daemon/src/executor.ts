@@ -138,6 +138,7 @@ export async function executePrompt(
   workspace: string,
   maxTurns: number,
   sessionId?: string,
+  allowedTools?: string[],
 ): Promise<string> {
   let sanitizedMessage = sanitize(message);
 
@@ -150,6 +151,9 @@ export async function executePrompt(
   }
 
   const baseArgs = ['-p', sanitizedMessage, '--output-format', 'json', '--max-turns', String(maxTurns), '--setting-sources', 'project,local'];
+  if (allowedTools?.length) {
+    baseArgs.push('--allowedTools', allowedTools.join(','));
+  }
 
   if (sessionId) {
     // Try resuming existing session first
@@ -184,6 +188,7 @@ export async function* executePromptStreaming(
   workspace: string,
   maxTurns: number,
   sessionId?: string,
+  allowedTools?: string[],
 ): AsyncGenerator<string, void, undefined> {
   let sanitizedMessage = sanitize(message);
   if (sanitizedMessage.length > MAX_MESSAGE_LENGTH) {
@@ -195,6 +200,9 @@ export async function* executePromptStreaming(
   }
 
   const args = ['-p', sanitizedMessage, '--output-format', 'stream-json', '--max-turns', String(maxTurns), '--setting-sources', 'project,local'];
+  if (allowedTools?.length) {
+    args.push('--allowedTools', allowedTools.join(','));
+  }
   if (sessionId) {
     args.push('--resume', sessionId);
   }

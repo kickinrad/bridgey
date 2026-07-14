@@ -6,6 +6,7 @@ export interface BridgeyConfig {
   token: string;
   workspace: string;
   max_turns: number;
+  allowed_tools?: string[]; // passed as --allowedTools; settings-file allow rules are ignored headless (workspace trust never accepted in -p)
   agents: RemoteAgent[];
   rate_limit?: {
     max_requests: number;

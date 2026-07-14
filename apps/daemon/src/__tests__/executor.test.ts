@@ -109,6 +109,29 @@ describe('executor — executePrompt', () => {
     );
   });
 
+  it('appends --allowedTools when allowed_tools are configured', async () => {
+    const mock = createMockProcess({ stdout: JSON.stringify({ result: 'ok' }) });
+    mockSpawn.mockReturnValue(mock);
+
+    await executePrompt('test message', '/workspace', 5, undefined, ['mcp__mealie', 'mcp__wlater']);
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      'claude',
+      ['-p', 'test message', '--output-format', 'json', '--max-turns', '5', '--setting-sources', 'project,local', '--allowedTools', 'mcp__mealie,mcp__wlater'],
+      expect.anything(),
+    );
+  });
+
+  it('omits --allowedTools when allowed_tools is empty or absent', async () => {
+    const mock = createMockProcess({ stdout: JSON.stringify({ result: 'ok' }) });
+    mockSpawn.mockReturnValue(mock);
+
+    await executePrompt('test message', '/workspace', 5, undefined, []);
+
+    const args = mockSpawn.mock.calls[0][1];
+    expect(args).not.toContain('--allowedTools');
+  });
+
   it('strips CLAUDECODE env var to prevent nested session errors', async () => {
     process.env.CLAUDECODE = 'some-value';
 

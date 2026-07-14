@@ -18,7 +18,7 @@ describe('loadConfig', () => {
     const config = loadConfig();
 
     expect(config).toEqual({
-      bridgey_port: 8092,
+      bridgey_port: 8091,
       probe_timeout_ms: 2000,
       exclude_peers: [],
       scan_on_session_start: true,
@@ -29,7 +29,7 @@ describe('loadConfig', () => {
     const config = loadConfig('/tmp/definitely-does-not-exist.json');
 
     expect(config).toEqual({
-      bridgey_port: 8092,
+      bridgey_port: 8091,
       probe_timeout_ms: 2000,
       exclude_peers: [],
       scan_on_session_start: true,
@@ -71,7 +71,7 @@ describe('loadConfig', () => {
     const config = loadConfig(configPath);
 
     expect(config).toEqual({
-      bridgey_port: 8092,
+      bridgey_port: 8091,
       probe_timeout_ms: 2000,
       exclude_peers: [],
       scan_on_session_start: true,

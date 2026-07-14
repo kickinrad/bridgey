@@ -440,7 +440,7 @@ async function handleStatus(
     // Connection info — share this so other Claude instances can reach you
     const config = loadConfig();
     if (config) {
-      const daemonPort = (config as Record<string, unknown>).port ?? 8092;
+      const daemonPort = (config as Record<string, unknown>).port ?? 8091;
       const daemonBind = (config as Record<string, unknown>).bind as string | undefined;
       const token = (config as Record<string, unknown>).token as string | undefined;
       const name = config.name ?? 'unnamed';

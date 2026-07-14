@@ -8,7 +8,7 @@ export type BridgeyTailscaleConfig = {
 };
 
 const DEFAULTS: BridgeyTailscaleConfig = {
-  bridgey_port: 8092,
+  bridgey_port: 8091,
   probe_timeout_ms: 2000,
   exclude_peers: [],
   scan_on_session_start: true,

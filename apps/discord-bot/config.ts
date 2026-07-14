@@ -18,7 +18,7 @@ const RouteSchema = z.object({
 export const DiscordConfigSchema = z.object({
   token_env: z.string().default('DISCORD_BOT_TOKEN'),
   // Default/fallback daemon for any message that matches no route.
-  daemon_url: z.string().url().default('http://localhost:8092'),
+  daemon_url: z.string().url().default('http://localhost:8091'),
   // Multi-persona routing. Keys are either a Discord channel ID (e.g. "123…")
   // or a persona name used as the message's leading token (e.g. "mila").
   // Channel match wins over name match; both win over the fallback daemon_url.

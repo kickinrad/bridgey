@@ -11,7 +11,7 @@ export class DaemonClient implements BridgeyClient {
     if (urlOverride) {
       this.baseUrl = urlOverride.replace(/\/$/, '');
     } else {
-      const resolvedPort = port ?? parseInt(process.env.BRIDGEY_DAEMON_PORT || '8092', 10);
+      const resolvedPort = port ?? parseInt(process.env.BRIDGEY_DAEMON_PORT || '8091', 10);
       this.baseUrl = `http://localhost:${resolvedPort}`;
     }
   }

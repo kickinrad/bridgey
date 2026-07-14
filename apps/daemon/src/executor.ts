@@ -165,7 +165,12 @@ export async function executePrompt(
     }
 
     // If it failed because session doesn't exist, create a new one
-    if (resumeResult.stderr.includes('not found') || resumeResult.stderr.includes('No session') || resumeResult.stderr.includes('Could not find')) {
+    if (
+      resumeResult.stderr.includes('not found') ||
+      resumeResult.stderr.includes('No session') ||
+      resumeResult.stderr.includes('Could not find') ||
+      resumeResult.stderr.includes('No conversation found')
+    ) {
       const createResult = await spawnClaude([...baseArgs, '--session-id', sessionId], workspace);
       return parseClaudeOutput(createResult.stdout, createResult.stderr, createResult.code, createResult.killed);
     }

@@ -298,6 +298,60 @@ describe('executor — executePrompt', () => {
     expect(mock.stdin.end).toHaveBeenCalled();
   });
 
+  it('returns the resume result directly when --resume succeeds', async () => {
+    const mock = createMockProcess({ stdout: JSON.stringify({ result: 'resumed ok' }) });
+    mockSpawn.mockReturnValue(mock);
+
+    const result = await executePrompt('Hi', '/workspace', 5, 'session-abc');
+
+    expect(result).toBe('resumed ok');
+    expect(mockSpawn).toHaveBeenCalledTimes(1);
+    expect(mockSpawn.mock.calls[0][1]).toEqual(
+      expect.arrayContaining(['--resume', 'session-abc']),
+    );
+  });
+
+  it('falls back to --session-id when --resume fails because the session does not exist yet (CLI: "No conversation found")', async () => {
+    const resumeFail = createMockProcess({
+      exitCode: 1,
+      stderr: 'No conversation found with session ID: session-new',
+    });
+    const createOk = createMockProcess({ stdout: JSON.stringify({ result: 'created ok' }) });
+    mockSpawn.mockReturnValueOnce(resumeFail).mockReturnValueOnce(createOk);
+
+    const result = await executePrompt('Hi', '/workspace', 5, 'session-new');
+
+    expect(result).toBe('created ok');
+    expect(mockSpawn).toHaveBeenCalledTimes(2);
+    expect(mockSpawn.mock.calls[0][1]).toEqual(expect.arrayContaining(['--resume', 'session-new']));
+    expect(mockSpawn.mock.calls[1][1]).toEqual(expect.arrayContaining(['--session-id', 'session-new']));
+  });
+
+  it.each(['not found', 'No session', 'Could not find'])(
+    'also falls back to --session-id on older CLI wording (stderr containing "%s")',
+    async (phrase) => {
+      const resumeFail = createMockProcess({ exitCode: 1, stderr: `${phrase}: session-new` });
+      const createOk = createMockProcess({ stdout: JSON.stringify({ result: 'created ok' }) });
+      mockSpawn.mockReturnValueOnce(resumeFail).mockReturnValueOnce(createOk);
+
+      const result = await executePrompt('Hi', '/workspace', 5, 'session-new');
+
+      expect(result).toBe('created ok');
+      expect(mockSpawn).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('returns the resume error directly when it fails for an unrelated reason', async () => {
+    const resumeFail = createMockProcess({ exitCode: 1, stderr: 'permission denied' });
+    mockSpawn.mockReturnValue(resumeFail);
+
+    const result = await executePrompt('Hi', '/workspace', 5, 'session-x');
+
+    expect(result).toContain('[error]');
+    expect(result).toContain('permission denied');
+    expect(mockSpawn).toHaveBeenCalledTimes(1);
+  });
+
   it('returns timeout error when process exceeds TIMEOUT_MS', async () => {
     vi.useFakeTimers();
 

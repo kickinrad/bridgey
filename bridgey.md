@@ -70,15 +70,17 @@ The bridgey ecosystem ships as three coordinated plugins rather than one. The sp
 - If the deploy lifecycle gets coupled to daemon startup → reconsider
 - Otherwise: keep the split. The seams are load-bearing.
 
-## Current deployment (2026-07-02)
+## Current deployment (2026-07-14)
 
-Personas run **local-first on [[Areas/Infrastructure/Devices/Desktops/luna/luna|luna]]**. The bridgey hub (`localhost:8091`) and all 11 mesh personas — archer, bob, flora, julia, kai, mila, nara, reed, urza, warren, zana — run there as `systemd --user` units (`bridgey-persona@<name>.service`), ports 8092–8102, each with an isolated store via `BRIDGEY_DATA_DIR=~/.bridgey/d/<name>`. The hub knows all 11 as configured A2A agents at `http://localhost:809X`; every persona daemon binds localhost. See [[Areas/Personas/Personas|Personas]] for the roster.
+Personas run **one home each**. The bridgey hub (`localhost:8091`) and the 10 luna-resident personas — archer, flora, kai, mila, nara, reed, rosie, urza, warren, zana — run on [[Areas/Infrastructure/Devices/Desktops/luna/luna|luna]] as `systemd --user` units (`bridgey-persona@<name>.service`), ports 8093–8103, each with an isolated store via `BRIDGEY_DATA_DIR=~/.bridgey/d/<name>`; every luna persona daemon binds localhost. See [[Areas/Personas/Personas|Personas]] for the roster.
 
-Cloud ([[Areas/Infrastructure/Devices/Remote/cloud/cloud|cloud]], Hetzner + Coolify) keeps only what needs 24/7 uptime independent of luna: the `bridgey-julia` and `bridgey-bob` persona daemons plus their `bridgey-discord-julia` / `bridgey-discord-bob` bots. These coexist with julia's and bob's luna daemons on different transports — cloud serves Discord, luna serves hub A2A. Everything else that used to run on cloud (`bridgey-flora`, `bridgey-warren`, `bridgey-mila`, `bridgey-nara`, the shared `bridgey-discord` bot, and `agentgateway`) is stopped and renamed `-retired-20260702`, not deleted.
+julia and bob live on [[Areas/Infrastructure/Devices/Remote/cloud/cloud|cloud]] (Hetzner + Coolify) — the Discord-facing personas need 24/7 uptime independent of luna. Each runs a `bridgey-<name>` persona daemon plus a dedicated `bridgey-discord-<name>` bot; the hub's registry reaches them over Tailscale at `http://cloud:8092` / `http://cloud:8094`. Their former luna spokes are retired (units disabled 2026-07-13, configs kept as `~/.bridgey/personas/<name>.config.json.retired-20260713`). Everything else that used to run on cloud (`bridgey-flora`, `bridgey-warren`, `bridgey-mila`, `bridgey-nara`, the shared `bridgey-discord` bot, and `agentgateway`) is stopped and renamed `-retired-20260702`, not deleted.
 
 **agentgateway retired.** The HTTP-MCP gateway that fronted `mealie-mcp` for cloud personas is gone. Personas that use recipe tools now register `mealie-mcp` directly (julia: MCP server `mealie`, SSE transport, `http://mealie-mcp:8000/sse`) instead of routing through a gateway. Tailscale identity-auth hardening for the daemon transport + channel routes — originally paired with the agentgateway integration branch — shipped to `main` independently (`feat/daemon-identity-auth`); the gateway itself did not ship.
 
-**Discord transport hardened.** `bridgey-discord` 0.4.1 adds transport-registration retry (survives the daemon-startup race) and background re-registration if the daemon restarts, deployed to both cloud bots.
+**Headless tool grants.** Cold-spawned `claude -p` sessions never accept workspace trust, so settings-file permission rules are dead headless. Per-persona MCP grants live in the daemon config (`allowed_tools: ["mcp__mealie"]`, daemon ≥0.9.3) and flow to `--allowedTools` — the only grant path that works. Server availability still comes from the workspace `.mcp.json` plus `enabledMcpjsonServers` in the persona's tracked settings.
+
+**Discord transport hardened.** `bridgey-discord` 0.4.1 adds transport-registration retry (survives the daemon-startup race) and background re-registration if the daemon restarts. Caveat proven live 2026-07-14: the running cloud bot containers predate this code — a daemon restart orphaned julia's transport until her bot was restarted. Rebuild the bot image to put the retry code into production.
 
 ## See also
 

@@ -109,7 +109,7 @@ The whole runtime is systemd-owned (`systemctl --user`) — no unsupervised back
 | Unit | Runs | Restart policy |
 |------|------|----------------|
 | `bridgey-hub.service` | Host hub daemon (`apps/daemon/dist/daemon.js start`, config `~/.bridgey/bridgey.config.json`) | `Restart=always` |
-| `bridgey-persona@<name>.service` | Per-persona spoke daemon (12 instances: archer, bob, flora, julia, kai, mila, nara, reed, rosie, urza, warren, zana), isolated data dir per instance (`BRIDGEY_DATA_DIR=%h/.bridgey/d/%i`) | `Restart=always` |
+| `bridgey-persona@<name>.service` | Per-persona spoke daemon (10 luna instances: archer, flora, kai, mila, nara, reed, rosie, urza, warren, zana — julia + bob live on cloud, hub-routed over Tailscale), isolated data dir per instance (`BRIDGEY_DATA_DIR=%h/.bridgey/d/%i`) | `Restart=always` |
 | `bridgey-tailscan.timer` + `.service` | Tailnet peer scan (`apps/daemon/dist/scan-cli.js`), oneshot, every 10 minutes | N/A (timer-triggered) |
 
 All three ExecStart lines point at `apps/*/dist/` — rebuild (`npm run build`) and restart the relevant unit(s) after every pull; `systemctl --user is-active` only confirms the unit is *running*, not that it's running the current build (check `/proc/<pid>/cmdline` or `readlink /proc/<pid>/exe` against the unit's `ExecStart` path to be sure). There is no SessionStart hook anymore — the hub used to be launched by a detached `setsid nohup` bootstrap from the plugin's SessionStart hook, and the tailnet scan used to ride along on every session start; both are retired in favor of the units above.

@@ -62,10 +62,10 @@ node -e "console.log('brg_' + require('crypto').randomBytes(32).toString('hex'))
 For a one-line probe outside the full status dashboard:
 
 ```bash
-curl -s http://localhost:8092/health | jq .
+curl -s http://localhost:8091/health | jq .
 ```
 
-Container deployments use the Tailscale IP or Docker host. Expected response includes `{"status":"ok",...}`. Failures point to `~/.bridgey/daemon.log` for diagnostics.
+Local port map: hub daemon 8091; persona spoke daemons 8092–8103. Container deployments use the Tailscale IP or Docker host. Expected response includes `{"status":"ok",...}`. Failures point to `~/.bridgey/daemon.log` for diagnostics.
 
 ## Manual daemon control
 

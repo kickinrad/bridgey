@@ -25,7 +25,7 @@ Present a formatted status overview:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Daemon:  ● running (uptime: 2h 34m)
 Name:    cloud-coder
-Port:    8092
+Port:    8091
 Bind:    localhost
 
 Agents (3 connected):
@@ -73,10 +73,10 @@ If agents return 429:
 
 ### Quick status
 
-For a quick one-liner check, run:
+For a quick one-liner check, run (local port map: hub daemon 8091; persona spokes 8092–8103):
 
 ```bash
-curl -s http://localhost:8092/health | jq .
+curl -s http://localhost:8091/health | jq .
 ```
 
 For container deployments, use the Tailscale IP or Docker host:

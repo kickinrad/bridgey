@@ -4,7 +4,7 @@
       "command": "node",
       "args": ["${HOME}/projects/markets/bridgey/apps/server/dist/server.js"],
       "env": {
-        "BRIDGEY_DAEMON_PORT": "8092"
+        "BRIDGEY_DAEMON_PORT": "8091"
       }
     }
   }

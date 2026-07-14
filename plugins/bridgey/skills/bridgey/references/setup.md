@@ -16,7 +16,7 @@ Ask the user for each setting (provide sensible defaults):
 |---------|---------|-------------|
 | **name** | hostname or directory name | Unique agent name for this instance |
 | **description** | "Claude Code assistant" | Human-readable description (used in Agent Card) |
-| **port** | 8092 | HTTP port for the daemon |
+| **port** | 8091 | HTTP port for the hub daemon (persona spokes use 8092–8103) |
 | **bind** | "localhost" | Network binding: `localhost`, `lan`, `0.0.0.0`, or custom IP |
 | **workspace** | current working directory | Working directory for inbound requests |
 | **max_turns** | 10 | Max turns for `claude -p` on inbound requests |
@@ -57,7 +57,7 @@ Write `~/.bridgey/bridgey.config.json`:
 {
   "name": "my-coder",
   "description": "General purpose Claude Code assistant",
-  "port": 8092,
+  "port": 8091,
   "bind": "localhost",
   "token": "brg_a1b2c3d4...",
   "workspace": ".",
@@ -81,7 +81,7 @@ node ~/projects/markets/bridgey/apps/daemon/dist/daemon.js start \
 Verify it started by checking the health endpoint:
 
 ```bash
-curl -s http://localhost:8092/health
+curl -s http://localhost:8091/health
 ```
 
 ### 6. Confirm success

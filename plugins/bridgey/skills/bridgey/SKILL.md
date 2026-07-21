@@ -43,7 +43,7 @@ Read the reference file before starting the workflow — each contains the full 
 
 **Config location.** `~/.bridgey/bridgey.config.json` survives plugin updates. Do not edit manually unless the user asks — use the workflows in `references/setup.md` and `references/agents.md`. The daemon picks up changes on next request, or restart with the stop/start commands documented in those references.
 
-**Token discipline.** Bearer tokens are prefixed `brg_` and generated via `crypto.randomBytes(32).toString('hex')`. Store secrets in `pass` (`pass insert bridgey/agent-name-token`) — never hardcode in committed config. Generate inline:
+**Token discipline.** Bearer tokens are prefixed `brg_` and generated via `crypto.randomBytes(32).toString('hex')`. Store secrets as POSIX-named items in the 1Password `Automation` vault — `BRIDGEY_TOKEN_<NAME>` (e.g. `BRIDGEY_TOKEN_JULIA`), created via `op item create --vault Automation --category "API Credential" --title BRIDGEY_TOKEN_<NAME> value=<token>` (Wils runs it; never paste or display the value). Read back inline: `OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.config/op/luna.token)" op read "op://Automation/BRIDGEY_TOKEN_<NAME>/value"`. Never hardcode in committed config. Generate inline:
 
 ```bash
 node -e "console.log('brg_' + require('crypto').randomBytes(32).toString('hex'))"

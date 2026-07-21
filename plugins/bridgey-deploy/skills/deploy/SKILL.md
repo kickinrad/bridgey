@@ -223,13 +223,13 @@ ssh {tailscale_host} "docker exec agent-{name} claude -p 'respond with exactly: 
 
 Delegate to `Skill('infra:coolify')` — it handles service creation, env var configuration, and deployment via the Coolify API.
 
-**Credential preflight:** the Coolify API token lives in `pass` (`coolify/api-token`). Before any step that needs `pass`, check the gpg cache:
+**Credential preflight:** the Coolify API token is the `COOLIFY_API_TOKEN` item in the 1Password `Automation` vault, read via the luna service-account token. Before any step that needs it, probe the exit code:
 
 ```bash
-pass show coolify/api-token >/dev/null 2>&1; echo $?
+OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.config/op/luna.token)" op read "op://Automation/COOLIFY_API_TOKEN/value" >/dev/null 2>&1; echo $?
 ```
 
-A non-zero exit with `public key decryption failed` means the gpg-agent passphrase cache is cold — not a broken environment or a missing credential. Pinentry can't open a TTY from any non-interactive Claude Code shell (main thread and subagents alike), so `pass` only works from automation while the cache is warm. **Remedy:** ask the user to run any `pass show` in an interactive terminal; the cache then holds for 8h (`default-cache-ttl 28800`). Never work around a cold cache by exporting secrets to env vars, enabling loopback pinentry, or echoing secret values. **Fallback:** if the cache can't be warmed (unattended run), use Tailscale SSH + compose commands on the server instead of the Coolify API, and note that the API-driven path was skipped — don't report Coolify itself as unreachable.
+A non-zero exit means a credential problem, not a Coolify outage: a missing/unreadable `~/.config/op/luna.token`, a revoked service account, or a missing item. Missing item → give Wils the exact command and wait: `op item create --vault Automation --category "API Credential" --title COOLIFY_API_TOKEN value=<token>`. Never work around a failed probe by exporting secret values to env vars or echoing them. **Fallback:** if the credential can't be reached (unattended run), use Tailscale SSH + compose commands on the server instead of the Coolify API, and note that the API-driven path was skipped — don't report Coolify itself as unreachable.
 
 After the Coolify skill completes, return here for Phase 7 post-install steps.
 
